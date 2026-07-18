@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-07-18 12:41 -03:00, Codex.
+Ultima atualizacao: 2026-07-18 12:46 -03:00, Codex.
+
+## 2026-07-18 12:46 (-03:00) - Codex - Estudos consolidados e publicados
+
+Feito: validados os cinco guias HTML, seus 28 links locais e os 8 links do `README.md`; executada varredura por credenciais e arquivos sensiveis; criado o commit principal `200cdf5` (`docs: consolidate fase 3 study guides`) e realizado push com sucesso para `origin/dev`.
+
+Decisoes/Por que: manter como historico as exclusoes dos guias Markdown rejeitados e publicar somente os cinco guias HTML vigentes. O `README.md`, `CLAUDE.md` e os arquivos de `00_COLAB_IA/` foram alinhados a D-005.
+
+Arquivos: cinco guias `GUIA-ESTUDO-*.html`, `README.md`, `CLAUDE.md`, arquivos de contexto em `00_COLAB_IA/` e remocao de `docs/guias-de-estudo/fase-2/`.
+
+Descobertas: todos os guias usam UTF-8 valido, nao possuem dados pessoais dos PDFs e apontam para materiais locais existentes. Nenhum padrao de credencial, `.env`, chave privada, kubeconfig ou `terraform.tfstate` foi encontrado.
+
+Estado p/ o proximo agente: estudos da Fase 3 consolidados no branch `dev`. A implementacao permanece aguardando pedido explicito; proximas pendencias tecnicas sao P-003 a P-006.
 
 ## 2026-07-18 12:41 (-03:00) - Codex - Inicio da consolidacao dos estudos
 

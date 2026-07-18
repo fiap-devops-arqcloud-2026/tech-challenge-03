@@ -2,7 +2,7 @@
 
 TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs. A implementacao aguarda pedido explicito.
 
-Ultima atualizacao: 2026-07-18 12:41 -03:00, Codex.
+Ultima atualizacao: 2026-07-18 12:46 -03:00, Codex.
 
 ## 1 Objetivo
 
@@ -29,6 +29,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - Em 2026-07-18 o modulo Infraestrutura como Codigo tambem recebeu seu guia HTML.
 - Em 2026-07-18 o modulo Seguranca em DevOps (DevSecOps) recebeu seu guia HTML.
 - Em 2026-07-18 o modulo Seguranca na Cloud recebeu seu guia HTML, concluindo a trilha de estudos da Fase 3.
+- Em 2026-07-18 o estado consolidado foi publicado no branch `dev`; o commit principal dos guias e `200cdf5`.
 
 ## 4 Arquivos/caminhos
 
@@ -100,6 +101,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - 2026-07-18: analisadas as 8 aulas de Infraestrutura como Codigo e criado `docs/03_Infraestrutura como codigo/GUIA-ESTUDO-Infraestrutura-como-Codigo.html`.
 - 2026-07-18: analisadas as 7 aulas de DevSecOps e criado `docs/04_Seguranca em DevOps (DevSecOps)/GUIA-ESTUDO-Seguranca-em-DevOps-DevSecOps.html`.
 - 2026-07-18: analisadas as 5 aulas de Seguranca na Cloud e criado `docs/05_Seguranca na Cloud/GUIA-ESTUDO-Seguranca-na-Cloud.html`, concluindo os guias dos cinco modulos.
+- 2026-07-18: cinco guias, README e contexto consolidados no commit `200cdf5` e enviados para `origin/dev`.
 
 ## 11 Memoria interna <-> espelho
 

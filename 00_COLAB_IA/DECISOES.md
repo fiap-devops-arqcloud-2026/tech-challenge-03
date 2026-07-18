@@ -2,7 +2,7 @@
 
 TL;DR: decisoes atuais concentram destino dos guias, estrategia de documentacao e direcao tecnica da Fase 3.
 
-Ultima atualizacao: 2026-07-17 16:31 -03:00, Codex.
+Ultima atualizacao: 2026-07-18 12:41 -03:00, Codex.
 
 ## D-001 - Repo destino da Fase 3
 
@@ -22,7 +22,17 @@ Decisao: criar guias derivados em `docs/guias-de-estudo/fase-2/`, separados por 
 
 Alternativas: copiar os PDFs; salvar tudo em uma pasta unica; editar o repo da Fase 2.
 
-Status: implementada em 2026-07-17.
+Status: substituida por D-005 em 2026-07-18. Os guias Markdown foram removidos por decisao do usuario.
+
+## D-005 - Guias HTML por modulo
+
+Contexto: os guias Markdown agrupados em `docs/guias-de-estudo/fase-2/` nao atenderam ao usuario e foram apagados. O usuario decidiu estudar os materiais da Fase 3 por partes e indicou `GUIA-ESTUDO-Introducao-a-Containers.html` como padrao visual e didatico.
+
+Decisao: criar um guia HTML por vez, salvo dentro da pasta do proprio modulo, seguindo a estrutura: introducao para leigos, glossario, fichas com finalidade/caso de uso/aplicacao no ToggleMaster e resumo.
+
+Alternativas: manter os guias Markdown anteriores; agrupar todos os guias em uma pasta separada; gerar todos os modulos de uma vez.
+
+Status: implementada em 2026-07-18 para os cinco modulos da Fase 3. Substitui D-002.
 
 ## D-003 - Direcao tecnica da Fase 3
 
@@ -38,8 +48,8 @@ Status: direcao atual.
 
 Contexto: materiais da Fase 2 ajudam a entender containers, Kubernetes, escalabilidade e balanceamento.
 
-Decisao: usar PDFs e guias HTML existentes como fonte, mas nao copiar os PDFs para o repo da Fase 3. Registrar sintese propria em Markdown.
+Decisao: usar PDFs e guias HTML existentes como fonte, mas nao copiar os PDFs para o repo da Fase 3. Registrar apenas sinteses proprias no formato vigente definido pelo usuario.
 
 Alternativas: versionar todo o material da Fase 2 no repo da Fase 3.
 
-Status: implementada em 2026-07-17.
+Status: tratamento da fonte mantido. O formato Markdown foi substituido pelo HTML de D-005 em 2026-07-18.

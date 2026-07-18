@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CI/CD - Guia para Leigos</title>
+  <style>
+    :root{
+      --bg:#eef2f8; --surface:#ffffff; --surface-2:#e7eef7; --panel:#f5f8fc;
+      --ink:#132339; --ink-soft:#4c5f79; --ink-faint:#7787a0;
+      --line:#d3ddea; --line-soft:#e2e9f2;
+      --accent:#2f6ae0; --accent-ink:#1c4aa8; --accent-wash:#e7eefb;
+      --brass:#b26a10; --brass-wash:#f6ecdd;
+      --ok:#2c8159; --warn:#a9741a; --no:#7a869a;
+      --serif:Georgia,"Iowan Old Style","Palatino Linotype","Times New Roman",serif;
+      --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+      --mono:"Cascadia Code",Consolas,"SFMono-Regular",ui-monospace,monospace;
+    }
+    @media (prefers-color-scheme:dark){:root{
+      --bg:#0c1725; --surface:#152539; --surface-2:#101f31; --panel:#132234;
+      --ink:#e6edf6; --ink-soft:#a4b6cc; --ink-faint:#7488a2;
+      --line:#26394f; --line-soft:#1d2d40;
+      --accent:#6c9cf1; --accent-ink:#9cbdf8; --accent-wash:#16273f;
+      --brass:#e0a552; --brass-wash:#241c11; --ok:#59bf8c; --warn:#e0a552; --no:#7f8aa0;
+    }}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+    .wrap{max-width:900px;margin:0 auto;padding:clamp(20px,4vw,52px) clamp(16px,4vw,32px)}
+    .masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+    .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 12px}
+    .masthead h1{font-family:var(--serif);font-weight:700;font-size:clamp(1.9rem,5.6vw,3rem);line-height:1.05;margin:0;text-wrap:balance}
+    .masthead .sub{font-size:clamp(1rem,2.4vw,1.18rem);color:var(--ink-soft);margin:.5em 0 0;max-width:62ch}
+    .meta{font-family:var(--mono);font-size:.74rem;color:var(--ink-faint);margin-top:16px;display:flex;flex-wrap:wrap;gap:6px 18px}
+    h2{font-family:var(--serif);font-weight:700;font-size:clamp(1.4rem,3.4vw,1.9rem);margin:52px 0 6px;text-wrap:balance}
+    .section-rule{height:3px;width:56px;background:var(--accent);border-radius:2px;margin:14px 0 24px}
+    p{max-width:68ch}
+    .lead{color:var(--ink-soft);margin:0 0 22px;max-width:66ch}
+    strong{color:var(--ink)}
+    a{color:var(--accent-ink);text-underline-offset:3px}
+    .intro{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+    @media(max-width:620px){.intro{grid-template-columns:1fr}}
+    .intro .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+    .intro .box h3{margin:0 0 8px;font-size:1.05rem;font-family:var(--sans);font-weight:700}
+    .intro .box p{margin:0;font-size:.96rem;color:var(--ink-soft);max-width:none}
+    .intro .box.hi{border-color:var(--brass);background:var(--brass-wash)}
+    .glossary{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:clamp(16px,3vw,26px);display:grid;grid-template-columns:1fr 1fr;gap:2px 26px}
+    @media(max-width:640px){.glossary{grid-template-columns:1fr}}
+    .term{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+    .term .k{font-family:var(--mono);font-weight:700;color:var(--accent-ink);font-size:.92rem}
+    .term .full{font-style:italic;color:var(--ink-faint);font-size:.86rem;margin-left:6px}
+    .term .d{display:block;color:var(--ink-soft);font-size:.94rem;margin-top:2px}
+    .lessons{display:flex;flex-direction:column;gap:18px}
+    .lesson{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:clamp(18px,3vw,26px);transition:border-color .18s ease}
+    .lesson:hover{border-color:var(--accent)}
+    .lesson-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+    .num{font-family:var(--serif);font-size:2.1rem;font-weight:700;line-height:1;color:var(--accent);min-width:1.6em;font-variant-numeric:tabular-nums}
+    .lesson-head h3{margin:2px 0 8px;font-size:clamp(1.12rem,2.6vw,1.3rem);font-family:var(--sans);font-weight:700;line-height:1.25}
+    .badge{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid currentColor}
+    .badge.ok{color:var(--ok)}
+    .badge.warn{color:var(--warn)}
+    .badge.no{color:var(--no)}
+    .facets{margin:0;display:grid;gap:14px}
+    .facets > div{display:grid;grid-template-columns:150px 1fr;gap:4px 18px;align-items:baseline}
+    @media(max-width:600px){.facets > div{grid-template-columns:1fr}}
+    .facets dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);margin:0}
+    .facets dd{margin:0;color:var(--ink-soft);font-size:.97rem}
+    .facets dd.proj{color:var(--ink)}
+    .facets .use{color:var(--brass)}
+    code{font-family:var(--mono);font-size:.86em;background:var(--accent-wash);color:var(--accent-ink);padding:1px 6px;border-radius:5px}
+    .flow{margin:0;padding:0;list-style:none;counter-reset:flow;display:grid;gap:12px}
+    .flow li{counter-increment:flow;display:grid;grid-template-columns:38px 1fr;gap:13px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+    .flow li::before{content:counter(flow);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent-wash);color:var(--accent-ink);font-family:var(--mono);font-size:.78rem;font-weight:700}
+    .flow strong{display:block;margin-bottom:2px}
+    .flow span{color:var(--ink-soft);font-size:.95rem}
+    .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+    table{border-collapse:collapse;width:100%;min-width:680px;font-size:.92rem}
+    th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line-soft)}
+    thead th{background:var(--surface-2);font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+    tbody tr:last-child td{border-bottom:none}
+    td .s{font-family:var(--mono);font-size:.78rem;font-weight:700}
+    td .s.ok{color:var(--ok)}
+    td .s.warn{color:var(--warn)}
+    td .s.no{color:var(--no)}
+    td .num2{font-family:var(--serif);font-weight:700;color:var(--accent)}
+    .note{margin-top:20px;padding:16px 18px;border-left:4px solid var(--brass);background:var(--brass-wash);color:var(--ink-soft)}
+    .note strong{display:block;margin-bottom:3px}
+    .sources{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px;margin:0;padding:0;list-style:none}
+    .sources li{border-bottom:1px solid var(--line-soft);padding:8px 0;font-size:.92rem}
+    @media(max-width:640px){.sources{grid-template-columns:1fr}}
+    footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:.86rem}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="masthead">
+      <p class="eyebrow">Módulo 2 · DevOps e Arquitetura Cloud · FIAP</p>
+      <h1>CI/CD</h1>
+      <p class="sub">Da primeira esteira automática até GitOps, Terraform, serverless e AIOps - em 7 aulas, com siglas explicadas e aplicação prática no ToggleMaster.</p>
+      <div class="meta">
+        <span>Guia de estudo</span>
+        <span>7 aulas</span>
+        <span>+ glossário de siglas</span>
+        <span>+ pipeline do Tech Challenge</span>
+        <span>Atualizado em 2026-07-18</span>
+      </div>
+    </header>
+
+    <section aria-label="Visão geral">
+      <div class="intro">
+        <div class="box">
+          <h3>O que é CI/CD?</h3>
+          <p>É uma <strong>linha de montagem do software</strong>. Cada mudança percorre automaticamente estações de build, teste, segurança e entrega. Se uma estação encontra um problema, a versão para antes de chegar ao usuário.</p>
+        </div>
+        <div class="box hi">
+          <h3>Por que combina com o nosso projeto</h3>
+          <p>O ToggleMaster tem cinco microsserviços. Repetir manualmente testes, imagens e implantações para todos eles seria lento. Com pipelines reutilizáveis, seguimos o <strong>mesmo padrão de qualidade</strong> para cada serviço e sabemos exatamente qual versão está no EKS.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Glossário - o significado das siglas</h2>
+      <div class="section-rule"></div>
+      <p class="lead">Os termos mais importantes das sete aulas, traduzidos para uma linguagem direta.</p>
+      <div class="glossary">
+        <div class="term"><span class="k">CI</span><span class="full">Continuous Integration</span><span class="d">Integração contínua: juntar e testar mudanças de código frequentemente.</span></div>
+        <div class="term"><span class="k">CD</span><span class="full">Continuous Delivery</span><span class="d">Entrega contínua: deixar a versão pronta para produção, mantendo uma aprovação final.</span></div>
+        <div class="term"><span class="k">CD</span><span class="full">Continuous Deployment</span><span class="d">Implantação contínua: publicar automaticamente toda versão que passar nas validações.</span></div>
+        <div class="term"><span class="k">DevOps</span><span class="d">Cultura que aproxima desenvolvimento e operações para entregar software com frequência e segurança.</span></div>
+        <div class="term"><span class="k">Pipeline</span><span class="d">Sequência automatizada de tarefas que leva o código até uma versão entregável.</span></div>
+        <div class="term"><span class="k">PaC</span><span class="full">Pipeline as Code</span><span class="d">Pipeline escrito em arquivo versionado junto com o projeto.</span></div>
+        <div class="term"><span class="k">GitHub Actions</span><span class="d">Serviço do GitHub que executa workflows de automação ligados ao repositório.</span></div>
+        <div class="term"><span class="k">Jenkins</span><span class="d">Servidor de automação muito personalizável, mas que a própria equipe precisa manter.</span></div>
+        <div class="term"><span class="k">Workflow</span><span class="d">O fluxo completo de automação executado pelo GitHub Actions.</span></div>
+        <div class="term"><span class="k">Job</span><span class="d">Um grupo de tarefas executado por uma máquina do pipeline.</span></div>
+        <div class="term"><span class="k">Step</span><span class="full">passo</span><span class="d">Uma ação individual dentro de um job, como instalar dependências ou rodar testes.</span></div>
+        <div class="term"><span class="k">Action</span><span class="d">Bloco reutilizável que executa uma tarefa no GitHub Actions.</span></div>
+        <div class="term"><span class="k">Runner</span><span class="d">Máquina que recebe e executa os jobs do pipeline.</span></div>
+        <div class="term"><span class="k">Build</span><span class="d">Transformar o código e suas dependências em um pacote ou imagem executável.</span></div>
+        <div class="term"><span class="k">Test</span><span class="full">teste</span><span class="d">Verificação automática de que a mudança continua funcionando.</span></div>
+        <div class="term"><span class="k">Deploy</span><span class="full">implantação</span><span class="d">Colocar uma versão em um ambiente onde ela possa ser executada.</span></div>
+        <div class="term"><span class="k">Gate</span><span class="full">portão</span><span class="d">Validação que precisa passar para a próxima etapa começar.</span></div>
+        <div class="term"><span class="k">SAST</span><span class="full">Static Application Security Testing</span><span class="d">Analisa o código-fonte sem executar a aplicação para encontrar vulnerabilidades.</span></div>
+        <div class="term"><span class="k">SCA</span><span class="full">Software Composition Analysis</span><span class="d">Procura vulnerabilidades conhecidas nas bibliotecas e dependências do projeto.</span></div>
+        <div class="term"><span class="k">DAST</span><span class="full">Dynamic Application Security Testing</span><span class="d">Testa a aplicação funcionando e simula ataques contra ela.</span></div>
+        <div class="term"><span class="k">YAML</span><span class="d">Formato de texto usado para descrever workflows e configurações.</span></div>
+        <div class="term"><span class="k">Multi-stage</span><span class="d">Pipeline dividido em fases lógicas, como build, test e deploy.</span></div>
+        <div class="term"><span class="k">Matrix strategy</span><span class="d">Cria várias execuções a partir de combinações de versões ou ambientes.</span></div>
+        <div class="term"><span class="k">Workflow reutilizável</span><span class="d">Pipeline central que pode ser chamado por vários projetos ou serviços.</span></div>
+        <div class="term"><span class="k">Artifact</span><span class="full">artefato</span><span class="d">Arquivo produzido pelo pipeline, como relatório, binário ou plano do Terraform.</span></div>
+        <div class="term"><span class="k">Registry</span><span class="full">registro</span><span class="d">Armazém de imagens de containers.</span></div>
+        <div class="term"><span class="k">ECR</span><span class="full">Elastic Container Registry</span><span class="d">Registro de imagens da AWS.</span></div>
+        <div class="term"><span class="k">AWS</span><span class="full">Amazon Web Services</span><span class="d">Plataforma de serviços de nuvem usada no Tech Challenge.</span></div>
+        <div class="term"><span class="k">EKS</span><span class="full">Elastic Kubernetes Service</span><span class="d">Serviço gerenciado de Kubernetes da AWS.</span></div>
+        <div class="term"><span class="k">Kubernetes</span><span class="d">Plataforma que distribui e mantém containers em execução.</span></div>
+        <div class="term"><span class="k">Helm</span><span class="d">Gerenciador de pacotes do Kubernetes, baseado em templates chamados charts.</span></div>
+        <div class="term"><span class="k">Kustomize</span><span class="d">Personaliza manifestos Kubernetes aplicando alterações sobre uma base comum.</span></div>
+        <div class="term"><span class="k">Blue/Green</span><span class="d">Mantém dois ambientes e troca o tráfego para a nova versão quando ela estiver pronta.</span></div>
+        <div class="term"><span class="k">Canary</span><span class="full">canário</span><span class="d">Libera a nova versão para uma pequena parte dos usuários antes de ampliar.</span></div>
+        <div class="term"><span class="k">GitOps</span><span class="d">Usa o Git como fonte da verdade sobre como o ambiente deve estar.</span></div>
+        <div class="term"><span class="k">Push</span><span class="d">O pipeline empurra diretamente a mudança para o ambiente.</span></div>
+        <div class="term"><span class="k">Pull</span><span class="d">Um agente dentro do ambiente consulta o Git e puxa o estado desejado.</span></div>
+        <div class="term"><span class="k">ArgoCD</span><span class="d">Operador GitOps para Kubernetes, conhecido pela interface visual e facilidade de uso.</span></div>
+        <div class="term"><span class="k">FluxCD</span><span class="d">Operador GitOps modular, muito orientado a automação por linha de comando.</span></div>
+        <div class="term"><span class="k">IaC</span><span class="full">Infrastructure as Code</span><span class="d">Infraestrutura declarada em arquivos de código.</span></div>
+        <div class="term"><span class="k">Terraform</span><span class="d">Ferramenta declarativa usada para criar e alterar infraestrutura.</span></div>
+        <div class="term"><span class="k">HCL</span><span class="full">HashiCorp Configuration Language</span><span class="d">Linguagem usada nos arquivos Terraform.</span></div>
+        <div class="term"><span class="k">State</span><span class="full">estado</span><span class="d">Registro que relaciona o código Terraform aos recursos existentes.</span></div>
+        <div class="term"><span class="k">Module</span><span class="full">módulo</span><span class="d">Conjunto reutilizável de recursos Terraform.</span></div>
+        <div class="term"><span class="k">Workspace</span><span class="d">Estado separado para executar a mesma configuração em contextos diferentes.</span></div>
+        <div class="term"><span class="k">OpenTofu</span><span class="d">Alternativa aberta e compatível com grande parte do ecossistema Terraform.</span></div>
+        <div class="term"><span class="k">BSL</span><span class="full">Business Source License</span><span class="d">Licença adotada pela HashiCorp que motivou a criação do OpenTofu por parte da comunidade.</span></div>
+        <div class="term"><span class="k">Serverless</span><span class="full">sem gerenciar servidores</span><span class="d">O provedor cuida dos servidores; a equipe concentra-se no código.</span></div>
+        <div class="term"><span class="k">FaaS</span><span class="full">Function as a Service</span><span class="d">Executar pequenas funções sob demanda, como no AWS Lambda.</span></div>
+        <div class="term"><span class="k">AWS SAM</span><span class="full">Serverless Application Model</span><span class="d">Ferramenta que simplifica a definição e o deploy de aplicações serverless na AWS.</span></div>
+        <div class="term"><span class="k">CloudFormation</span><span class="d">Serviço de infraestrutura como código nativo da AWS, usado por baixo do SAM.</span></div>
+        <div class="term"><span class="k">OIDC</span><span class="full">OpenID Connect</span><span class="d">Permite ao pipeline obter credenciais temporárias sem guardar chaves AWS permanentes.</span></div>
+        <div class="term"><span class="k">AIOps</span><span class="full">Artificial Intelligence for IT Operations</span><span class="d">Uso de IA para analisar dados operacionais, prever falhas e automatizar respostas.</span></div>
+        <div class="term"><span class="k">Rollback</span><span class="d">Voltar para uma versão anterior quando a nova apresenta problema.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>As 7 aulas, uma a uma</h2>
+      <div class="section-rule"></div>
+      <p class="lead">Cada ficha explica o conteúdo, sua utilidade, um caso real e como ele se encaixa no Tech Challenge.</p>
+
+      <div class="lessons">
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">01</span>
+            <div>
+              <h3>Fundamentos e Arquitetura de Pipelines de CI/CD</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Apresenta a linha de montagem: cada mudança passa por build, testes e entrega. Também mostra a diferença entre deixar uma versão pronta e publicá-la automaticamente.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>CI, Continuous Delivery, Continuous Deployment, DevOps, Pipeline as Code, workflow, job, step, action, Jenkins, GitHub Actions, Shift Left, SAST, SCA e DAST.</dd></div>
+            <div><dt>Para que serve</dt><dd>Padronizar a entrega, reduzir erros manuais e descobrir bugs ou vulnerabilidades mais cedo.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Uma pull request inicia build e testes. Se um teste falha, o pipeline bloqueia a união daquela mudança.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">O GitHub Actions será a ferramenta principal para validar cada microsserviço antes de produzir uma nova imagem.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">02</span>
+            <div>
+              <h3>Otimização e Escalabilidade de Pipelines</h3>
+              <span class="badge ok">Muito útil no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Depois que a esteira funciona, aprendemos a dividi-la em estações claras, executar tarefas ao mesmo tempo e reaproveitar a mesma receita em vários projetos.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>Multi-stage, dependência com <code>needs</code>, paralelismo, matrix strategy, <code>include</code>, <code>exclude</code>, <code>fail-fast</code> e workflows reutilizáveis.</dd></div>
+            <div><dt>Para que serve</dt><dd>Diminuir o tempo de espera, facilitar diagnósticos e garantir um padrão comum em escala.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Testar várias versões de uma linguagem em paralelo ou executar os testes dos cinco serviços simultaneamente.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Podemos criar workflows reutilizáveis de teste, análise e publicação, chamados pelas pipelines de `auth`, `flag`, `targeting`, `evaluation` e `analytics`.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">03</span>
+            <div>
+              <h3>Entrega Contínua para Kubernetes</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Ensina o caminho entre o código aprovado e o Kubernetes: construir a imagem, enviá-la ao registro e atualizar a aplicação com menor risco.</dd></div>
+            <div><dt>Siglas e termos</dt><dd><code>build → push → deploy</code>, imagem, registry, manifesto YAML, Helm, Kustomize, Blue/Green, Canary, GitOps, ArgoCD e FluxCD.</dd></div>
+            <div><dt>Para que serve</dt><dd>Automatizar a entrega de containers e controlar como uma nova versão substitui a anterior.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Liberar uma nova versão para uma pequena parcela do tráfego e ampliar somente depois que ela demonstrar estabilidade.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">A pipeline produzirá uma imagem identificada pela versão do código e a implantação final ocorrerá no cluster EKS.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">04</span>
+            <div>
+              <h3>Adoção de GitOps com ArgoCD e FluxCD</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>O Git passa a guardar a “foto oficial” de como o ambiente deve estar. Um operador compara essa foto com o Kubernetes e corrige diferenças.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>GitOps, estado desejado, reconciliação, fonte única da verdade, push-based, pull-based, ArgoCD, FluxCD e entrega progressiva.</dd></div>
+            <div><dt>Para que serve</dt><dd>Aumentar rastreabilidade, consistência e segurança, evitando dar ao pipeline acesso administrativo direto ao cluster.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Alguém altera manualmente uma configuração no Kubernetes. O ArgoCD detecta o desvio e restaura o estado registrado no Git.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Usaremos ArgoCD: o pipeline atualiza no Git a tag da imagem aprovada, e o ArgoCD puxa essa mudança e sincroniza o EKS.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">05</span>
+            <div>
+              <h3>IaC em Pipelines com Terraform</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>A infraestrutura também ganha sua linha de montagem. Antes de modificar a AWS, o Terraform mostra um orçamento detalhado do que pretende criar, alterar ou destruir.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>IaC, HCL, <code>terraform init</code>, <code>terraform plan</code>, <code>terraform apply</code>, plan salvo, state remoto, módulo, workspace, BSL e OpenTofu.</dd></div>
+            <div><dt>Para que serve</dt><dd>Revisar e automatizar mudanças de infraestrutura com histórico, aprovação e estado compartilhado.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Uma pull request mostra o <code>plan</code>. Somente depois da revisão a alteração autorizada é aplicada na AWS.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">A VPC, o EKS, os bancos e os serviços gerenciados serão criados pelo Terraform; o estado deverá permanecer remoto e protegido.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">06</span>
+            <div>
+              <h3>CI/CD para Arquiteturas Serverless</h3>
+              <span class="badge warn">Conhecimento complementar</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Em serverless, o provedor cuida dos servidores e o pipeline concentra-se em empacotar funções e declarar os recursos necessários.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>Serverless, FaaS, AWS Lambda, AWS SAM, CloudFormation, <code>sam build</code>, <code>sam deploy</code>, staging, production e OIDC.</dd></div>
+            <div><dt>Para que serve</dt><dd>Entregar funções sob demanda com rastreabilidade, credenciais temporárias e cobrança ligada ao uso.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Uma função Lambda processa um evento apenas quando ele ocorre, sem manter um servidor ligado continuamente.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Serverless não é o centro da arquitetura baseada em EKS. Porém, o uso de OIDC para o GitHub Actions acessar a AWS com credenciais temporárias é muito útil para o projeto.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">07</span>
+            <div>
+              <h3>AIOps e Automação em Pipelines de CI/CD</h3>
+              <span class="badge warn">Evolução futura</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>A esteira começa a aprender com logs e falhas anteriores para priorizar testes, reduzir alertas inúteis e sugerir ou iniciar correções.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>AIOps, inteligência artificial, aprendizado de máquina, análise preditiva, fadiga de alertas, resposta a incidentes, rollback e self-healing.</dd></div>
+            <div><dt>Para que serve</dt><dd>Sair de uma operação apenas reativa e antecipar problemas com base em padrões.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">A plataforma identifica que determinada combinação costuma falhar, prioriza os testes relevantes e alerta antes do deploy.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">É uma melhoria desejável, não o primeiro passo. Podemos demonstrar alertas e rollback automático; previsões por IA exigiriam histórico e dados suficientes.</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Pipeline recomendado para o Tech Challenge</h2>
+      <div class="section-rule"></div>
+      <p class="lead">Exemplo de como conectar os principais conceitos das aulas ao fluxo de entrega do ToggleMaster.</p>
+      <ol class="flow">
+        <li><div><strong>Pull request criada</strong><span>O GitHub Actions inicia a Integração Contínua para o microsserviço alterado.</span></div></li>
+        <li><div><strong>Build, testes e qualidade</strong><span>Jobs separados validam se o código compila e se o comportamento esperado continua funcionando.</span></div></li>
+        <li><div><strong>Verificações de segurança</strong><span>O pipeline analisa código, dependências e imagem. Risco crítico bloqueia a entrega.</span></div></li>
+        <li><div><strong>Imagem versionada</strong><span>A imagem aprovada recebe uma tag ligada ao commit e é enviada ao ECR.</span></div></li>
+        <li><div><strong>GitOps registra o estado desejado</strong><span>A tag da imagem é atualizada no repositório ou diretório de manifestos.</span></div></li>
+        <li><div><strong>ArgoCD reconcilia o ambiente</strong><span>O operador detecta a mudança no Git e sincroniza o cluster EKS.</span></div></li>
+        <li><div><strong>Observação e recuperação</strong><span>Health checks, logs e alertas ajudam a confirmar a versão; se necessário, ocorre rollback.</span></div></li>
+      </ol>
+      <div class="note">
+        <strong>Pipeline de aplicação e pipeline de infraestrutura são diferentes</strong>
+        A aplicação muda com mais frequência e segue o fluxo de imagens e GitOps. O Terraform deve ter uma esteira própria, com <code>plan</code> revisado antes do <code>apply</code>.
+      </div>
+    </section>
+
+    <section>
+      <h2>Resumo rápido</h2>
+      <div class="section-rule"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Aula</th><th>Palavra-chave</th><th>No ToggleMaster</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="num2">01</span></td><td>Fundamentos de CI/CD</td><td>Pipeline as Code</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">02</span></td><td>Otimização</td><td>Matrix + reutilização</td><td><span class="s ok">MUITO ÚTIL</span></td></tr>
+            <tr><td><span class="num2">03</span></td><td>Entrega no Kubernetes</td><td>Build → push → deploy</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">04</span></td><td>GitOps</td><td>ArgoCD + pull</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">05</span></td><td>Terraform no pipeline</td><td>Plan antes do apply</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">06</span></td><td>Serverless</td><td>SAM + OIDC</td><td><span class="s warn">COMPLEMENTAR</span></td></tr>
+            <tr><td><span class="num2">07</span></td><td>AIOps</td><td>Prever + recuperar</td><td><span class="s warn">EVOLUÇÃO FUTURA</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Materiais consultados</h2>
+      <div class="section-rule"></div>
+      <ul class="sources">
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%201.pdf">Aula 1 - Fundamentos e Arquitetura</a></li>
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%202.pdf">Aula 2 - Otimização e Escalabilidade</a></li>
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%203.pdf">Aula 3 - Entrega para Kubernetes</a></li>
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%204.pdf">Aula 4 - GitOps com ArgoCD e FluxCD</a></li>
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%205.pdf">Aula 5 - IaC com Terraform</a></li>
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%206.pdf">Aula 6 - Arquiteturas Serverless</a></li>
+        <li><a href="POSTECH%20-%20CI-CD%20-%20Aula%207.pdf">Aula 7 - AIOps</a></li>
+      </ul>
+    </section>
+
+    <footer>
+      Guia de estudo do módulo <strong>CI/CD</strong> (FIAP · Tech Challenge Fase 3), organizado a partir das sete aulas e conectado ao projeto <strong>ToggleMaster</strong>. Linguagem simplificada para leigos. Fontes consultadas em 2026-07-18.
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,8 +1,8 @@
 # Tech Challenge 03 - Contexto de Colaboracao
 
-Ultima atualizacao: 2026-07-17 16:31 -03:00, Codex.
+Ultima atualizacao: 2026-07-18 12:41 -03:00, Codex.
 
-TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. O projeto continua o ToggleMaster da Fase 2 e deve evoluir para IaC, CI/CD, DevSecOps e GitOps em AWS pessoal. Antes de trabalhar, leia `00_COLAB_IA/LEIA-PRIMEIRO.md`.
+TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML. A implementacao do ToggleMaster com IaC, CI/CD, DevSecOps e GitOps em AWS pessoal ainda nao foi iniciada. Antes de trabalhar, leia `00_COLAB_IA/LEIA-PRIMEIRO.md`.
 
 ## Regras essenciais
 
@@ -12,14 +12,16 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. O projet
 - Nao commitar segredos, credenciais ou dados sensiveis.
 - Entradas devem ser tratadas como somente leitura.
 - Registros de trabalho ficam em `00_COLAB_IA/`.
-- Guias de estudo ficam em `docs/guias-de-estudo/`.
+- Guias de estudo ficam dentro da pasta de cada modulo em `docs/`.
 
 ## Estado atual
 
 - Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
 - Fonte complementar analisada em 2026-07-17: `C:\Users\Gabriel Silva\Documents\GitHub\tech-challenge-02\docs\Material aulas`.
-- Guias gerados para os 6 modulos da Fase 2 em `docs/guias-de-estudo/fase-2/`.
+- Os guias Markdown anteriores foram rejeitados e removidos em 2026-07-18.
+- Os cinco modulos da Fase 3 possuem guias HTML autocontidos ao lado dos PDFs.
 - Projeto usa conta pessoal AWS, nao AWS Academy; IAM pode ser criado via Terraform.
+- Proxima etapa depende de pedido explicito do usuario; nao iniciar implementacao automaticamente.
 
 ## Ponteiros
 

@@ -1,8 +1,18 @@
 # DECISOES
 
-TL;DR: decisoes atuais concentram destino dos guias, estrategia de documentacao e direcao tecnica da Fase 3.
+TL;DR: decisoes atuais concentram destino dos guias, estrategia de documentacao, direcao tecnica da Fase 3 e as condicoes de entrega (grupo, prazo 2026-09-15).
 
-Ultima atualizacao: 2026-07-18 12:41 -03:00, Codex.
+Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
+
+## D-006 - Modalidade e prazo da entrega
+
+Contexto: o enunciado diz que o Tech Challenge "em principio" deve ser desenvolvido em grupo e pede os nomes dos participantes no relatorio, mas nao traz prazo. Os itens ficaram como [INCERTO] em P-016 e P-017.
+
+Decisao: o usuario confirmou em 2026-07-30 que a entrega e em grupo e que o prazo final e 2026-09-15. Todo planejamento e cronograma passam a usar essa data como limite.
+
+Alternativas: tratar como entrega individual; seguir sem data definida.
+
+Status: aceita em 2026-07-30, informada pelo usuario. Os nomes dos integrantes ainda nao foram informados (P-018).
 
 ## D-001 - Repo destino da Fase 3
 

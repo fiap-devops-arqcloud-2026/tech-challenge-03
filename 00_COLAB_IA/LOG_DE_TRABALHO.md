@@ -2,7 +2,31 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-07-18 12:46 -03:00, Codex.
+Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
+
+## 2026-07-30 15:38 (-03:00) - Claude - Condicoes de entrega confirmadas e projeto atualizado
+
+Feito: o usuario confirmou que a entrega e em grupo e que o prazo final e 2026-09-15. Registrada a decisao D-006; encerradas P-016 e P-017; aberta P-018 (nomes dos integrantes). Adicionados ao checklist os marcos M1 a M5 ate a data de entrega. Propagada a informacao para `CLAUDE.md`, `README.md`, `DOSSIE_CONTEXTO.md`, `DECISOES.md`, `PENDENCIAS_E_PROXIMOS_PASSOS.md` e `CHECKLIST_REQUISITOS_FASE3.md`.
+
+Decisoes/Por que: D-006 fixa modalidade e prazo, que ate entao eram [INCERTO]. Os marcos M1 a M5 sao proposta minha de cronograma, nao exigencia do enunciado, e foram marcados como tal para nao virarem regra por engano. O item O-36 continua aberto porque o enunciado exige os nomes no relatorio e eles ainda nao foram informados.
+
+Arquivos: `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`, `00_COLAB_IA/DECISOES.md`, `00_COLAB_IA/DOSSIE_CONTEXTO.md`, `00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`, `00_COLAB_IA/LOG_DE_TRABALHO.md`, `CLAUDE.md`, `README.md`.
+
+Descobertas: com 2026-09-15 como limite restam cerca de 6 semanas e meia. P-004 (onde vive o codigo dos microsservicos) e P-005 (YAML/Kustomize/Helm) passam de "em espera" a bloqueio de cronograma, porque travam o marco M1.
+
+Estado p/ o proximo agente: documentacao alinhada e publicada no branch `dev`. Nenhuma implementacao iniciada. Proximo passo: fechar P-004 e P-005 e entao atacar P-003 (arquitetura Terraform). Pedir ao usuario os nomes do grupo (P-018).
+
+## 2026-07-30 15:21 (-03:00) - Claude - Checklist de requisitos da Fase 3
+
+Feito: analisado o repositorio e a documentacao de contexto; lido integralmente o enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`; inspecionado `tech-challenge-02/services/` para confirmar as linguagens dos 5 microsservicos; criado `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md` separando 39 itens obrigatorios (O-01 a O-39), 9 opcionais/recomendados pelo proprio enunciado (R-01 a R-09) e 9 sugestoes derivadas das aulas (S-01 a S-09).
+
+Decisoes/Por que: nao foi tomada nenhuma decisao nova de arquitetura. O criterio de separacao foi literal ao PDF: obrigatorio e o que esta em "Requisitos Tecnicos" e "Entregaveis"; opcional e o que o PDF marca como "opcional", "recomendado", "preferencialmente", "se houver" ou oferece como alternativa. Sugestoes fora do PDF ficaram em secao propria para nao serem confundidas com exigencia.
+
+Arquivos: criado `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`; atualizados `00_COLAB_IA/LOG_DE_TRABALHO.md` e `00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`.
+
+Descobertas: F-008, F-009 e F-010 registradas em PENDENCIAS. [INCERTO] se a entrega e individual ou em grupo (o relatorio pede "nomes dos participantes") e qual o prazo, que nao consta no PDF.
+
+Estado p/ o proximo agente: checklist pronto e nenhuma implementacao iniciada. Antes de codar, resolver P-004 (onde vive o codigo dos microsservicos) e P-005 (YAML/Kustomize/Helm). Proximo passo natural e P-003 (desenho da arquitetura Terraform).
 
 ## 2026-07-18 12:46 (-03:00) - Codex - Estudos consolidados e publicados
 

@@ -1,8 +1,8 @@
 # DOSSIE_CONTEXTO
 
-TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs. A implementacao aguarda pedido explicito.
+TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs. O checklist de requisitos esta em `CHECKLIST_REQUISITOS_FASE3.md`. Entrega em grupo, prazo final 2026-09-15. A implementacao aguarda pedido explicito.
 
-Ultima atualizacao: 2026-07-18 12:46 -03:00, Codex.
+Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
 
 ## 1 Objetivo
 
@@ -30,6 +30,9 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - Em 2026-07-18 o modulo Seguranca em DevOps (DevSecOps) recebeu seu guia HTML.
 - Em 2026-07-18 o modulo Seguranca na Cloud recebeu seu guia HTML, concluindo a trilha de estudos da Fase 3.
 - Em 2026-07-18 o estado consolidado foi publicado no branch `dev`; o commit principal dos guias e `200cdf5`.
+- Em 2026-07-30 o enunciado foi relido por completo e virou o checklist `CHECKLIST_REQUISITOS_FASE3.md`: 39 itens obrigatorios (O-01 a O-39), 9 opcionais do proprio enunciado (R-01 a R-09) e 9 sugestoes derivadas das aulas (S-01 a S-09).
+- Em 2026-07-30 o usuario confirmou que a entrega e em grupo e que o prazo final e 2026-09-15 (D-006).
+- Os 5 microsservicos usam duas stacks: Go em `auth` e `evaluation`; Python em `flag`, `targeting` e `analytics` (F-008).
 
 ## 4 Arquivos/caminhos
 
@@ -41,6 +44,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - Terceiro guia: `docs/03_Infraestrutura como codigo/GUIA-ESTUDO-Infraestrutura-como-Codigo.html`
 - Quarto guia: `docs/04_Seguranca em DevOps (DevSecOps)/GUIA-ESTUDO-Seguranca-em-DevOps-DevSecOps.html`
 - Quinto guia: `docs/05_Seguranca na Cloud/GUIA-ESTUDO-Seguranca-na-Cloud.html`
+- Checklist de requisitos da entrega: `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`
 - Contexto compartilhado: `00_COLAB_IA/`
 
 ## 5 Processos
@@ -57,6 +61,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - D-003: estrategia tecnica preferencial da Fase 3: Terraform modular, GitHub Actions, ECR, ArgoCD e EKS.
 - D-004: nao copiar PDFs da Fase 2; usar como fonte externa e registrar guias derivados no repo da Fase 3.
 - D-005: novos guias ficam em HTML dentro da pasta de cada modulo; substitui D-002 para o trabalho atual.
+- D-006: entrega em grupo, prazo final 2026-09-15, confirmado pelo usuario.
 
 ## 7 Pendencias
 
@@ -66,6 +71,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - P-013: usuario revisar o guia HTML do modulo 4.
 - P-015: usuario revisar o guia HTML do modulo 5.
 - P-003: implementacao Terraform permanece em espera ate pedido explicito.
+- P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega.
 
 ## 8 Glossario
 
@@ -102,11 +108,12 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - 2026-07-18: analisadas as 7 aulas de DevSecOps e criado `docs/04_Seguranca em DevOps (DevSecOps)/GUIA-ESTUDO-Seguranca-em-DevOps-DevSecOps.html`.
 - 2026-07-18: analisadas as 5 aulas de Seguranca na Cloud e criado `docs/05_Seguranca na Cloud/GUIA-ESTUDO-Seguranca-na-Cloud.html`, concluindo os guias dos cinco modulos.
 - 2026-07-18: cinco guias, README e contexto consolidados no commit `200cdf5` e enviados para `origin/dev`.
+- 2026-07-30: enunciado relido, criado o checklist de requisitos obrigatorios e opcionais e confirmadas as condicoes de entrega (grupo, 2026-09-15).
 
 ## 11 Memoria interna <-> espelho
 
-Essenciais espelhados aqui: objetivo da Fase 3, uso de AWS pessoal, processo de estudo modulo por modulo, padrao HTML dos guias, conclusao dos cinco modulos e estado anterior ao inicio da implementacao.
+Essenciais espelhados aqui: objetivo da Fase 3, uso de AWS pessoal, processo de estudo modulo por modulo, padrao HTML dos guias, conclusao dos cinco modulos, condicoes de entrega (grupo, prazo 2026-09-15) e estado anterior ao inicio da implementacao.
 
 ## 12 Instrucoes iniciais para o proximo assistente
 
-Leia `LEIA-PRIMEIRO.md`, depois `PENDENCIAS_E_PROXIMOS_PASSOS.md` e o topo de `LOG_DE_TRABALHO.md`. Os cinco guias da Fase 3 estao prontos. Nao avance para implementacao sem pedido explicito; aguarde revisao do usuario ou uma nova orientacao.
+Leia `LEIA-PRIMEIRO.md`, depois `PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md` e o topo de `LOG_DE_TRABALHO.md`. Os cinco guias da Fase 3 estao prontos e o escopo da entrega ja esta mapeado item a item. A entrega e em grupo e vence em 2026-09-15. Nao avance para implementacao sem pedido explicito; aguarde revisao do usuario ou uma nova orientacao.

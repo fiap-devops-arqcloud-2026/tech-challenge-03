@@ -1,8 +1,8 @@
 # Tech Challenge 03 - Contexto de Colaboracao
 
-Ultima atualizacao: 2026-07-18 12:41 -03:00, Codex.
+Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
 
-TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML. A implementacao do ToggleMaster com IaC, CI/CD, DevSecOps e GitOps em AWS pessoal ainda nao foi iniciada. Antes de trabalhar, leia `00_COLAB_IA/LEIA-PRIMEIRO.md`.
+TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML, e o escopo da entrega esta mapeado em `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. A entrega e em grupo e vence em 2026-09-15. A implementacao do ToggleMaster com IaC, CI/CD, DevSecOps e GitOps em AWS pessoal ainda nao foi iniciada. Antes de trabalhar, leia `00_COLAB_IA/LEIA-PRIMEIRO.md`.
 
 ## Regras essenciais
 
@@ -16,6 +16,9 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 
 ## Estado atual
 
+- Entrega em grupo, prazo final 2026-09-15 (D-006). Integrantes ainda nao informados (P-018).
+- Escopo mapeado em `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`: 39 itens obrigatorios, 9 opcionais do enunciado e 9 sugestoes das aulas.
+- Microsservicos em duas stacks: Go (`auth`, `evaluation`) e Python (`flag`, `targeting`, `analytics`).
 - Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
 - Fonte complementar analisada em 2026-07-17: `C:\Users\Gabriel Silva\Documents\GitHub\tech-challenge-02\docs\Material aulas`.
 - Os guias Markdown anteriores foram rejeitados e removidos em 2026-07-18.
@@ -26,6 +29,7 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 ## Ponteiros
 
 - Protocolo de sessao: `00_COLAB_IA/LEIA-PRIMEIRO.md`
+- Checklist de requisitos: `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`
 - Dossie do projeto: `00_COLAB_IA/DOSSIE_CONTEXTO.md`
 - Decisoes: `00_COLAB_IA/DECISOES.md`
 - Pendencias: `00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`

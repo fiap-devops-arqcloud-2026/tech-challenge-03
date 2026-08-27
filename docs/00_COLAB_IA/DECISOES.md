@@ -2,7 +2,35 @@
 
 TL;DR: decisoes cobrem guias e documentacao, condicoes de entrega (grupo, 2026-09-15), estrutura de implementacao (monorepo, Kustomize, tags), e o desenho tecnico da Fase 3: modulos hibridos, ambiente unico prod, sem Ingress, segredos via Secrets Manager + ESO e reaproveitamento dos manifestos da Fase 2.
 
-Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 17:10 -03:00, Claude.
+
+## D-016 - Node group com c7i-flex.large
+
+Contexto: em 2026-08-27 o usuario confirmou 2 x `t3.medium`, dimensionados pelos requests reais da Fase 2 (F-020). Horas depois, a verificacao no repo da Fase 2 mostrou que a `t3.medium` e recusada nesta conta: "The specified instance type is not eligible for Free Tier" (F-023).
+
+Decisao: node group com 2 x `c7i-flex.large` (2 vCPU / 4 GB), mesmo tipo usado na Fase 2. Min 1, Desejado 2, Maximo 4.
+
+Por que: e o equivalente direto da `t3.medium` em CPU e memoria, e foi comprovadamente aceito pelo plano gratuito desta conta em 2026-07-06. As alternativas foram descartadas na Fase 2 por motivos que continuam validos: `t3.micro` tem limite de ~4 pods por no e 1 GB de RAM; a familia `t4g` e ARM e as imagens do projeto sao x86; `m7i-flex.large` custa mais sem necessidade.
+
+Custo: cerca de US$ 0,085/h por no, aproximadamente o dobro da `t3.medium`. Nao ha escolha mais barata que funcione nesta conta.
+
+Alternativas: sair do plano gratuito e usar `t3.medium` (descartada junto com D-015).
+
+Status: aceita em 2026-08-27. Substitui a confirmacao de `t3.medium` dada mais cedo no mesmo dia, invalidada por bloqueio da AWS e nao por mudanca de opiniao do usuario.
+
+## D-015 - Dois RDS mais banco do targeting em pod (caminho A)
+
+Contexto: o enunciado exige 3 instancias RDS (O-05). A conta esta no plano gratuito novo da AWS, que recusa a terceira instancia com "maximum number of instances available with free plan accounts" (F-023). Foram avaliados tres caminhos: repetir a solucao da Fase 2, sair do plano gratuito, ou consultar o professor.
+
+Decisao: caminho A. `auth_db` e `flags_db` em RDS; `targeting_db` como StatefulSet PostgreSQL dentro do EKS, reaproveitando os manifestos de `infra/k8s/postgres-targeting/` da Fase 2.
+
+Por que: o professor foi consultado em 2026-08-27 e confirmou que o arranjo continua aceito na Fase 3, como ja havia sido na Fase 2. Isso remove o unico risco real da opcao. Sair do plano gratuito sairia cerca de US$ 48/mes mais barato na conta de EC2, mas exigiria metodo de pagamento e eliminaria a protecao contra gasto acidental - protecao que importa com apenas US$ 70,33 de credito restante (F-026).
+
+Consequencias: (1) reverte parte de D-014 - os 4 arquivos de `postgres-targeting/` passam a ser COPIADOS para `gitops/base/`, nao descartados; (2) o addon `aws-ebs-csi-driver` e uma StorageClass default passam a ser obrigatorios no Terraform, senao o PVC do banco fica Pending como aconteceu na Fase 2 (F-025); (3) o desvio precisa constar do relatorio final (O-38), com o registro da aprovacao do professor.
+
+Alternativas: sair do plano gratuito (B); 1 RDS com tres bancos dentro (nao atende "3 instancias" e a conta permite 2 de qualquer forma).
+
+Status: aceita em 2026-08-27, escolhida pelo usuario e aprovada pelo professor. Encerra P-032 e P-033.
 
 ## D-014 - Reaproveitar os manifestos da Fase 2 como base do GitOps
 

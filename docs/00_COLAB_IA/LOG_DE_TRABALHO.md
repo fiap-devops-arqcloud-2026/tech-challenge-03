@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 19:15 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 19:50 -03:00, Claude.
+
+## 2026-08-27 19:50 (-03:00) - Claude - Plano reorganizado em 4 fases
+
+Feito: `PENDENCIAS_E_PROXIMOS_PASSOS.md` reescrito no formato de 4 fases com datas-alvo, e os marcos M2 a M6 do checklist realinhados a elas. Cancelada P-031. Abertas P-038 a P-043.
+
+Decisoes/Por que: o principio de ordenacao passou a ser custo, nao dependencia tecnica. Tudo que nao consome credito vem primeiro; o cluster fica para o fim, em duas sessoes de 3 horas. Isso e possivel por causa de F-028: os workflows de CI dependem so do ECR e da role OIDC, ambos da Etapa 1, e tres itens de video (O-28, O-29, O-30) se gravam sem cluster nenhum. A Etapa 1 pode ser aplicada agora com o NAT desligado a custo praticamente zero, o que da um alvo real contra o qual testar o pipeline. O ensaio (M4) foi colocado 4 dias antes da gravacao (M5) de proposito: se o primeiro apply da pilha completa quebrar, ha tempo de corrigir com o cluster desligado.
+
+Arquivos: `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md` e `LOG_DE_TRABALHO.md`.
+
+Descobertas: P-031 estava obsoleta desde D-015 - foi aberta supondo a migracao do `targeting_db` para RDS, que nao vai acontecer. Tambem faltavam duas pendencias que so apareceram ao montar o plano: o Metrics Server, sem o qual os dois HPA ficam com `<unknown>` e nunca escalam (P-039), e o preenchimento dos placeholders do `gitops/` apos o primeiro apply (P-040).
+
+Estado p/ o proximo agente: plano em 4 fases documentado, com a proxima acao concreta sendo P-038 - aplicar a Etapa 1 com `enable_nat_gateway = false`. Duas decisoes do usuario continuam abertas mas nao bloqueiam: P-037 (cortar o External Secrets Operator) e P-018 (confirmar o grupo). O maior bloco de trabalho pendente e P-030, os 5 workflows de CI, que sozinho cobre 12 itens obrigatorios.
 
 ## 2026-08-27 19:15 (-03:00) - Claude - README do projeto e correcao de rumo de escopo
 

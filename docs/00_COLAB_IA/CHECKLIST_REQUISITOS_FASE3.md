@@ -2,7 +2,7 @@
 
 TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Em 2026-08-27 a implementacao comecou: os 5 microsservicos ja estao em `services/`; o restante segue pendente.
 
-Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 19:50 -03:00, Claude.
 
 Prazo final: 2026-09-15. Modalidade: entrega em grupo (D-006).
 
@@ -113,21 +113,21 @@ Bloqueios remanescentes, agora operacionais:
 - P-025: **fechada em 2026-08-27**. Plano aprovado pelo usuario (D-010 a D-014).
 - P-018: obter os nomes dos integrantes do grupo para o relatorio (O-36). [INCERTO]
 
-## 5.1 Marcos rebaseados em 2026-08-27
+## 5.1 Marcos rebaseados em 2026-08-27 (2a revisao, 19:50)
 
-Os marcos M1 e M2 originais (2026-08-08 e 2026-08-22) venceram sem conclusao. Restam 19 dias ate a entrega. Continuam sendo proposta minha de cronograma, nao exigencia do enunciado.
+Reorganizados para refletir o plano em 4 fases de `PENDENCIAS_E_PROXIMOS_PASSOS.md`. O principio e adiantar tudo que nao custa credito e concentrar o cluster em duas sessoes de 3 horas. Continuam sendo proposta minha, nao exigencia do enunciado.
 
 | Marco | Alvo | Cobre | Situacao |
 |---|---|---|---|
 | M1 - Decisoes e esqueleto | 2026-08-27 | D-007, D-008, servicos em `services/` | Concluido, com 19 dias de atraso |
-| M2 - Backend S3 e primeiro plan | 2026-08-30 | O-09, R-03, `terraform/backend.tf`, VPC | Bucket criado; aguarda aprovacao do plano (P-025) |
-| M3 - Infra Terraform aplicada | 2026-09-05 | O-01 a O-08, R-01, R-02, R-05 | |
-| M4 - CI/DevSecOps nos 5 servicos | 2026-09-09 | O-10 a O-21 | |
-| M5 - ArgoCD e GitOps sincronizando | 2026-09-12 | O-22 a O-26 | |
-| M6 - Video, relatorio e revisao final | 2026-09-14 | O-27 a O-39 | |
+| M2 - Etapa 1 aplicada e CI dos 5 servicos | 2026-08-31 | O-02, O-07 a O-09, O-21, O-10 a O-20, R-03 | Etapa 1 escrita e validada; falta aplicar |
+| M3 - Etapas 2 e 3 escritas + runbook | 2026-09-04 | O-01, O-03 a O-06, O-23, R-01, R-05 | |
+| M4 - Sessao de ensaio (3h de cluster) | 2026-09-07 | valida O-01 a O-26 ponta a ponta | |
+| M5 - Sessao de gravacao (3h de cluster) | 2026-09-11 | O-27, O-31, O-32 | |
+| M6 - Video montado, relatorio e revisao | 2026-09-14 | O-27 a O-39 | |
 | Entrega | 2026-09-15 | - | |
 
-Observacao de risco: o caminho critico e M2 -> M3. O `terraform apply` de EKS + 3 RDS + ElastiCache leva de 20 a 40 minutos por rodada e costuma falhar nas primeiras tentativas. Nao deixar para a semana da entrega.
+Observacao de risco: o caminho critico e M4, a primeira vez que a pilha completa sobe. O `terraform apply` de EKS + 2 RDS + ElastiCache leva de 20 a 40 minutos e raramente passa de primeira. Por isso o ensaio (M4) esta 4 dias antes da gravacao (M5), e nao coladinho: se quebrar, ha tempo de corrigir sem o cluster ligado.
 
 ## 6. Observacoes de leitura do enunciado
 

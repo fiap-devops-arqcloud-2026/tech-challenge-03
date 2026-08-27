@@ -1,25 +1,71 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
-TL;DR: caminho A aprovado pelo professor - 2 RDS + banco do targeting em pod (D-015), node group `c7i-flex.large` (D-016). ATENCAO AO CREDITO: restam US$ 70,33, cerca de 190 horas de uptime da pilha completa (F-026); derrubar ao fim de cada sessao e obrigatorio. Prontos: Etapa 1 do Terraform e `gitops/` completo, ambos validados. Proximo: Etapa 2 do Terraform. Entrega em 2026-09-15.
+TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada (Etapa 1 aplicada + workflows de CI) e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform e `gitops/`. Proxima acao: P-038, aplicar a Etapa 1 com o NAT desligado.
 
-Ultima atualizacao: 2026-08-27 19:15 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 19:50 -03:00, Claude.
 
-## Alta prioridade
+## Plano em 4 fases ate 2026-09-15
 
-- P-036: no CI, o passo de atualizar a tag precisa do binario `kustomize` standalone. O `kubectl kustomize` renderiza mas nao tem o subcomando `edit`. Usar a action `imranismail/setup-kustomize` ou equivalente.
-- P-034: escrever o runbook de subir, semear, gravar e derrubar (`terraform/RUNBOOK-CUSTO.md`). Janela definida pelo usuario: **3 horas de cluster ligado por sessao** (~US$ 1,10). Precisa incluir script de seed, porque o destroy apaga os bancos e sem chave de API nem flag cadastrada a demo fica vazia.
-- P-035: no Terraform da Etapa 2, incluir o addon `aws-ebs-csi-driver` e uma StorageClass default. Sem isso o PVC do banco do targeting fica Pending, como ocorreu na Fase 2 (F-025).
-- P-018: os nomes do Grupo 203 foram encontrados no README da Fase 2 em 2026-08-27 e ja estao no `README.md` da Fase 3 (Gabriel Pinelli Silva RM373763, Joao Vitor de Jesus Ciardullo RM372155, Douglas Deveza dos Santos RM373827, Joao Carlos da Silva Brito RM371738, Joao Gabriel da Cruz Sales RM372444). **Falta o usuario confirmar** que o grupo continua o mesmo na Fase 3. [INCERTO]
-- P-037: decidir se o External Secrets Operator sai do escopo. E item S-02 (sugestao das aulas, nao obrigatorio) e e a unica peca do plano que adiciona operador e CRDs em runtime - justamente o tipo de coisa que pode falhar na janela de gravacao. Alternativa sem ESO descrita na conversa de 2026-08-27.
+Principio de ordenacao: fazer PRIMEIRO tudo que nao custa nada, e deixar o
+cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 
-## Proximos passos
+### Fase A - trabalho sem custo (alvo: 2026-08-31)
 
-- P-028: Etapa 2 do Terraform - EKS, node group, 3 RDS e ElastiCache. Apply lento, cerca de 25 minutos.
-- P-029: Etapa 3 - root `terraform/argocd/` com ArgoCD e External Secrets Operator via provider `helm`.
-- P-030: workflows de CI dos 5 servicos (O-10 a O-21), com dois conjuntos de linter/SAST por causa das duas stacks (F-008).
-- P-031: migrar o banco do `targeting` do StatefulSet no cluster para o RDS numero 3 (F-016), incluindo o `init.sql` que ja existe em `services/targeting-service/db/`.
-- P-024: corrigir os exemplos de `AWS_REGION` nos READMEs de `services/analytics-service/` e `services/evaluation-service/`, que ainda dizem `us-east-1`. Aguarda aval do usuario por serem arquivos copiados da Fase 2.
-- P-006: preparar roteiro do video final com evidencias: Terraform plan/apply, pipeline quebrando/passando, ECR, GitOps e ArgoCD.
+- P-038: aplicar a Etapa 1 do Terraform com `enable_nat_gateway = false`.
+  Cria VPC, 5 repositorios ECR, SQS, DynamoDB e a role OIDC do CI. Custo
+  praticamente zero: VPC, IGW, subnets, SQS, DynamoDB e IAM nao cobram
+  parados, e o ECR fica em centavos. Fecha O-02, O-07, O-08, O-09 e O-21.
+- P-030: escrever os 5 workflows de CI (O-10 a O-21). **Maior bloco unico
+  do checklist: 12 itens obrigatorios.** Nao depende do cluster - so
+  precisa do ECR e da role OIDC criados em P-038. Dois conjuntos de
+  linter/SAST por causa das duas stacks (F-008).
+- P-036: instalar o binario `kustomize` standalone no runner, para o passo
+  final que atualiza a tag (O-24).
+- Ao fim da Fase A da para GRAVAR O-28, O-29 e O-30: pipeline falhando,
+  pipeline passando e a tag sendo atualizada no GitOps. Tudo no GitHub
+  Actions, com o cluster desligado (F-028).
+
+### Fase B - escrever o resto sem aplicar (alvo: 2026-09-04)
+
+- P-028: Etapa 2 do Terraform - EKS com node group `c7i-flex.large`
+  (D-016), 2 RDS, ElastiCache, roles IRSA e segredos no Secrets Manager.
+- P-035: no mesmo Terraform, addon `aws-ebs-csi-driver` e StorageClass
+  default, senao o PVC do banco em pod fica Pending (F-025).
+- P-039: incluir o Metrics Server, senao os dois HPA ficam com `<unknown>`
+  e nunca escalam.
+- P-029: Etapa 3 - root `terraform/argocd/` com ArgoCD via provider `helm`
+  e a `Application` apontando para `gitops/overlays/prod`.
+- P-034: runbook de subir, semear, gravar e derrubar, com script de seed
+  (chave de API, uma flag e uma regra), porque o destroy apaga os bancos.
+- P-040: ajustar `gitops/` conforme a decisao de P-037 e preencher os
+  placeholders de `overlays/prod/patches/` apos o primeiro apply.
+
+### Fase C - sessoes com o cluster (alvo: 2026-09-11)
+
+- P-041: sessao de ENSAIO, ate 3 horas. Apply completo, corrigir o que
+  quebrar, conferir os 5 servicos verdes no ArgoCD, destruir. Custo
+  aproximado: US$ 1,10.
+- P-042: sessao de GRAVACAO, ate 3 horas. Apply, gravar O-27, O-31 e O-32,
+  destruir. Conferir na conta que nada caro ficou de pe.
+
+### Fase D - entrega (alvo: 2026-09-14)
+
+- P-006: montar o video final juntando o que foi gravado nas fases A e C,
+  respeitando o limite de 20 minutos.
+- P-043: relatorio de entrega (O-36 a O-39): nomes do Grupo 203, links,
+  resumo dos desafios - a secao de problemas do `README.md` ja serve de
+  base - e print da estimativa de custos do AWS Pricing Calculator.
+
+### Decisoes pendentes que nao bloqueiam o inicio
+
+- P-037: cortar ou nao o External Secrets Operator (item S-02). Afeta
+  apenas as Fases B e C.
+- P-018: confirmar que o Grupo 203 continua o mesmo. Afeta so o relatorio.
+
+### Fora do caminho critico
+
+- P-024: corrigir os exemplos de `AWS_REGION` nos READMEs de
+  `services/analytics-service/` e `services/evaluation-service/`.
 
 ## Revisoes pendentes do usuario (baixa prioridade agora)
 
@@ -37,6 +83,7 @@ Ultima atualizacao: 2026-08-27 19:15 -03:00, Claude.
 - P-032: encerrada em 2026-08-27 por D-015. Caminho A, com aprovacao do professor.
 - P-033: encerrada em 2026-08-27 por D-016. Node group com `c7i-flex.large`.
 - P-019: encerrada em 2026-08-27. Bucket de estado criado pelo console: `togglemaster-tfstate-891376952395-us-east-2-an`, regiao `us-east-2`, versionamento ligado, SSE-S3, acesso publico bloqueado, policy TLS-only e lifecycle de 30 dias.
+- P-031: cancelada em 2026-08-27 por D-015 - o banco do targeting continua em pod, nao migra para RDS.
 - P-020: encerrada em 2026-08-27 por D-010 (modulos hibridos) e D-009 (tags).
 - P-027: encerrada em 2026-08-27. `gitops/` criado com 34 arquivos: base com os 5 servicos mais o `postgres-targeting`, e overlay `prod`. Build validado com `kubectl kustomize` nos dois niveis (28 e 29 recursos). O `ingress.yaml` e os `secret.yaml` da Fase 2 nao foram copiados.
 - P-026: encerrada em 2026-08-27. Etapa 1 do Terraform escrita, validada (`terraform validate`) e formatada. Ainda nao aplicada na AWS.

@@ -2,7 +2,7 @@
 
 TL;DR: as decisoes que travavam o inicio foram fechadas (D-007 monorepo, D-008 Kustomize). A implementacao comecou: os 5 microsservicos estao em `services/`. O proximo bloqueio e operacional, nao de decisao - alguem do grupo precisa executar `terraform/BOOTSTRAP-BACKEND-S3.md` e informar o nome do bucket (P-019). Entrega em grupo, prazo final 2026-09-15.
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
 
 ## Alta prioridade
 
@@ -16,6 +16,7 @@ Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
 - P-021: montar o esqueleto `gitops/base/<servico>` e `gitops/overlays/<ambiente>` em Kustomize (D-008), antes de escrever os workflows que vao alterar essas tags.
 - P-022: decidir entre OIDC (S-01) e access keys estaticas para o GitHub Actions autenticar na AWS. Recomendacao atual: OIDC.
 - P-023: decidir onde ficam os segredos dos bancos - Secrets Manager ou SSM Parameter Store (S-02) - antes de escrever os manifests que consomem `DATABASE_URL`.
+- P-024: corrigir os exemplos de `AWS_REGION` nos READMEs de `services/analytics-service/` e `services/evaluation-service/`, que ainda dizem `us-east-1`. Aguarda aval do usuario por serem arquivos copiados da Fase 2.
 - P-006: preparar roteiro do video final com evidencias: Terraform plan/apply, pipeline quebrando/passando, ECR, GitOps e ArgoCD.
 
 ## Revisoes pendentes do usuario (baixa prioridade agora)
@@ -52,5 +53,5 @@ Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
 - F-009: o enunciado fixa o nome literal da tabela DynamoDB como `ToggleMasterAnalytics` e o padrao de tag de imagem como `v1.0.0-<commit-hash>`.
 - F-010: o enunciado marca como opcional/recomendado apenas: modulos Terraform, ECR via Terraform, flag `use_lockfile`, testes unitarios "se houver", IAM via Terraform (conta pessoal), Helm vs YAML, repo GitOps separado vs pasta no monorepo e a escolha da ferramenta de CI. Todo o restante e obrigatorio. Detalhamento em `CHECKLIST_REQUISITOS_FASE3.md`.
 - F-011: varredura de segredos em `services/` nao encontrou credencial, chave privada ou senha hardcoded. Toda a configuracao vem de variaveis de ambiente: `DATABASE_URL`, `REDIS_URL`, `AWS_REGION`, `AWS_SQS_URL`, `AWS_DYNAMODB_TABLE`, `MASTER_KEY`, `SERVICE_API_KEY`, `PORT`, `AUTH_SERVICE_URL`, `FLAG_SERVICE_URL`, `TARGETING_SERVICE_URL`. Isso mapeia direto para ConfigMap/Secret no Kustomize.
-- F-012: a Fase 2 usava `us-east-1` (`services/analytics-service/README.md`). Regiao adotada tambem na Fase 3.
+- F-012: a regiao do projeto e `us-east-2` (Ohio), a mesma da Fase 2, confirmada pelo usuario em 2026-08-27. **Cuidado**: os READMEs copiados em `services/analytics-service/` e `services/evaluation-service/` trazem `us-east-1` nos exemplos de variavel de ambiente. Sao exemplos herdados da Fase 2 e estao errados para este projeto; quem copiar de la aponta para a regiao errada (P-024).
 - F-013: os marcos M1 (2026-08-08) e M2 (2026-08-22) venceram sem conclusao. Em 2026-08-27 restam 19 dias ate a entrega; o cronograma foi rebaseado em `CHECKLIST_REQUISITOS_FASE3.md`.

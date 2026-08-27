@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
+
+## 2026-08-27 12:23 (-03:00) - Claude - Correcao da regiao para us-east-2 e passo a passo pelo console
+
+Feito: o usuario corrigiu a regiao do projeto - e `us-east-2` (Ohio), a mesma da Fase 2, e nao `us-east-1`. F-012 foi reescrita. O `terraform/BOOTSTRAP-BACKEND-S3.md` foi refeito com a regiao correta e reordenado para tratar o console como caminho principal, ja que o usuario vai criar o bucket pela interface web. Aberta P-024.
+
+Decisoes/Por que: a regiao vale para toda a infraestrutura da Fase 3, nao so para o bucket. A troca nao e cosmetica: em `us-east-2` o `aws s3api create-bucket` exige `--create-bucket-configuration LocationConstraint=us-east-2`, obrigatorio em qualquer regiao que nao seja `us-east-1`, e o `get-bucket-location` passa a retornar `us-east-2` em vez de `null`. O caminho pelo console foi detalhado passo a passo, incluindo a conferencia da regiao ANTES de criar, porque bucket nasce preso a regiao e nao pode ser movido.
+
+Arquivos: reescrito `terraform/BOOTSTRAP-BACKEND-S3.md`; atualizados `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`, `DOSSIE_CONTEXTO.md`, `LOG_DE_TRABALHO.md` e `CLAUDE.md`.
+
+Descobertas: minha F-012 anterior estava errada. Eu a havia inferido do exemplo de variavel de ambiente em `services/analytics-service/README.md`, que traz `us-east-1`. Esse exemplo e herdado da Fase 2 e esta incorreto para este projeto; `services/evaluation-service/README.md` tem o mesmo problema. Isso vira armadilha para quem copiar aquelas linhas, e por isso virou P-024. Licao: exemplo em README de servico nao serve como fonte para decisao de infraestrutura; confirmar com o usuario.
+
+Estado p/ o proximo agente: regiao do projeto e `us-east-2` em toda a documentacao. O usuario esta criando o bucket pelo console seguindo o Caminho A do runbook. Assim que informar o nome do bucket, escrever `terraform/backend.tf` com `region = "us-east-2"` e `use_lockfile = true`, depois a VPC. P-024 aguarda aval antes de editar os READMEs copiados da Fase 2.
 
 ## 2026-08-27 11:12 (-03:00) - Claude - Decisoes D-007/D-008 e bootstrap do backend S3
 

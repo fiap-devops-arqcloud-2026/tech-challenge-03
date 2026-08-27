@@ -2,7 +2,7 @@
 
 TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs; o escopo esta em `CHECKLIST_REQUISITOS_FASE3.md`. Entrega em grupo, prazo final 2026-09-15. A implementacao comecou: monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). Proximo bloqueio: criar o bucket S3 de estado (P-019).
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
 
 ## 1 Objetivo
 
@@ -33,7 +33,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - Em 2026-08-27 o usuario confirmou que monorepo e Kustomize foram decisoes dele (D-007 e D-008), o descompasso entre documentacao e disco foi corrigido e o passo a passo do bucket de estado foi escrito em `terraform/BOOTSTRAP-BACKEND-S3.md`.
 - Os 5 microsservicos usam duas stacks: Go em `auth` e `evaluation`; Python em `flag`, `targeting` e `analytics` (F-008).
 - Nenhum servico tem credencial hardcoded; tudo vem de variavel de ambiente (F-011).
-- Regiao AWS do projeto: `us-east-1`, herdada da Fase 2 (F-012).
+- Regiao AWS do projeto: `us-east-2` (Ohio), a mesma da Fase 2, confirmada pelo usuario em 2026-08-27 (F-012).
 
 ## 4 Arquivos/caminhos
 
@@ -111,10 +111,11 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - 2026-07-30: enunciado relido, criado o checklist de requisitos obrigatorios e opcionais e confirmadas as condicoes de entrega (grupo, 2026-09-15).
 - 2026-08-26: usuario reorganizou o repo, copiou os microsservicos e criou o `.gitignore`, sem registrar no log.
 - 2026-08-27: descompasso identificado e corrigido; D-007 e D-008 registradas; criado o passo a passo do bucket de estado; cronograma rebaseado.
+- 2026-08-27: usuario corrigiu a regiao do projeto para `us-east-2` (Ohio) e optou por criar o bucket pelo console; runbook refeito.
 
 ## 11 Memoria interna <-> espelho
 
-Essenciais espelhados aqui: objetivo da Fase 3, uso de AWS pessoal em `us-east-1`, processo de estudo modulo por modulo, padrao HTML dos guias, condicoes de entrega (grupo, prazo 2026-09-15), estrutura de implementacao (monorepo + Kustomize) e o bootstrap do bucket de estado como unica excecao a regra "se nao esta no codigo, nao existe".
+Essenciais espelhados aqui: objetivo da Fase 3, uso de AWS pessoal em `us-east-2`, processo de estudo modulo por modulo, padrao HTML dos guias, condicoes de entrega (grupo, prazo 2026-09-15), estrutura de implementacao (monorepo + Kustomize) e o bootstrap do bucket de estado como unica excecao a regra "se nao esta no codigo, nao existe".
 
 ## 12 Instrucoes iniciais para o proximo assistente
 

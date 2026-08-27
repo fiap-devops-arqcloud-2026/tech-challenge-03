@@ -1,6 +1,6 @@
 # Tech Challenge 03 - Contexto de Colaboracao
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
 
 TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML, e o escopo esta mapeado em `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. A entrega e em grupo e vence em 2026-09-15. A implementacao comecou: e um monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). O proximo passo depende de uma acao manual do usuario: criar o bucket S3 de estado seguindo `terraform/BOOTSTRAP-BACKEND-S3.md` (P-019). Antes de trabalhar, leia `docs/00_COLAB_IA/LEIA-PRIMEIRO.md`.
 
@@ -22,7 +22,7 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 - Area GitOps em Kustomize (D-008), com `base/` por servico e `overlays/` por ambiente.
 - Microsservicos em duas stacks: Go (`auth`, `evaluation`) e Python (`flag`, `targeting`, `analytics`).
 - Toda a configuracao dos servicos vem de variaveis de ambiente; nao ha segredo hardcoded (F-011).
-- Conta pessoal AWS, nao AWS Academy; regiao `us-east-1`; IAM pode ser criado via Terraform.
+- Conta pessoal AWS, nao AWS Academy; regiao `us-east-2`; IAM pode ser criado via Terraform.
 - `terraform/`, `gitops/` e `.github/workflows/` ainda estao vazios ou inexistentes.
 - Bloqueio atual: P-019, criar o bucket S3 de estado. E tarefa manual do usuario e trava todo o Terraform.
 - Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.

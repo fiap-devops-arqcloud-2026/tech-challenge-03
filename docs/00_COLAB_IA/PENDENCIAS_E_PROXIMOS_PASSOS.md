@@ -1,16 +1,16 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
-TL;DR: as decisoes que travavam o inicio foram fechadas (D-007 monorepo, D-008 Kustomize). A implementacao comecou: os 5 microsservicos estao em `services/`. O proximo bloqueio e operacional, nao de decisao - alguem do grupo precisa executar `terraform/BOOTSTRAP-BACKEND-S3.md` e informar o nome do bucket (P-019). Entrega em grupo, prazo final 2026-09-15.
+TL;DR: decisoes estruturais fechadas (D-007 monorepo, D-008 Kustomize, D-009 tags). O bucket S3 de estado foi criado em 2026-08-27: `togglemaster-tfstate-891376952395-us-east-2-an`, em `us-east-2`. P-019 encerrada. O proximo passo e escrever o Terraform, aguardando aprovacao do plano pelo usuario. Entrega em grupo, prazo final 2026-09-15.
 
-Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
 
 ## Alta prioridade
 
-- P-019: criar o bucket S3 de estado seguindo `terraform/BOOTSTRAP-BACKEND-S3.md` e preencher o nome na secao 8 daquele arquivo. **Bloqueia todo o Terraform (O-09 e M2).**
+- P-025: usuario aprovar o plano do Terraform apresentado em 2026-08-27 antes de qualquer codigo ser escrito. **Bloqueia M2.**
 - P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega (O-36). [INCERTO]
 - P-003: com o bucket pronto, escrever `terraform/backend.tf` e a VPC, e seguir para EKS, RDS, ElastiCache, DynamoDB, SQS, ECR e IAM.
 
-## Proximos passos apos P-019
+
 
 - P-020: definir a estrutura de modulos do Terraform (R-01) e o padrao de tags/nomes dos recursos.
 - P-021: montar o esqueleto `gitops/base/<servico>` e `gitops/overlays/<ambiente>` em Kustomize (D-008), antes de escrever os workflows que vao alterar essas tags.
@@ -33,6 +33,7 @@ Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
 - P-002: substituida em 2026-07-18 por P-014, que representava o ultimo modulo pendente.
 - P-004: encerrada em 2026-08-27. O codigo dos 5 microsservicos vive neste monorepo em `services/` (D-007).
 - P-005: encerrada em 2026-08-27. A area GitOps usa Kustomize (D-008).
+- P-019: encerrada em 2026-08-27. Bucket de estado criado pelo console: `togglemaster-tfstate-891376952395-us-east-2-an`, regiao `us-east-2`, versionamento ligado, SSE-S3, acesso publico bloqueado, policy TLS-only e lifecycle de 30 dias para versoes antigas.
 - P-008: concluida em 2026-07-18. O modulo `02_CI-CD` foi analisado e recebeu seu guia HTML.
 - P-010: concluida em 2026-07-18. O modulo `03_Infraestrutura como codigo` foi analisado e recebeu seu guia HTML.
 - P-012: concluida em 2026-07-18. O modulo `04_Seguranca em DevOps (DevSecOps)` foi analisado e recebeu seu guia HTML.
@@ -55,3 +56,4 @@ Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
 - F-011: varredura de segredos em `services/` nao encontrou credencial, chave privada ou senha hardcoded. Toda a configuracao vem de variaveis de ambiente: `DATABASE_URL`, `REDIS_URL`, `AWS_REGION`, `AWS_SQS_URL`, `AWS_DYNAMODB_TABLE`, `MASTER_KEY`, `SERVICE_API_KEY`, `PORT`, `AUTH_SERVICE_URL`, `FLAG_SERVICE_URL`, `TARGETING_SERVICE_URL`. Isso mapeia direto para ConfigMap/Secret no Kustomize.
 - F-012: a regiao do projeto e `us-east-2` (Ohio), a mesma da Fase 2, confirmada pelo usuario em 2026-08-27. **Cuidado**: os READMEs copiados em `services/analytics-service/` e `services/evaluation-service/` trazem `us-east-1` nos exemplos de variavel de ambiente. Sao exemplos herdados da Fase 2 e estao errados para este projeto; quem copiar de la aponta para a regiao errada (P-024).
 - F-013: os marcos M1 (2026-08-08) e M2 (2026-08-22) venceram sem conclusao. Em 2026-08-27 restam 19 dias ate a entrega; o cronograma foi rebaseado em `CHECKLIST_REQUISITOS_FASE3.md`.
+- F-014: o nome do bucket adotado inclui o numero da conta AWS (891376952395) e vai para o `backend.tf` versionado. Account ID nao e credencial, mas a AWS recomenda nao publicar sem necessidade. Mitigacao adotada: manter o repositorio privado ate a entrega.

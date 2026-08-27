@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+
+## 2026-08-27 13:10 (-03:00) - Claude - Bucket de estado criado e padrao de tags definido
+
+Feito: o usuario criou o bucket de estado pelo console e informou os valores reais. Registrada D-009 (padrao de tags). P-019 encerrada, P-025 aberta. Valores propagados para o runbook, checklist, dossie, pendencias e `CLAUDE.md`. Nenhum codigo Terraform escrito ainda: o usuario pediu para ver e aprovar o plano antes.
+
+Decisoes/Por que: D-009 fixa `Project = fiap` e `Phase = 3` em todo recurso AWS, aplicados via `default_tags` no provider em vez de tag por recurso; isso alimenta o Cost Explorer e viabiliza o print de custos exigido em O-39. O lifecycle do bucket ficou em 30 dias em vez dos 90 que eu havia sugerido - escolha do grupo, e suficiente porque o estado e pequeno e 30 dias cobrem qualquer rollback plausivel.
+
+Arquivos: `terraform/BOOTSTRAP-BACKEND-S3.md`, `docs/00_COLAB_IA/DECISOES.md`, `PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md`, `DOSSIE_CONTEXTO.md`, `LOG_DE_TRABALHO.md` e `CLAUDE.md`.
+
+Descobertas: F-014. O nome escolhido, `togglemaster-tfstate-891376952395-us-east-2-an`, embute o numero da conta AWS e vai para o `backend.tf` versionado. Account ID nao e credencial, mas a AWS recomenda nao publicar sem necessidade; eu havia sugerido sufixo aleatorio justamente por isso. Nao vale recriar o bucket por causa disso; a mitigacao adotada e manter o repositorio privado ate a entrega. O-09 ficou marcado como parcial: o bucket existe, falta o bloco `backend "s3"`.
+
+Estado p/ o proximo agente: bucket pronto e documentado. O plano do Terraform foi apresentado ao usuario em 2026-08-27 e aguarda aprovacao (P-025). Nao escrever codigo Terraform antes disso. Depois da aprovacao, a ordem prevista e: backend + providers + network + ECR + SQS + DynamoDB + IAM/OIDC primeiro (barato e rapido, destrava o CI), e so entao EKS, 3 RDS e ElastiCache.
 
 ## 2026-08-27 12:23 (-03:00) - Claude - Correcao da regiao para us-east-2 e passo a passo pelo console
 

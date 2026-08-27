@@ -2,9 +2,9 @@
 
 TL;DR: passo a passo para criar, uma unica vez e fora do Terraform, o bucket S3 que vai guardar o `terraform.tfstate` do ToggleMaster. Regiao do projeto: **`us-east-2` (Ohio)**. Atende O-09 e R-03 do `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. Depois deste passo, todo o resto da infraestrutura sera criado por Terraform.
 
-Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
 
-Executar UMA VEZ, por UMA pessoa do grupo. Os demais integrantes so precisam da secao 8.
+**Executado em 2026-08-27 pelo usuario, via console.** Bucket em uso: `togglemaster-tfstate-891376952395-us-east-2-an`. Este documento passa a ser registro do procedimento e referencia para reproduzir o ambiente do zero. Os demais integrantes so precisam da secao 8.
 
 ---
 
@@ -33,7 +33,7 @@ Quem quiser zero cliques, ver o Apendice A (criar com Terraform usando estado lo
 | Item | Valor | Motivo |
 |---|---|---|
 | Regiao | **`us-east-2` (Ohio)** | Mesma regiao usada na Fase 2, informada pelo usuario em 2026-08-27. Toda a infra da Fase 3 fica nela. |
-| Nome do bucket | `togglemaster-tfstate-<sufixo>` | Nome de bucket e unico no mundo inteiro. O sufixo aleatorio evita colisao e nao expoe o numero da conta AWS num repo que sera entregue. |
+| Nome do bucket | `togglemaster-tfstate-891376952395-us-east-2-an` | Nome de bucket e unico no mundo inteiro. O grupo optou por identificar conta e regiao no nome, em vez do sufixo aleatorio que eu havia sugerido. Efeito colateral aceito: o numero da conta AWS fica visivel no `backend.tf` versionado - nao e credencial, mas e um dado que a AWS recomenda nao publicar sem necessidade. Mitigacao simples: manter o repositorio privado ate a entrega. |
 | Versionamento | Ligado | Permite voltar um estado corrompido. Nao vem ligado por padrao. |
 | Criptografia | SSE-S3 (`AES256`) | O estado tem senha em texto puro. SSE-S3 ja e padrao desde 2023; confirmamos mesmo assim. |
 | Bloqueio publico | Todos os 4 ligados | Padrao desde 2023; confirmamos mesmo assim. |
@@ -123,7 +123,7 @@ Isso importa mais do que parece: o bucket nasce na regiao selecionada e **nao po
 7. **Block Public Access settings for this bucket**: mantenha **Block all public access** marcado. Os quatro subitens ficam ligados.
 8. **Bucket Versioning**: mude para **Enable**.
    - **Este e o unico item que nao vem correto por padrao.** Se esquecer, um estado corrompido nao tem como ser recuperado.
-9. **Tags** (opcional, mas ajuda no controle de custo): `Project = ToggleMaster`, `Phase = 3`, `ManagedBy = bootstrap`.
+9. **Tags** (padrao do projeto, D-009): `Project = fiap` e `Phase = 3`.
 10. **Default encryption**:
     - Encryption type: `Server-side encryption with Amazon S3 managed keys (SSE-S3)`.
     - **Bucket Key**: `Enable`.
@@ -174,7 +174,7 @@ Com versionamento ligado, cada `apply` guarda mais uma versao do estado. Sao pou
 2. **Lifecycle rule name**: `expira-versoes-antigas`.
 3. **Choose a rule scope**: `Apply to all objects in the bucket` e marque a caixa de confirmacao.
 4. **Lifecycle rule actions**: marque `Permanently delete noncurrent versions of objects`.
-5. **Days after objects become noncurrent**: `90`.
+5. **Days after objects become noncurrent**: `30` (valor adotado pelo grupo; o estado e pequeno e 30 dias ja cobre qualquer rollback plausivel).
 6. **Create rule**.
 
 ### Passo 6 - Confirmar visualmente
@@ -274,7 +274,7 @@ POLICY
 
 ```bash
 export AWS_PROFILE=togglemaster
-export BUCKET=togglemaster-tfstate-<seu-sufixo>
+export BUCKET=togglemaster-tfstate-891376952395-us-east-2-an
 
 aws s3api get-bucket-location     --bucket "$BUCKET"   # LocationConstraint: us-east-2
 aws s3api get-bucket-versioning   --bucket "$BUCKET"   # Status: Enabled
@@ -290,11 +290,11 @@ Checklist final:
 - [ ] Criptografia padrao `AES256` com Bucket Key.
 - [ ] Os 4 bloqueios de acesso publico em `true`.
 - [ ] Bucket policy negando trafego sem TLS.
-- [ ] Nome do bucket anotado na secao 8 e compartilhado com o grupo.
+- [x] Nome do bucket anotado na secao 8 e compartilhado com o grupo.
 
 ## 8. O que o resto do grupo precisa saber
 
-- **Nome do bucket**: `togglemaster-tfstate-________` (preencher depois de criar).
+- **Nome do bucket**: `togglemaster-tfstate-891376952395-us-east-2-an`
 - **Regiao**: `us-east-2` (Ohio).
 - Cada integrante cria o proprio usuario IAM (secao 4.1) e roda `aws configure --profile togglemaster` com `us-east-2`.
 - Ninguem compartilha access key com ninguem. Chave e pessoal e nao vai para o repositorio.
@@ -308,7 +308,7 @@ terraform {
   required_version = ">= 1.11.0"
 
   backend "s3" {
-    bucket       = "togglemaster-tfstate-<seu-sufixo>"
+    bucket       = "togglemaster-tfstate-891376952395-us-east-2-an"
     key          = "global/terraform.tfstate"
     region       = "us-east-2"
     encrypt      = true

@@ -1,8 +1,18 @@
 # DECISOES
 
-TL;DR: decisoes atuais cobrem destino dos guias, estrategia de documentacao, direcao tecnica da Fase 3, condicoes de entrega (grupo, prazo 2026-09-15) e a estrutura de implementacao (monorepo + Kustomize).
+TL;DR: decisoes atuais cobrem destino dos guias, estrategia de documentacao, direcao tecnica da Fase 3, condicoes de entrega (grupo, prazo 2026-09-15), estrutura de implementacao (monorepo + Kustomize) e o padrao de tags dos recursos AWS.
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+
+## D-009 - Padrao de tags dos recursos AWS
+
+Contexto: recursos sem tag padronizada impedem rastrear custo por projeto no Cost Explorer, o que atrapalha o print de estimativa de custos exigido no relatorio (O-39), e dificultam saber o que pode ser destruido com seguranca.
+
+Decisao: todo recurso AWS do projeto leva `Project = fiap` e `Phase = 3`. No Terraform isso sera aplicado uma unica vez, via `default_tags` no bloco `provider "aws"`, em vez de repetir tag por recurso. O bucket de estado ja foi criado com essas tags manualmente.
+
+Alternativas: tags por recurso (repetitivo e facil de esquecer); nenhum padrao de tag.
+
+Status: aceita em 2026-08-27, informada pelo usuario.
 
 ## D-008 - Kustomize na area GitOps
 

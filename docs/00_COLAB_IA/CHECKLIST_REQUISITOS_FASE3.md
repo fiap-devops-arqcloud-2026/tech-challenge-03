@@ -2,7 +2,7 @@
 
 TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Em 2026-08-27 a implementacao comecou: os 5 microsservicos ja estao em `services/`; o restante segue pendente.
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
 
 Prazo final: 2026-09-15. Modalidade: entrega em grupo (D-006).
 
@@ -22,7 +22,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 - [ ] O-06 1 cluster ElastiCache (Redis).
 - [ ] O-07 1 tabela DynamoDB chamada `ToggleMasterAnalytics` (nome literal do enunciado).
 - [ ] O-08 1 fila SQS.
-- [ ] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local.
+- [~] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27 (`togglemaster-tfstate-891376952395-us-east-2-an`); falta o bloco `backend "s3"` em `terraform/backend.tf`.
 
 ### 1.2 Pipeline de CI e DevSecOps
 
@@ -109,7 +109,8 @@ Estes itens nao valem nota por si so, mas apareceram nas aulas da Fase 3 e refor
 
 Bloqueios remanescentes, agora operacionais:
 
-- P-019: criar o bucket S3 de estado seguindo `terraform/BOOTSTRAP-BACKEND-S3.md`. Sem ele, O-09 nao fecha e nenhum `terraform init` funciona.
+- P-019: **fechada em 2026-08-27**. Bucket de estado criado pelo console.
+- P-025: usuario aprovar o plano do Terraform antes de o codigo ser escrito.
 - P-018: obter os nomes dos integrantes do grupo para o relatorio (O-36). [INCERTO]
 
 ## 5.1 Marcos rebaseados em 2026-08-27
@@ -119,7 +120,7 @@ Os marcos M1 e M2 originais (2026-08-08 e 2026-08-22) venceram sem conclusao. Re
 | Marco | Alvo | Cobre | Situacao |
 |---|---|---|---|
 | M1 - Decisoes e esqueleto | 2026-08-27 | D-007, D-008, servicos em `services/` | Concluido, com 19 dias de atraso |
-| M2 - Backend S3 e primeiro plan | 2026-08-30 | O-09, R-03, `terraform/backend.tf`, VPC | Em andamento (P-019) |
+| M2 - Backend S3 e primeiro plan | 2026-08-30 | O-09, R-03, `terraform/backend.tf`, VPC | Bucket criado; aguarda aprovacao do plano (P-025) |
 | M3 - Infra Terraform aplicada | 2026-09-05 | O-01 a O-08, R-01, R-02, R-05 | |
 | M4 - CI/DevSecOps nos 5 servicos | 2026-09-09 | O-10 a O-21 | |
 | M5 - ArgoCD e GitOps sincronizando | 2026-09-12 | O-22 a O-26 | |

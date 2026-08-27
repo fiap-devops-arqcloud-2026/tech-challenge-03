@@ -2,7 +2,7 @@
 
 TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs; o escopo esta em `CHECKLIST_REQUISITOS_FASE3.md`. Entrega em grupo, prazo final 2026-09-15. A implementacao comecou: monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). Proximo bloqueio: criar o bucket S3 de estado (P-019).
 
-Ultima atualizacao: 2026-08-27 12:23 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
 
 ## 1 Objetivo
 
@@ -34,6 +34,8 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - Os 5 microsservicos usam duas stacks: Go em `auth` e `evaluation`; Python em `flag`, `targeting` e `analytics` (F-008).
 - Nenhum servico tem credencial hardcoded; tudo vem de variavel de ambiente (F-011).
 - Regiao AWS do projeto: `us-east-2` (Ohio), a mesma da Fase 2, confirmada pelo usuario em 2026-08-27 (F-012).
+- Conta AWS: 891376952395. Bucket de estado: `togglemaster-tfstate-891376952395-us-east-2-an`, criado em 2026-08-27 pelo console.
+- Tags padrao de todo recurso AWS: `Project = fiap` e `Phase = 3` (D-009).
 
 ## 4 Arquivos/caminhos
 
@@ -63,10 +65,11 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - D-006: entrega em grupo, prazo final 2026-09-15, confirmado pelo usuario.
 - D-007: o codigo dos 5 microsservicos vive neste monorepo em `services/`; a area GitOps e a pasta `gitops/`.
 - D-008: a area GitOps usa Kustomize, com `base/` por servico e `overlays/` por ambiente.
+- D-009: todo recurso AWS leva `Project = fiap` e `Phase = 3`, via `default_tags` no provider.
 
 ## 7 Pendencias
 
-- P-019: criar o bucket S3 de estado seguindo `terraform/BOOTSTRAP-BACKEND-S3.md`. Bloqueia todo o Terraform.
+- P-025: usuario aprovar o plano do Terraform antes de o codigo ser escrito. Bloqueia M2.
 - P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega.
 - P-003: escrever o Terraform da Fase 3 assim que o bucket existir.
 - P-020 a P-023: modulos Terraform, esqueleto Kustomize, OIDC no CI e local dos segredos de banco.

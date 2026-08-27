@@ -2,7 +2,7 @@
 
 TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Em 2026-08-27 a implementacao comecou: os 5 microsservicos ja estao em `services/`; o restante segue pendente.
 
-Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
 
 Prazo final: 2026-09-15. Modalidade: entrega em grupo (D-006).
 
@@ -80,7 +80,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 - [ ] R-03 Flag `use_lockfile` no backend S3 para lock de estado ("opcionalmente").
 - [ ] R-04 Testes unitarios no job de build ("se houver" - condicional, nao exigido).
 - [ ] R-05 Criar roles e policies IAM via Terraform - liberado e "recomendado para um portfolio profissional" porque o projeto usa conta pessoal (Opcao B). Nao se aplica a restricao da LabRole do AWS Academy.
-- [ ] R-06 Usar Helm Charts em vez de YAMLs puros na area GitOps (o enunciado aceita os dois). **Nao adotado**: D-008 escolheu Kustomize.
+- [ ] R-06 Usar Helm Charts em vez de YAMLs puros na area GitOps (o enunciado aceita os dois). **Nao adotado**: D-008 escolheu Kustomize, sobre a base de `infra/k8s/` da Fase 2 (D-014).
 - [ ] R-07 Repositorio GitOps separado em vez de pasta no monorepo (o enunciado aceita os dois). **Nao adotado**: D-007 escolheu monorepo com a pasta `gitops/`.
 - [ ] R-08 SonarCloud gratuito como SAST (alternativa a `gosec`/`bandit`).
 - [ ] R-09 GitHub Actions como ferramenta de CI (o enunciado diz "ex.:" e "ou ferramenta similar").
@@ -110,7 +110,7 @@ Estes itens nao valem nota por si so, mas apareceram nas aulas da Fase 3 e refor
 Bloqueios remanescentes, agora operacionais:
 
 - P-019: **fechada em 2026-08-27**. Bucket de estado criado pelo console.
-- P-025: usuario aprovar o plano do Terraform antes de o codigo ser escrito.
+- P-025: **fechada em 2026-08-27**. Plano aprovado pelo usuario (D-010 a D-014).
 - P-018: obter os nomes dos integrantes do grupo para o relatorio (O-36). [INCERTO]
 
 ## 5.1 Marcos rebaseados em 2026-08-27

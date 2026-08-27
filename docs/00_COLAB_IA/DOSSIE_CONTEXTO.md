@@ -2,7 +2,7 @@
 
 TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs; o escopo esta em `CHECKLIST_REQUISITOS_FASE3.md`. Entrega em grupo, prazo final 2026-09-15. A implementacao comecou: monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). Proximo bloqueio: criar o bucket S3 de estado (P-019).
 
-Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
 
 ## 1 Objetivo
 
@@ -66,10 +66,16 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - D-007: o codigo dos 5 microsservicos vive neste monorepo em `services/`; a area GitOps e a pasta `gitops/`.
 - D-008: a area GitOps usa Kustomize, com `base/` por servico e `overlays/` por ambiente.
 - D-009: todo recurso AWS leva `Project = fiap` e `Phase = 3`, via `default_tags` no provider.
+- D-010: modulos Terraform hibridos - comunidade para VPC e EKS, proprios para o restante.
+- D-011: ambiente unico chamado `prod`.
+- D-012: sem Ingress e sem Load Balancer; acesso no video por `kubectl port-forward` (base factual em F-018).
+- D-013: segredos em AWS Secrets Manager sincronizados por External Secrets Operator; IRSA no lugar de chaves estaticas.
+- D-014: `gitops/base/` derivado de `infra/k8s/` da Fase 2.
 
 ## 7 Pendencias
 
-- P-025: usuario aprovar o plano do Terraform antes de o codigo ser escrito. Bloqueia M2.
+- P-026: Etapa 1 do Terraform (network, ECR, SQS, DynamoDB, IAM/OIDC).
+- P-027: derivar `gitops/base/` de `infra/k8s/` da Fase 2.
 - P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega.
 - P-003: escrever o Terraform da Fase 3 assim que o bucket existir.
 - P-020 a P-023: modulos Terraform, esqueleto Kustomize, OIDC no CI e local dos segredos de banco.

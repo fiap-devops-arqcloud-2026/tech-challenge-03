@@ -1,8 +1,68 @@
 # DECISOES
 
-TL;DR: decisoes atuais cobrem destino dos guias, estrategia de documentacao, direcao tecnica da Fase 3, condicoes de entrega (grupo, prazo 2026-09-15), estrutura de implementacao (monorepo + Kustomize) e o padrao de tags dos recursos AWS.
+TL;DR: decisoes cobrem guias e documentacao, condicoes de entrega (grupo, 2026-09-15), estrutura de implementacao (monorepo, Kustomize, tags), e o desenho tecnico da Fase 3: modulos hibridos, ambiente unico prod, sem Ingress, segredos via Secrets Manager + ESO e reaproveitamento dos manifestos da Fase 2.
 
-Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+
+## D-014 - Reaproveitar os manifestos da Fase 2 como base do GitOps
+
+Contexto: a re-analise do repo da Fase 2 em 2026-08-27 revelou `infra/k8s/`, com 28 manifestos Kubernetes completos e comentados, que nao haviam sido copiados junto com `services/` em 2026-08-26.
+
+Decisao: `gitops/base/` sera derivado de `infra/k8s/` da Fase 2, nao escrito do zero. Aproveitados quase intactos: `00-namespaces.yaml`, os 5 `service.yaml` e os 2 `hpa.yaml`. Adaptados: os 5 `deployment.yaml`, `secret.yaml` e `configmap.yaml`. Descartados: os 4 arquivos de `postgres-targeting/` e o `ingress.yaml` (ver D-012).
+
+Por que: probes, resources, selectors e portas ja estao definidos e testados em producao real na Fase 2. Reescrever seria reintroduzir risco sem ganho de nota. Encerra a maior parte do esforco previsto em P-021.
+
+Alternativas: escrever os manifestos do zero.
+
+Status: aceita em 2026-08-27.
+
+## D-013 - Segredos via Secrets Manager + External Secrets Operator
+
+Contexto: o enunciado descreve a dor como "as credenciais do banco de dados estao sendo passadas em arquivos de texto sem seguranca". Na Fase 2 isso e literal: `analytics` e `evaluation` recebem `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` estaticas dentro de um Secret do Kubernetes (F-017).
+
+Decisao: o Terraform gera as senhas com `random_password` e grava no AWS Secrets Manager. O External Secrets Operator (ESO), instalado no cluster, sincroniza esses valores para Secrets do Kubernetes. As chaves estaticas da AWS somem por completo, substituidas por IRSA.
+
+Por que: ataca diretamente a dor citada no enunciado e rende evidencia forte para o relatorio (O-38). A alternativa manual - preencher o Secret uma vez a partir do output do Terraform - e justamente o procedimento que o enunciado critica.
+
+Alternativas: Secret do Kubernetes preenchido manualmente (opcao B, descartada); SSM Parameter Store no lugar do Secrets Manager.
+
+Status: aceita em 2026-08-27, escolhida pelo usuario. Encerra P-023. Ressalva registrada: e o unico item do plano que pode ser cortado se o prazo apertar.
+
+## D-012 - Sem Ingress e sem Load Balancer
+
+Contexto: a Fase 2 tem um `ingress.yaml` funcional com nginx e 5 rotas. Manter exigiria o Nginx Ingress Controller e um Load Balancer na AWS, a ~US$ 16-20/mes. O usuario autorizou remover desde que a entrega continue atendendo a FIAP.
+
+Decisao: nao havera Ingress nem Load Balancer. Os Services continuam `ClusterIP`. No video, o acesso a interface do ArgoCD e a qualquer verificacao nos servicos sera por `kubectl port-forward`.
+
+Por que: o enunciado da Fase 3 foi extraido e varrido em 2026-08-27. As palavras "ingress", "load balancer", "balanceador", "acesso externo", "http", "url", "endpoint", "expor", "publico", "nginx" e "alb" aparecem **zero vezes** (F-018). Os entregaveis de video sao Terraform plan/apply, pipeline falhando e passando, atualizacao da tag no GitOps e ArgoCD sincronizando - nenhum deles depende de acesso externo. Os pods ainda precisam subir saudaveis para o ArgoCD mostra-los verdes, o que continua garantido pelos probes.
+
+Alternativas: manter o Ingress da Fase 2 (melhor demo, ~US$ 16-20/mes a mais).
+
+Status: aceita em 2026-08-27, autorizada pelo usuario mediante confirmacao de que atende ao enunciado.
+
+## D-011 - Ambiente unico chamado prod
+
+Contexto: P-005 definiu Kustomize com `base/` e `overlays/`. Faltava decidir quantos ambientes.
+
+Decisao: um unico ambiente, `gitops/overlays/prod/`. Nao havera overlay de `dev` ou `hml`.
+
+Por que: o enunciado nao pede multiplos ambientes e cada ambiente extra multiplicaria o custo de EKS, RDS e ElastiCache. A estrutura base+overlay fica pronta para expandir depois sem retrabalho.
+
+Alternativas: `dev` + `prod`; overlay unico chamado `dev`.
+
+Status: aceita em 2026-08-27, escolhida pelo usuario.
+
+## D-010 - Modulos Terraform hibridos
+
+Contexto: R-01 recomenda organizar o Terraform em modulos. Havia a escolha entre usar modulos da comunidade, escrever tudo a mao ou combinar.
+
+Decisao: usar `terraform-aws-modules/vpc/aws` e `terraform-aws-modules/eks/aws` para rede e cluster; escrever modulos proprios para RDS, ElastiCache, SQS/DynamoDB, ECR e IAM.
+
+Por que: EKS escrito do zero (OIDC provider, addons, access entries, node group) e onde projetos perdem dias, e restam poucos dias ate 2026-09-15. Os demais recursos sao simples o bastante para modulo proprio, o que preserva a autoria exigida em O-33.
+
+Alternativas: tudo com modulos da comunidade; tudo escrito a mao.
+
+Status: aceita em 2026-08-27, escolhida pelo usuario.
 
 ## D-009 - Padrao de tags dos recursos AWS
 

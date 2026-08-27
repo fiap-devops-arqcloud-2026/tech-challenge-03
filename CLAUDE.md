@@ -1,6 +1,6 @@
 # Tech Challenge 03 - Contexto de Colaboracao
 
-Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
 
 TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML, e o escopo esta mapeado em `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. A entrega e em grupo e vence em 2026-09-15. A implementacao comecou: e um monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). O bucket S3 de estado ja existe (`togglemaster-tfstate-891376952395-us-east-2-an`, `us-east-2`). O proximo passo e escrever o Terraform, aguardando o usuario aprovar o plano (P-025). Antes de trabalhar, leia `docs/00_COLAB_IA/LEIA-PRIMEIRO.md`.
 
@@ -26,7 +26,9 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 - `terraform/`, `gitops/` e `.github/workflows/` ainda estao vazios ou inexistentes.
 - Bucket de estado criado em 2026-08-27: `togglemaster-tfstate-891376952395-us-east-2-an` em `us-east-2`. P-019 encerrada.
 - Tags padrao de todo recurso AWS: `Project = fiap`, `Phase = 3` (D-009), aplicadas via `default_tags` no provider.
-- Bloqueio atual: P-025, o usuario precisa aprovar o plano do Terraform antes de o codigo ser escrito.
+- Plano do Terraform aprovado em 2026-08-27 (D-010 a D-014): modulos hibridos, ambiente unico `prod`, sem Ingress nem Load Balancer, segredos via Secrets Manager + External Secrets Operator, e `gitops/base/` derivado de `infra/k8s/` da Fase 2.
+- Nos EKS: 2 x `t3.medium`, dimensionados a partir dos requests reais da Fase 2 (F-020).
+- Em andamento: P-026 (Etapa 1 do Terraform) e P-027 (`gitops/base/`).
 - Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
 
 ## Ponteiros

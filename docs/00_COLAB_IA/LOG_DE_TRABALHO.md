@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+
+## 2026-08-27 14:05 (-03:00) - Claude - Fase 2 reanalisada e plano do Terraform aprovado
+
+Feito: reanalisado o repo da Fase 2 apos o pull do usuario; extraido o enunciado da Fase 3 com `pdftotext` para verificar a exigencia de Ingress; registradas D-010 a D-014 e F-015 a F-020; encerradas P-020 a P-023 e P-025; abertas P-026 a P-031.
+
+Decisoes/Por que: o usuario escolheu modulos hibridos (D-010), ambiente unico `prod` (D-011), remocao do Ingress condicionada a atender a FIAP (D-012) e External Secrets Operator (D-013). A condicao de D-012 foi verificada e nao inferida: as 7 paginas do enunciado nao contem "ingress", "load balancer", "acesso externo", "http", "url", "endpoint", "expor", "publico", "nginx" nem "alb" - zero ocorrencias (F-018). Os quatro entregaveis de video sao Terraform, pipeline, tag no GitOps e sync do ArgoCD; nenhum depende de acesso externo. D-014 reaproveita `infra/k8s/` da Fase 2 como base do Kustomize. O usuario nao respondeu a duvida 2 (tamanho das instancias); segui com 2 x `t3.medium`, agora com base em medicao e nao em estimativa (F-020).
+
+Arquivos: `docs/00_COLAB_IA/DECISOES.md`, `PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md`, `DOSSIE_CONTEXTO.md`, `LOG_DE_TRABALHO.md` e `CLAUDE.md`.
+
+Descobertas: o pull da Fase 2 trouxe so documentacao e `services/` continua identico (F-015). Mas a reanalise revelou `infra/k8s/` com 28 manifestos completos que nao haviam sido copiados. Tres achados mudam o plano: a Fase 2 tinha 2 RDS e nao 3, porque o `targeting` rodava Postgres como StatefulSet no cluster (F-016); `analytics` e `evaluation` usam chaves estaticas da AWS dentro de Secret do Kubernetes, que e literalmente a dor citada no enunciado e vira o "antes" da demonstracao de IRSA (F-017); e os nomes canonicos de fila, cache, tabela, bancos e portas foram recuperados para evitar divergencia entre Terraform, Kustomize e codigo (F-019).
+
+Estado p/ o proximo agente: plano aprovado e documentado. Proximo passo e P-026, a Etapa 1 do Terraform, e P-027, o `gitops/base/`. Nada de Terraform foi escrito ate este ponto. Lembrar que o `targeting` precisa migrar de StatefulSet para RDS (P-031) e que o `ingress.yaml` e os 4 arquivos de `postgres-targeting/` NAO devem ser copiados para `gitops/`.
 
 ## 2026-08-27 13:10 (-03:00) - Claude - Bucket de estado criado e padrao de tags definido
 

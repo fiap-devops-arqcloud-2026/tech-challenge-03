@@ -2,12 +2,14 @@
 
 TL;DR: plano do Terraform aprovado pelo usuario em 2026-08-27 (D-010 a D-014). Bucket de estado criado. A re-analise da Fase 2 revelou `infra/k8s/` com 28 manifestos reaproveitaveis, o que barateia muito o GitOps. O trabalho agora e implementacao pura, comecando pela Etapa 1 do Terraform. Entrega em grupo, prazo final 2026-09-15.
 
-Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 16:40 -03:00, Claude.
 
 ## Alta prioridade
 
 - P-026: escrever a Etapa 1 do Terraform - `backend.tf`, `providers.tf`, network, ECR, SQS, DynamoDB e IAM/OIDC. Barata e rapida, destrava o pipeline de CI para correr em paralelo com o EKS.
 - P-027: derivar `gitops/base/` de `infra/k8s/` da Fase 2, conforme D-014.
+- P-032: decidir como atender O-05 (3 RDS) diante do limite de 2 instancias do plano gratuito (F-023). **Bloqueia a Etapa 2 do Terraform.** Opcoes na conversa de 2026-08-27; inclui pedir aprovacao do professor, como foi feito na Fase 2.
+- P-033: confirmar o tipo de instancia do node group. `t3.medium` esta bloqueada (F-023); a Fase 2 usou `c7i-flex.large`. Reverte parte da confirmacao dada pelo usuario em 2026-08-27.
 - P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega (O-36). [INCERTO]
 
 ## Proximos passos
@@ -60,6 +62,9 @@ Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
 - F-017: na Fase 2, `analytics` e `evaluation` acessam SQS e DynamoDB com `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` estaticas dentro de um Secret do Kubernetes. E literalmente a dor descrita no enunciado e o "antes" ideal para demonstrar IRSA no video e no relatorio (O-38).
 - F-018: o enunciado da Fase 3 nao exige Ingress, Load Balancer nem acesso externo. Extracao do PDF em 2026-08-27 com `pdftotext`: as palavras "ingress", "load balancer", "balanceador", "acesso externo", "http", "url", "endpoint", "dominio", "expor", "publico", "nginx" e "alb" aparecem zero vezes nas 7 paginas. Base factual de D-012.
 - F-019: nomes canonicos ja em uso na Fase 2, reaproveitados para evitar divergencia entre Terraform, Kustomize e codigo: namespace `togglemaster`; repositorios ECR `<servico>-service`; fila `togglemaster-events`; cache `togglemaster-redis`; tabela `ToggleMasterAnalytics`; bancos `auth_db`, `flags_db`, `targeting_db` com usuario `toggle`; portas auth 8001, flag 8002, targeting 8003, evaluation 8004, analytics 8005.
+- F-023: a conta 891376952395 esta no plano gratuito novo da AWS, que impoe DOIS bloqueios rigidos, ambos comprovados na Fase 2. (1) Maximo de 2 instancias RDS simultaneas: a terceira falha com "maximum number of instances available with free plan accounts" (Fase 2, D-001). (2) Somente tipos de instancia elegiveis ao Free Tier podem ser lancados: a `t3.medium` foi recusada com "The specified instance type is not eligible for Free Tier" (Fase 2, D-007). Nao sao limites de custo, e recusa de API.
+- F-024: a Fase 2 contornou os dois bloqueios assim: `targeting_db` como StatefulSet no EKS em vez de RDS (solucao aprovada pelo professor), e node group com `c7i-flex.large` (2 vCPU / 4 GB, ~US$ 0,085/h) no lugar da `t3.medium`. Consequencia para a Fase 3: a decisao de usar 2 x `t3.medium` e inviavel como esta, e o `c7i-flex.large` custa cerca do DOBRO por hora.
+- F-025: a Fase 2 perdeu tempo com o PVC do banco em pod preso em Pending porque a StorageClass `gp2` nao era default. Na Fase 3 o addon `aws-ebs-csi-driver` e uma StorageClass default precisam nascer do Terraform, nao de correcao manual.
 - F-021: o `terraform init` resolveu o modulo `terraform-aws-modules/vpc/aws` 5.21.0 com o provider AWS 6.62.0. Confirma que deixar a restricao do provider em `>= 5.46` sem teto foi correto: fixar `~> 6.0` teria conflitado com a restricao interna do modulo e travado o init.
 - F-022: as tags do projeto sao `project` e `phase` em MINUSCULAS, confirmado pelo usuario. Chave de tag na AWS e sensivel a caixa; grafias diferentes viram grupos separados no Cost Explorer.
 - F-020: soma dos `requests` reais dos 5 deployments da Fase 2: 450m de CPU e 512Mi de RAM. Com ArgoCD, ESO e kube-system, o total fica em torno de 1,25 vCPU e 1,9 GiB. Confirma que 2 nos `t3.medium` (4 vCPU / 8 GiB) atendem com folga, incluindo espaco para o HPA do `evaluation` escalar.

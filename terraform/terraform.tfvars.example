@@ -1,43 +1,68 @@
 # ============================================================
 # EXEMPLO DE terraform.tfvars
 # ============================================================
-# Copie para terraform.tfvars e ajuste se precisar.
-# O .gitignore versiona apenas este .example - terraform.tfvars fica de fora.
+# Copie para terraform.tfvars e ajuste se precisar:
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# O .gitignore versiona apenas este .example - o terraform.tfvars real
+# fica de fora, porque no futuro ele pode conter valor sensivel.
 #
 # Todos os valores abaixo ja sao o padrao em variables.tf. O arquivo
-# existe para deixar explicito o que da para ajustar, e principalmente
+# existe para deixar visivel o que da para ajustar, e principalmente
 # por causa do enable_nat_gateway.
 # ============================================================
 
-aws_region   = "us-east-2"
+# Regiao de toda a infraestrutura. Precisa ser a mesma do bucket de estado.
+aws_region = "us-east-2"
+
+# Prefixo dos nomes. Mudar aqui obriga a mudar os manifestos em gitops/.
 project_name = "togglemaster"
 
+# Tags aplicadas a todo recurso (D-009).
+# EM MINUSCULAS de proposito: chave de tag na AWS e sensivel a caixa, e foi
+# assim que o bucket de estado foi criado no console. Divergir aqui faria o
+# Cost Explorer mostrar dois grupos separados.
 default_tags = {
-  Project = "fiap"
-  Phase   = "3"
+  project = "fiap"
+  phase   = "3"
 }
 
 # ------------------------------------------------------------
 # ATENCAO - controle de custo durante a Etapa 1
 # ------------------------------------------------------------
 # Na Etapa 1 nao existe nada rodando em subnet privada, entao o NAT
-# Gateway ficaria ocioso cobrando cerca de US$ 33/mes. Deixe false ate
-# comecar a Etapa 2 (EKS, RDS, ElastiCache); nesse momento troque para
-# true, ou os nos do cluster nao conseguirao baixar imagem nenhuma.
+# Gateway ficaria ocioso cobrando cerca de US$ 33/mes.
+#
+# Deixe false ate comecar a Etapa 2 (EKS, RDS, ElastiCache). Nesse
+# momento troque para true, ou os nos do cluster nao conseguirao baixar
+# imagem nenhuma do ECR e os pods ficarao presos em ImagePullBackOff.
 # ------------------------------------------------------------
 enable_nat_gateway = false
 
-vpc_cidr             = "10.0.0.0/16"
-availability_zones   = ["us-east-2a", "us-east-2b"]
-private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
-public_subnet_cidrs  = ["10.0.101.0/24", "10.0.102.0/24"]
+# Faixa de IPs da VPC inteira.
+vpc_cidr = "10.0.0.0/16"
 
-services            = ["auth", "flag", "targeting", "evaluation", "analytics"]
+# Duas zonas: exigencia do EKS e do DB subnet group do RDS.
+availability_zones = ["us-east-2a", "us-east-2b"]
+
+# Uma subnet privada por zona, na mesma ordem da lista acima.
+private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+
+# Uma subnet publica por zona.
+public_subnet_cidrs = ["10.0.101.0/24", "10.0.102.0/24"]
+
+# Os 5 microsservicos. Cada um vira um repositorio <servico>-service no ECR.
+services = ["auth", "flag", "targeting", "evaluation", "analytics"]
+
+# Nome fixado pelo enunciado. Nao alterar.
 dynamodb_table_name = "ToggleMasterAnalytics"
 
-# MUTABLE permite re-executar o workflow sobre o mesmo commit.
-# IMMUTABLE e mais seguro, mas quebra re-execucoes.
+# MUTABLE permite re-executar o workflow sobre o mesmo commit - util durante
+# a gravacao do video. IMMUTABLE e mais seguro, mas quebra re-execucoes.
 ecr_image_tag_mutability = "MUTABLE"
-ecr_images_to_keep       = 10
 
+# Imagens mantidas por repositorio antes de as antigas expirarem.
+ecr_images_to_keep = 10
+
+# Unico repositorio autorizado a assumir a role do CI via OIDC.
 github_repository = "fiap-devops-arqcloud-2026/tech-challenge-03"

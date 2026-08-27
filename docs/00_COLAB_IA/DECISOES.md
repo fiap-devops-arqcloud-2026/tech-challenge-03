@@ -68,7 +68,7 @@ Status: aceita em 2026-08-27, escolhida pelo usuario.
 
 Contexto: recursos sem tag padronizada impedem rastrear custo por projeto no Cost Explorer, o que atrapalha o print de estimativa de custos exigido no relatorio (O-39), e dificultam saber o que pode ser destruido com seguranca.
 
-Decisao: todo recurso AWS do projeto leva `Project = fiap` e `Phase = 3`. No Terraform isso sera aplicado uma unica vez, via `default_tags` no bloco `provider "aws"`, em vez de repetir tag por recurso. O bucket de estado ja foi criado com essas tags manualmente.
+Decisao: todo recurso AWS do projeto leva `project = fiap` e `phase = 3`, em minusculas. Chave de tag na AWS e sensivel a maiuscula/minuscula: se o Terraform usasse `Project` e o bucket `project`, o Cost Explorer mostraria dois grupos separados e a soma de custo do projeto sairia errada. Grafia confirmada pelo usuario em 2026-08-27. No Terraform isso sera aplicado uma unica vez, via `default_tags` no bloco `provider "aws"`, em vez de repetir tag por recurso. O bucket de estado ja foi criado com essas tags manualmente.
 
 Alternativas: tags por recurso (repetitivo e facil de esquecer); nenhum padrao de tag.
 

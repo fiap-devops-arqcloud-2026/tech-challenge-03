@@ -1,9 +1,12 @@
 # ============================================================
-# SAIDAS
+# SAIDAS DA RAIZ
 # ============================================================
-# Estes valores alimentam as proximas etapas: os manifestos em gitops/,
-# os workflows do GitHub Actions e a Etapa 2 do Terraform.
-# Recupere a qualquer momento com `terraform output`.
+# Estes valores aparecem ao final do apply e podem ser recuperados a
+# qualquer momento com `terraform output` ou, individualmente, com
+# `terraform output -raw <nome>`.
+#
+# Eles alimentam as proximas etapas: os manifestos em gitops/, os
+# workflows do GitHub Actions e a Etapa 2 do Terraform.
 # ============================================================
 
 # ------------------------------------------------------------
@@ -11,17 +14,19 @@
 # ------------------------------------------------------------
 
 output "vpc_id" {
-  description = "ID da VPC."
+  description = "ID da VPC. A Etapa 2 usa para posicionar cluster, bancos e cache dentro dela."
   value       = module.vpc.vpc_id
 }
 
 output "private_subnet_ids" {
-  description = "Subnets privadas: nos do EKS, RDS e ElastiCache."
-  value       = module.vpc.private_subnets
+  description = "Subnets privadas: onde ficam nos do EKS, RDS e ElastiCache."
+
+  # Lista com um ID por AZ, na mesma ordem de availability_zones.
+  value = module.vpc.private_subnets
 }
 
 output "public_subnet_ids" {
-  description = "Subnets publicas: apenas o NAT Gateway."
+  description = "Subnets publicas: apenas o NAT Gateway mora aqui (nao ha Load Balancer, ver D-012)."
   value       = module.vpc.public_subnets
 }
 
@@ -31,7 +36,9 @@ output "public_subnet_ids" {
 
 output "ecr_repository_urls" {
   description = "URL de cada repositorio. Vai no campo images do kustomization.yaml e no docker push do pipeline."
-  value       = module.ecr.repository_urls
+
+  # Mapa: { "auth" = "891...amazonaws.com/auth-service", ... }
+  value = module.ecr.repository_urls
 }
 
 # ------------------------------------------------------------
@@ -44,7 +51,7 @@ output "sqs_queue_url" {
 }
 
 output "sqs_queue_arn" {
-  description = "ARN da fila, usado nas policies IRSA da Etapa 2."
+  description = "ARN da fila. Usado nas policies IRSA da Etapa 2."
   value       = module.messaging.queue_arn
 }
 
@@ -54,7 +61,7 @@ output "dynamodb_table_name" {
 }
 
 output "dynamodb_table_arn" {
-  description = "ARN da tabela, usado na policy IRSA do analytics-service."
+  description = "ARN da tabela. Usado na policy IRSA do analytics-service na Etapa 2."
   value       = module.messaging.dynamodb_table_arn
 }
 
@@ -63,6 +70,6 @@ output "dynamodb_table_arn" {
 # ------------------------------------------------------------
 
 output "github_actions_role_arn" {
-  description = "ARN a ser usado em role-to-assume no workflow do GitHub Actions."
+  description = "ARN a ser usado em role-to-assume no workflow do GitHub Actions. Este e o valor que substitui a antiga dupla AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY nos secrets do repositorio."
   value       = module.iam_ci.role_arn
 }

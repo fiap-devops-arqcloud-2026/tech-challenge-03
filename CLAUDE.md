@@ -8,6 +8,7 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 
 - Idioma: portugues do Brasil.
 - Explicar primeiro de forma simples e depois tecnica.
+- **Comentar linha a linha todo codigo criado** (Terraform, YAML, workflows, scripts), explicando o que cada linha faz e por que esta ali. Padrao pedido pelo usuario em 2026-08-27 e ja usado nos manifestos da Fase 2.
 - Nao inventar: marque `[INCERTO]` quando faltar confirmacao.
 - Nao commitar segredos, credenciais ou dados sensiveis.
 - Entradas devem ser tratadas como somente leitura.
@@ -25,7 +26,7 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 - Conta pessoal AWS, nao AWS Academy; regiao `us-east-2`; IAM pode ser criado via Terraform.
 - `terraform/`, `gitops/` e `.github/workflows/` ainda estao vazios ou inexistentes.
 - Bucket de estado criado em 2026-08-27: `togglemaster-tfstate-891376952395-us-east-2-an` em `us-east-2`. P-019 encerrada.
-- Tags padrao de todo recurso AWS: `Project = fiap`, `Phase = 3` (D-009), aplicadas via `default_tags` no provider.
+- Tags padrao de todo recurso AWS: `project = fiap`, `phase = 3`, em MINUSCULAS (D-009), aplicadas via `default_tags` no provider.
 - Plano do Terraform aprovado em 2026-08-27 (D-010 a D-014): modulos hibridos, ambiente unico `prod`, sem Ingress nem Load Balancer, segredos via Secrets Manager + External Secrets Operator, e `gitops/base/` derivado de `infra/k8s/` da Fase 2.
 - Nos EKS: 2 x `t3.medium`, dimensionados a partir dos requests reais da Fase 2 (F-020).
 - Em andamento: P-026 (Etapa 1 do Terraform) e P-027 (`gitops/base/`).

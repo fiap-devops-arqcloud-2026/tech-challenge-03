@@ -35,7 +35,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - Nenhum servico tem credencial hardcoded; tudo vem de variavel de ambiente (F-011).
 - Regiao AWS do projeto: `us-east-2` (Ohio), a mesma da Fase 2, confirmada pelo usuario em 2026-08-27 (F-012).
 - Conta AWS: 891376952395. Bucket de estado: `togglemaster-tfstate-891376952395-us-east-2-an`, criado em 2026-08-27 pelo console.
-- Tags padrao de todo recurso AWS: `Project = fiap` e `Phase = 3` (D-009).
+- Tags padrao de todo recurso AWS: `project = fiap` e `phase = 3`, em minusculas (D-009).
 
 ## 4 Arquivos/caminhos
 
@@ -65,7 +65,7 @@ Construir a terceira entrega do Tech Challenge usando o ToggleMaster como base, 
 - D-006: entrega em grupo, prazo final 2026-09-15, confirmado pelo usuario.
 - D-007: o codigo dos 5 microsservicos vive neste monorepo em `services/`; a area GitOps e a pasta `gitops/`.
 - D-008: a area GitOps usa Kustomize, com `base/` por servico e `overlays/` por ambiente.
-- D-009: todo recurso AWS leva `Project = fiap` e `Phase = 3`, via `default_tags` no provider.
+- D-009: todo recurso AWS leva `project = fiap` e `phase = 3` em minusculas, via `default_tags` no provider.
 - D-010: modulos Terraform hibridos - comunidade para VPC e EKS, proprios para o restante.
 - D-011: ambiente unico chamado `prod`.
 - D-012: sem Ingress e sem Load Balancer; acesso no video por `kubectl port-forward` (base factual em F-018).

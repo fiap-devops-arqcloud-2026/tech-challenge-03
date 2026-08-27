@@ -123,7 +123,7 @@ Isso importa mais do que parece: o bucket nasce na regiao selecionada e **nao po
 7. **Block Public Access settings for this bucket**: mantenha **Block all public access** marcado. Os quatro subitens ficam ligados.
 8. **Bucket Versioning**: mude para **Enable**.
    - **Este e o unico item que nao vem correto por padrao.** Se esquecer, um estado corrompido nao tem como ser recuperado.
-9. **Tags** (padrao do projeto, D-009): `Project = fiap` e `Phase = 3`.
+9. **Tags** (padrao do projeto, D-009): `project = fiap` e `phase = 3`. Em MINUSCULAS: chave de tag na AWS e sensivel a caixa, e o Terraform usa exatamente esta grafia.
 10. **Default encryption**:
     - Encryption type: `Server-side encryption with Amazon S3 managed keys (SSE-S3)`.
     - **Bucket Key**: `Enable`.

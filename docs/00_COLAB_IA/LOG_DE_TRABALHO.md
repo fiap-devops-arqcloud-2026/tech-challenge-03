@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 15:55 -03:00, Claude.
+
+## 2026-08-27 15:55 (-03:00) - Claude - Terraform validado, tags corrigidas e padrao de comentarios
+
+Feito: localizado o Terraform 1.16.0 em `C:\Users\Gabriel\Downloads\terraform_1.16.0_windows_amd64\` (baixado, mas fora do PATH); rodados `init -backend=false`, `validate` e `fmt -recursive` com sucesso; corrigida a grafia das tags para minusculas; reescritos os 14 arquivos `.tf` e o `terraform.tfvars.example` com comentario linha a linha.
+
+Decisoes/Por que: o usuario confirmou 2 x `t3.medium` e informou que as tags sao `project=fiap` e `phase=3` em MINUSCULAS. A caixa importa: chave de tag na AWS e sensivel a maiuscula/minuscula, e eu havia assumido `Project`/`Phase` capitalizados no runbook. Se as duas grafias coexistissem, o Cost Explorer separaria em dois grupos e a soma de custo do projeto sairia errada. O usuario tambem estabeleceu que todo codigo criado deve vir comentado linha a linha; registrei como regra em `CLAUDE.md` e na memoria do projeto. Esse padrao nao e novidade: os manifestos de `infra/k8s/` da Fase 2 ja seguem exatamente isso.
+
+Arquivos: todos os `.tf` de `terraform/`, `terraform.tfvars.example`, `terraform/BOOTSTRAP-BACKEND-S3.md`, `CLAUDE.md`, `docs/00_COLAB_IA/DECISOES.md`, `DOSSIE_CONTEXTO.md` e `LOG_DE_TRABALHO.md`.
+
+Descobertas: F-021 e F-022. O `init` resolveu o modulo VPC 5.21.0 com o provider AWS 6.62.0, confirmando que deixar `>= 5.46` sem teto foi a escolha certa - fixar `~> 6.0` teria gerado conflito com a restricao interna do modulo. O `.terraform.lock.hcl` foi gerado e agora e versionado, apos a correcao do `.gitignore`.
+
+Estado p/ o proximo agente: Etapa 1 do Terraform escrita, validada e formatada. Ainda NAO foi aplicada na AWS: falta `terraform init` de verdade (com backend) e `terraform plan`. O binario do Terraform nao esta no PATH - ou o usuario move para uma pasta do PATH, ou os comandos precisam do caminho completo. Proximo passo e P-027, derivar `gitops/base/` de `infra/k8s/` da Fase 2.
 
 ## 2026-08-27 14:05 (-03:00) - Claude - Fase 2 reanalisada e plano do Terraform aprovado
 

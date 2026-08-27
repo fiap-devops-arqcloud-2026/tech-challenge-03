@@ -2,7 +2,7 @@
 
 TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada (Etapa 1 aplicada + workflows de CI) e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform e `gitops/`. Proxima acao: P-038, aplicar a Etapa 1 com o NAT desligado.
 
-Ultima atualizacao: 2026-08-27 19:50 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
 
 ## Plano em 4 fases ate 2026-09-15
 
@@ -11,7 +11,7 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 
 ### Fase A - trabalho sem custo (alvo: 2026-08-31)
 
-- P-038: aplicar a Etapa 1 do Terraform com `enable_nat_gateway = false`.
+- P-038: aplicar a camada BASE (`terraform/`, estado `prod/base.tfstate`) com `enable_nat_gateway = false`.
   Cria VPC, 5 repositorios ECR, SQS, DynamoDB e a role OIDC do CI. Custo
   praticamente zero: VPC, IGW, subnets, SQS, DynamoDB e IAM nao cobram
   parados, e o ECR fica em centavos. Fecha O-02, O-07, O-08, O-09 e O-21.
@@ -27,7 +27,7 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 
 ### Fase B - escrever o resto sem aplicar (alvo: 2026-09-04)
 
-- P-028: Etapa 2 do Terraform - EKS com node group `c7i-flex.large`
+- P-028: preencher `terraform/cluster/` - EKS com node group `c7i-flex.large`
   (D-016), 2 RDS, ElastiCache, roles IRSA e segredos no Secrets Manager.
 - P-035: no mesmo Terraform, addon `aws-ebs-csi-driver` e StorageClass
   default, senao o PVC do banco em pod fica Pending (F-025).
@@ -113,6 +113,7 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 - F-017: na Fase 2, `analytics` e `evaluation` acessam SQS e DynamoDB com `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` estaticas dentro de um Secret do Kubernetes. E literalmente a dor descrita no enunciado e o "antes" ideal para demonstrar IRSA no video e no relatorio (O-38).
 - F-018: o enunciado da Fase 3 nao exige Ingress, Load Balancer nem acesso externo. Extracao do PDF em 2026-08-27 com `pdftotext`: as palavras "ingress", "load balancer", "balanceador", "acesso externo", "http", "url", "endpoint", "dominio", "expor", "publico", "nginx" e "alb" aparecem zero vezes nas 7 paginas. Base factual de D-012.
 - F-019: nomes canonicos ja em uso na Fase 2, reaproveitados para evitar divergencia entre Terraform, Kustomize e codigo: namespace `togglemaster`; repositorios ECR `<servico>-service`; fila `togglemaster-events`; cache `togglemaster-redis`; tabela `ToggleMasterAnalytics`; bancos `auth_db`, `flags_db`, `targeting_db` com usuario `toggle`; portas auth 8001, flag 8002, targeting 8003, evaluation 8004, analytics 8005.
+- F-030: com estado unico, o `terraform destroy` de fim de sessao levaria junto os repositorios ECR e, por causa do `force_delete`, as imagens. O CI teria de reconstruir e reenviar as 5 antes de cada sessao. Resolvido por D-017, separando base permanente de cluster efemero. O furo so apareceu porque o usuario questionou a ordem de aplicar.
 - F-028: metade dos itens de video nao precisa do cluster. O pipeline falhando e passando (O-28, O-29) e a atualizacao da tag no GitOps (O-30) rodam inteiramente no GitHub Actions, com custo zero de AWS. So o bloco do ArgoCD (O-31, O-32) exige o EKS no ar. Isso reduz a pressao sobre a janela de gravacao.
 - F-029: os nomes e RMs do Grupo 203 estavam no README da Fase 2 desde sempre. A P-018 ficou aberta por 28 dias porque ninguem procurou na fonte obvia.
 - F-027: o `kubectl kustomize` renderiza mas nao possui o subcomando `edit`. O passo do CI que atualiza a tag da imagem (O-24) precisa do binario `kustomize` standalone instalado no runner (P-036).

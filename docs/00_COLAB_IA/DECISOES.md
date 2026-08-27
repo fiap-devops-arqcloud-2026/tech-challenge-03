@@ -1,8 +1,24 @@
 # DECISOES
 
-TL;DR: decisoes cobrem guias e documentacao, condicoes de entrega (grupo, 2026-09-15), estrutura de implementacao (monorepo, Kustomize, tags), e o desenho tecnico da Fase 3: modulos hibridos, ambiente unico prod, sem Ingress, segredos via Secrets Manager + ESO e reaproveitamento dos manifestos da Fase 2.
+TL;DR: decisoes cobrem guias e documentacao, condicoes de entrega (grupo, 2026-09-15), estrutura de implementacao (monorepo, Kustomize, tags), o desenho tecnico da Fase 3 e a separacao do Terraform em duas camadas com estados independentes.
 
-Ultima atualizacao: 2026-08-27 17:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
+
+## D-017 - Dois estados Terraform: base permanente e cluster efemero
+
+Contexto: o plano previa uma unica raiz Terraform com tudo dentro. Ao explicar o ciclo de subir e derrubar, o usuario perguntou se nao seria melhor deixar tudo pronto antes de aplicar. A pergunta expos um furo: com um estado unico, o `terraform destroy` feito ao fim de cada sessao para parar de gastar credito levaria junto os repositorios ECR. Como eles usam `force_delete = true`, as imagens iriam junto, e o CI teria de reconstruir e reenviar as 5 antes de cada sessao.
+
+Decisao: separar em duas raizes com estados independentes no mesmo bucket.
+- `terraform/` - camada base: VPC, subnets, IGW, 5 repositorios ECR, SQS, DynamoDB e OIDC do CI. Estado `prod/base.tfstate`. Custo praticamente zero parada; aplicada uma vez e nunca destruida.
+- `terraform/cluster/` - camada efemera: EKS, node group, 2 RDS, ElastiCache, roles IRSA e segredos. Estado `prod/cluster.tfstate`. Custo ~US$ 0,37/h; sobe e desce a cada sessao.
+
+A camada `cluster/` le as saidas da base por `terraform_remote_state`, somente leitura. Consequencia: `cluster/` nao roda antes de a base ter sido aplicada, e o `plan` falha explicitamente nesse caso - comportamento correto.
+
+Por que: preserva ECR, imagens, fila e tabela entre sessoes, e torna o `destroy` seguro de executar sem pensar. Sem essa separacao, a estrategia de custo definida em F-026 nao se sustenta na pratica.
+
+Alternativas: estado unico com `terraform destroy -target` (fragil e desaconselhado pela propria HashiCorp); estado unico aceitando recriar o ECR toda vez (perderia as imagens e gastaria tempo de CI antes de cada sessao); workspaces do Terraform (resolvem separacao de ambientes, nao de ciclo de vida).
+
+Status: aceita em 2026-08-27, aprovada pelo usuario. Implementada e validada no mesmo dia.
 
 ## D-016 - Node group com c7i-flex.large
 

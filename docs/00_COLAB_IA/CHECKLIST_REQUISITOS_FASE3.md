@@ -2,7 +2,7 @@
 
 TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Em 2026-08-27 a implementacao comecou: os 5 microsservicos ja estao em `services/`; o restante segue pendente.
 
-Ultima atualizacao: 2026-08-27 19:50 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
 
 Prazo final: 2026-09-15. Modalidade: entrega em grupo (D-006).
 
@@ -22,7 +22,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 - [ ] O-06 1 cluster ElastiCache (Redis).
 - [ ] O-07 1 tabela DynamoDB chamada `ToggleMasterAnalytics` (nome literal do enunciado).
 - [ ] O-08 1 fila SQS.
-- [~] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27 (`togglemaster-tfstate-891376952395-us-east-2-an`); falta o bloco `backend "s3"` em `terraform/backend.tf`.
+- [~] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27; blocos `backend "s3"` escritos nas duas camadas, com chaves `prod/base.tfstate` e `prod/cluster.tfstate` (D-017). Falta aplicar.
 
 ### 1.2 Pipeline de CI e DevSecOps
 

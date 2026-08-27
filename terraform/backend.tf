@@ -1,5 +1,5 @@
 # ============================================================
-# BACKEND REMOTO E VERSOES
+# BACKEND REMOTO E VERSOES - CAMADA BASE (permanente)
 # ============================================================
 # O terraform.tfstate NAO fica local (O-09). Ele vive no bucket S3
 # criado uma unica vez pelo procedimento de BOOTSTRAP-BACKEND-S3.md.
@@ -8,6 +8,20 @@
 # incluindo senhas de banco em texto puro. Se ficasse no notebook de
 # uma pessoa, o grupo nao conseguiria aplicar em paralelo e um HD
 # queimado deixaria a infraestrutura orfa cobrando na fatura.
+#
+# ------------------------------------------------------------
+# POR QUE EXISTEM DOIS ESTADOS SEPARADOS (D-017)
+# ------------------------------------------------------------
+# Esta pasta e a camada BASE: rede, ECR, SQS, DynamoDB e IAM. Tudo aqui
+# custa praticamente zero parado e NUNCA e destruido.
+#
+# A camada CARA - EKS, RDS e ElastiCache - vive em terraform/cluster/,
+# com estado proprio, e sobe e desce a cada sessao de trabalho.
+#
+# Se as duas dividissem o mesmo estado, o `terraform destroy` feito para
+# parar de gastar credito levaria junto os repositorios ECR. Como eles
+# usam force_delete, as imagens iriam junto, e o CI teria de reconstruir
+# e reenviar as 5 imagens antes de cada sessao.
 # ============================================================
 
 # Bloco de configuracao do proprio Terraform (nao cria recurso na AWS).
@@ -44,9 +58,10 @@ terraform {
     bucket = "togglemaster-tfstate-891376952395-us-east-2-an"
 
     # Caminho do arquivo de estado DENTRO do bucket.
-    # Ha um unico ambiente (D-011), por isso o prefixo "prod/". Se um dia
-    # houver mais ambientes, viram hml/terraform.tfstate etc. no mesmo bucket.
-    key = "prod/terraform.tfstate"
+    # Ha um unico ambiente (D-011), por isso o prefixo "prod/".
+    # O sufixo "base" separa este estado do "prod/cluster.tfstate", usado
+    # pela camada efemera em terraform/cluster/.
+    key = "prod/base.tfstate"
 
     # Regiao do bucket. Precisa ser a mesma onde ele foi criado, senao o
     # terraform init falha dizendo que a regiao nao confere.

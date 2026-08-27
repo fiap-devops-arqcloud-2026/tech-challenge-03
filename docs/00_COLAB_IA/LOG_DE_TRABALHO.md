@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 19:50 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
+
+## 2026-08-27 20:40 (-03:00) - Claude - Terraform separado em duas camadas (D-017)
+
+Feito: separado o Terraform em duas raizes com estados independentes no mesmo bucket. A base (`terraform/`) passou a gravar em `prod/base.tfstate`; criada `terraform/cluster/` com `backend.tf`, `providers.tf`, `variables.tf`, `data.tf`, `main.tf` e `outputs.tf`, gravando em `prod/cluster.tfstate`. Ambas passaram por `fmt` e `validate` com sucesso. `terraform/README.md` reescrito para explicar as duas camadas e o ciclo de subir e derrubar.
+
+Decisoes/Por que: D-017. O usuario perguntou se nao seria melhor deixar tudo pronto antes de aplicar, e a pergunta expos um furo meu: com estado unico, o `terraform destroy` de fim de sessao levaria junto os repositorios ECR e, por causa do `force_delete = true`, as imagens tambem. O CI precisaria reconstruir e reenviar as 5 imagens antes de cada sessao, o que inviabilizaria na pratica a estrategia de custo de F-026. Com estados separados, a camada barata fica de pe permanentemente e so a cara sobe e desce.
+
+Arquivos: `terraform/backend.tf` (chave alterada), `terraform/README.md` reescrito, 6 arquivos novos em `terraform/cluster/`; atualizados `docs/00_COLAB_IA/DECISOES.md`, `PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md` e `LOG_DE_TRABALHO.md`.
+
+Descobertas: F-030. A camada `cluster/` le a base por `terraform_remote_state`, entao ela nao roda antes de a base ter sido aplicada - o `plan` falha dizendo que nao encontrou o estado. Isso e o comportamento correto e esta documentado no `README.md` do Terraform, para ninguem interpretar como bug.
+
+Estado p/ o proximo agente: as duas camadas escritas e validadas, nenhuma aplicada. A `cluster/` tem so a fiacao - os recursos entram na Fase B (P-028, P-035, P-039), e o `main.tf` dela lista item por item o que falta. Proxima acao do usuario: P-038, aplicar a base. Proxima acao minha: P-030, os 5 workflows de CI. O usuario pediu para manter contexto e documentacao sempre atualizados, porque o relatorio final da FIAP e o README serao montados a partir deles.
 
 ## 2026-08-27 19:50 (-03:00) - Claude - Plano reorganizado em 4 fases
 

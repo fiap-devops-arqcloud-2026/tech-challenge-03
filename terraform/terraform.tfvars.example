@@ -1,0 +1,43 @@
+# ============================================================
+# EXEMPLO DE terraform.tfvars
+# ============================================================
+# Copie para terraform.tfvars e ajuste se precisar.
+# O .gitignore versiona apenas este .example - terraform.tfvars fica de fora.
+#
+# Todos os valores abaixo ja sao o padrao em variables.tf. O arquivo
+# existe para deixar explicito o que da para ajustar, e principalmente
+# por causa do enable_nat_gateway.
+# ============================================================
+
+aws_region   = "us-east-2"
+project_name = "togglemaster"
+
+default_tags = {
+  Project = "fiap"
+  Phase   = "3"
+}
+
+# ------------------------------------------------------------
+# ATENCAO - controle de custo durante a Etapa 1
+# ------------------------------------------------------------
+# Na Etapa 1 nao existe nada rodando em subnet privada, entao o NAT
+# Gateway ficaria ocioso cobrando cerca de US$ 33/mes. Deixe false ate
+# comecar a Etapa 2 (EKS, RDS, ElastiCache); nesse momento troque para
+# true, ou os nos do cluster nao conseguirao baixar imagem nenhuma.
+# ------------------------------------------------------------
+enable_nat_gateway = false
+
+vpc_cidr             = "10.0.0.0/16"
+availability_zones   = ["us-east-2a", "us-east-2b"]
+private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+public_subnet_cidrs  = ["10.0.101.0/24", "10.0.102.0/24"]
+
+services            = ["auth", "flag", "targeting", "evaluation", "analytics"]
+dynamodb_table_name = "ToggleMasterAnalytics"
+
+# MUTABLE permite re-executar o workflow sobre o mesmo commit.
+# IMMUTABLE e mais seguro, mas quebra re-execucoes.
+ecr_image_tag_mutability = "MUTABLE"
+ecr_images_to_keep       = 10
+
+github_repository = "fiap-devops-arqcloud-2026/tech-challenge-03"

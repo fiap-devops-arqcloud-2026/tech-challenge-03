@@ -5,7 +5,8 @@
 *.tfstate.*
 *.tfstate.backup
 .terraform/
-.terraform.lock.hcl
+# .terraform.lock.hcl NAO entra aqui: o lock DEVE ser versionado para que
+# todo o grupo use a mesma versao de provider. Recomendacao da HashiCorp.
 crash.log
 crash.*.log
 *.tfvars

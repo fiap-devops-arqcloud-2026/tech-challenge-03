@@ -41,7 +41,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ### 1.3 Entrega Continua (CD) e GitOps
 
-- [ ] O-22 Area de GitOps com apenas manifestos Kubernetes / Helm Charts (repo separado OU pasta separada no monorepo).
+- [x] O-22 Area de GitOps com apenas manifestos Kubernetes / Helm Charts (repo separado OU pasta separada no monorepo). Pasta `gitops/` no monorepo, em Kustomize (D-007, D-008).
 - [ ] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`).
 - [ ] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`).
 - [ ] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS.
@@ -62,7 +62,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 - [ ] O-33 Todo o codigo Terraform, bem estruturado e componentizado.
 - [ ] O-34 Arquivos de workflow `.yaml` do GitHub Actions (ou ferramenta similar) com os passos DevSecOps.
-- [ ] O-35 Manifestos Kubernetes ajustados para GitOps.
+- [~] O-35 Manifestos Kubernetes ajustados para GitOps. Criados em `gitops/` em 2026-08-27 e validados com `kubectl kustomize`; faltam os placeholders de endpoint e ARN, que dependem da Etapa 2.
 
 ### 2.3 Relatorio de entrega (.PDF ou .txt)
 

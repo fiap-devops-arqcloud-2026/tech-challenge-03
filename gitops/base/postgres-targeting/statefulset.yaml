@@ -1,0 +1,156 @@
+# ============================================================
+# STATEFULSET - postgres-targeting
+# ============================================================
+# POR QUE ESTE ARQUIVO EXISTE
+#
+# O enunciado pede 3 instancias RDS (O-05), mas a conta AWS esta no
+# plano gratuito novo, que recusa a terceira com o erro literal
+# "maximum number of instances available with free plan accounts"
+# (F-023). Nao e limite de custo: e recusa de API.
+#
+# A Fase 2 resolveu rodando o banco do targeting como pod dentro do
+# cluster, solucao aprovada pelo professor. Em 2026-08-27 o professor
+# confirmou que segue valida para a Fase 3 (D-015).
+#
+# POR QUE StatefulSet E NAO Deployment
+# Banco tem estado. StatefulSet garante nome de pod estavel
+# (postgres-targeting-0) e, principalmente, um disco que sobrevive ao
+# reinicio do pod, via volumeClaimTemplates la embaixo. Um Deployment
+# perderia os dados a cada reinicio.
+# ============================================================
+
+apiVersion: apps/v1
+kind: StatefulSet
+
+metadata:
+  name: postgres-targeting
+  labels:
+    app: postgres-targeting
+
+spec:
+  # Nome do Service headless que da identidade de rede aos pods.
+  # Precisa bater com o metadata.name do service.yaml desta pasta.
+  serviceName: postgres-targeting
+
+  # Um unico banco. Replicacao de PostgreSQL exige muito mais do que
+  # aumentar este numero e nao e escopo do projeto.
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgres-targeting
+
+  template:
+    metadata:
+      labels:
+        app: postgres-targeting
+
+    spec:
+      containers:
+        - name: postgres
+
+          # Imagem oficial, versao fixa. Alpine reduz o tamanho.
+          # Diferente dos 5 microsservicos, esta imagem NAO passa pelo
+          # nosso pipeline: vem pronta do Docker Hub, entao a tag fica
+          # fixa aqui mesmo e nao e gerenciada pelo Kustomize.
+          image: postgres:16-alpine
+
+          # IfNotPresent: como a tag e imutavel, nao ha motivo para baixar
+          # de novo a cada reinicio.
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 5432
+              name: postgres
+
+          env:
+            # Usuario e senha vem do Secret criado pelo ExternalSecret.
+            # E o MESMO segredo lido pelo targeting-service, para as duas
+            # pontas nunca ficarem com senhas diferentes.
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-targeting-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-targeting-secret
+                  key: POSTGRES_PASSWORD
+
+            # Nome do banco criado na primeira inicializacao. Nao e
+            # segredo, entao fica em texto puro.
+            - name: POSTGRES_DB
+              value: "targeting_db"
+
+            # Subdiretorio para os dados. A imagem do PostgreSQL exige
+            # que o diretorio de dados esteja VAZIO ao iniciar, e volume
+            # EBS montado traz um lost+found. Apontar para um subdiretorio
+            # contorna isso - detalhe que quebra a inicializacao se faltar.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+
+          volumeMounts:
+            # Disco persistente com os dados do banco.
+            - name: data
+              mountPath: /var/lib/postgresql/data
+
+            # A imagem do PostgreSQL executa qualquer .sql deste diretorio
+            # na PRIMEIRA inicializacao, quando o banco ainda esta vazio.
+            # E assim que a tabela targeting_rules nasce.
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          # Probes por comando, nao por HTTP: banco nao responde HTTP.
+          # pg_isready e o utilitario oficial de checagem do PostgreSQL.
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d targeting_db"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            # Tolerancia maior: a primeira subida roda o init.sql e demora.
+            failureThreshold: 6
+
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\""]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+
+      volumes:
+        # Monta o ConfigMap com o init.sql como se fosse uma pasta.
+        - name: init
+          configMap:
+            name: postgres-targeting-init
+
+  # volumeClaimTemplates e exclusivo de StatefulSet: cria um PVC proprio
+  # para cada replica, que sobrevive ao pod.
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        # ReadWriteOnce: montado por um unico no por vez. E o unico modo
+        # que o EBS suporta, e basta para um banco de uma replica.
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            # 5 GB e folgado para este banco.
+            storage: 5Gi
+
+        # ATENCAO - ARMADILHA CONHECIDA (F-025)
+        # Nenhuma storageClassName e declarada aqui, entao o cluster usa a
+        # StorageClass marcada como default. Na Fase 2 nao havia default e
+        # este PVC ficou PENDING, travando o deploy ate alguem descobrir.
+        # Na Fase 3 o addon aws-ebs-csi-driver e uma StorageClass default
+        # sao criados pelo Terraform da Etapa 2 (P-035), justamente para
+        # o problema nao se repetir.

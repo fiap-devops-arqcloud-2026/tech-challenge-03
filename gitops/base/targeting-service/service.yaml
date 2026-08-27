@@ -1,0 +1,26 @@
+# ============================================================
+# SERVICE - targeting-service
+# ============================================================
+# Alcancavel internamente por http://targeting-service:8003
+# O evaluation-service usa esse endereco (chave TARGETING_SERVICE_URL).
+# ============================================================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: targeting-service
+  labels:
+    app: targeting-service
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: targeting-service
+
+  ports:
+    - name: http
+      port: 8003
+      targetPort: 8003
+      protocol: TCP

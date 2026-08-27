@@ -1,12 +1,12 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
-TL;DR: caminho A aprovado pelo professor - 2 RDS + banco do targeting em pod (D-015), node group `c7i-flex.large` (D-016). ATENCAO AO CREDITO: restam US$ 70,33, o que da cerca de 190 horas de uptime da pilha completa (F-026); destruir ao fim de cada sessao e obrigatorio. Etapa 1 do Terraform pronta e validada. Em andamento: P-027, o `gitops/base/`. Entrega em 2026-09-15.
+TL;DR: caminho A aprovado pelo professor - 2 RDS + banco do targeting em pod (D-015), node group `c7i-flex.large` (D-016). ATENCAO AO CREDITO: restam US$ 70,33, cerca de 190 horas de uptime da pilha completa (F-026); derrubar ao fim de cada sessao e obrigatorio. Prontos: Etapa 1 do Terraform e `gitops/` completo, ambos validados. Proximo: Etapa 2 do Terraform. Entrega em 2026-09-15.
 
-Ultima atualizacao: 2026-08-27 17:10 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 18:30 -03:00, Claude.
 
 ## Alta prioridade
 
-- P-027: derivar `gitops/base/` de `infra/k8s/` da Fase 2, conforme D-014 e D-015 (o `postgres-targeting/` entra, o `ingress.yaml` nao).
+- P-036: no CI, o passo de atualizar a tag precisa do binario `kustomize` standalone. O `kubectl kustomize` renderiza mas nao tem o subcomando `edit`. Usar a action `imranismail/setup-kustomize` ou equivalente.
 - P-034: escrever o runbook de subir e derrubar a infraestrutura (`terraform/RUNBOOK-CUSTO.md`), com a ordem correta e a conferencia de que nada caro ficou de pe. Critico por causa de F-026.
 - P-035: no Terraform da Etapa 2, incluir o addon `aws-ebs-csi-driver` e uma StorageClass default. Sem isso o PVC do banco do targeting fica Pending, como ocorreu na Fase 2 (F-025).
 - P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega (O-36). [INCERTO]
@@ -37,6 +37,7 @@ Ultima atualizacao: 2026-08-27 17:10 -03:00, Claude.
 - P-033: encerrada em 2026-08-27 por D-016. Node group com `c7i-flex.large`.
 - P-019: encerrada em 2026-08-27. Bucket de estado criado pelo console: `togglemaster-tfstate-891376952395-us-east-2-an`, regiao `us-east-2`, versionamento ligado, SSE-S3, acesso publico bloqueado, policy TLS-only e lifecycle de 30 dias.
 - P-020: encerrada em 2026-08-27 por D-010 (modulos hibridos) e D-009 (tags).
+- P-027: encerrada em 2026-08-27. `gitops/` criado com 34 arquivos: base com os 5 servicos mais o `postgres-targeting`, e overlay `prod`. Build validado com `kubectl kustomize` nos dois niveis (28 e 29 recursos). O `ingress.yaml` e os `secret.yaml` da Fase 2 nao foram copiados.
 - P-026: encerrada em 2026-08-27. Etapa 1 do Terraform escrita, validada (`terraform validate`) e formatada. Ainda nao aplicada na AWS.
 - P-021: encerrada em 2026-08-27 por D-014. O esqueleto do Kustomize deixa de ser autoria e vira adaptacao; a execucao virou P-027.
 - P-022: encerrada em 2026-08-27. OIDC do GitHub Actions confirmado, sem access key estatica (S-01).
@@ -64,6 +65,7 @@ Ultima atualizacao: 2026-08-27 17:10 -03:00, Claude.
 - F-017: na Fase 2, `analytics` e `evaluation` acessam SQS e DynamoDB com `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` estaticas dentro de um Secret do Kubernetes. E literalmente a dor descrita no enunciado e o "antes" ideal para demonstrar IRSA no video e no relatorio (O-38).
 - F-018: o enunciado da Fase 3 nao exige Ingress, Load Balancer nem acesso externo. Extracao do PDF em 2026-08-27 com `pdftotext`: as palavras "ingress", "load balancer", "balanceador", "acesso externo", "http", "url", "endpoint", "dominio", "expor", "publico", "nginx" e "alb" aparecem zero vezes nas 7 paginas. Base factual de D-012.
 - F-019: nomes canonicos ja em uso na Fase 2, reaproveitados para evitar divergencia entre Terraform, Kustomize e codigo: namespace `togglemaster`; repositorios ECR `<servico>-service`; fila `togglemaster-events`; cache `togglemaster-redis`; tabela `ToggleMasterAnalytics`; bancos `auth_db`, `flags_db`, `targeting_db` com usuario `toggle`; portas auth 8001, flag 8002, targeting 8003, evaluation 8004, analytics 8005.
+- F-027: o `kubectl kustomize` renderiza mas nao possui o subcomando `edit`. O passo do CI que atualiza a tag da imagem (O-24) precisa do binario `kustomize` standalone instalado no runner (P-036).
 - F-026: em 2026-08-27 restavam US$ 70,33 de credito e 42 dias de plano gratuito (fim por volta de 2026-10-08). O prazo de entrega, 2026-09-15, cabe folgado na janela de dias; o limitante e o CREDITO. Estimativa de consumo com a pilha completa de pe: EKS control plane US$ 0,10/h + 2 x c7i-flex.large US$ 0,17/h + NAT US$ 0,045/h + 2 x db.t3.micro US$ 0,036/h + ElastiCache US$ 0,017/h = aproximadamente **US$ 0,37/h, ou US$ 8,80 por dia**. Ou seja: cerca de **190 horas de uptime** no total, nao 19 dias. Trabalhar 5h por dia ate a entrega consome ~95h e cabe; UM fim de semana esquecido ligado consome 48h, um quarto do orcamento. Destruir ao fim de cada sessao deixa de ser otimizacao e vira requisito.
 - F-023: a conta 891376952395 esta no plano gratuito novo da AWS, que impoe DOIS bloqueios rigidos, ambos comprovados na Fase 2. (1) Maximo de 2 instancias RDS simultaneas: a terceira falha com "maximum number of instances available with free plan accounts" (Fase 2, D-001). (2) Somente tipos de instancia elegiveis ao Free Tier podem ser lancados: a `t3.medium` foi recusada com "The specified instance type is not eligible for Free Tier" (Fase 2, D-007). Nao sao limites de custo, e recusa de API.
 - F-024: a Fase 2 contornou os dois bloqueios assim: `targeting_db` como StatefulSet no EKS em vez de RDS (solucao aprovada pelo professor), e node group com `c7i-flex.large` (2 vCPU / 4 GB, ~US$ 0,085/h) no lugar da `t3.medium`. Consequencia para a Fase 3: a decisao de usar 2 x `t3.medium` e inviavel como esta, e o `c7i-flex.large` custa cerca do DOBRO por hora.

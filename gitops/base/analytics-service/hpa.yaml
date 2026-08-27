@@ -1,0 +1,40 @@
+# ============================================================
+# HPA - analytics-service
+# ============================================================
+# Mesma configuracao do HPA do evaluation. Ver
+# base/evaluation-service/hpa.yaml para a explicacao completa de cada
+# campo e do pre-requisito do Metrics Server.
+#
+# Observacao honesta: escalar por CPU num worker de fila e uma metrica
+# indireta - o ideal seria escalar pelo TAMANHO da fila, o que exige
+# KEDA. O enunciado da Fase 2 marcava KEDA como opcional e ele foi
+# pulado; a Fase 3 nao volta ao tema. Fica registrado como possivel
+# melhoria futura.
+# ============================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+
+metadata:
+  name: analytics-service-hpa
+  labels:
+    app: analytics-service
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    # Precisa bater com o metadata.name do deployment.yaml.
+    name: analytics-service
+
+  minReplicas: 1
+  maxReplicas: 2
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          # 70% dos 100m requisitados pelo pod.
+          averageUtilization: 70

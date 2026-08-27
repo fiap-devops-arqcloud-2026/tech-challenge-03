@@ -1,0 +1,30 @@
+# ============================================================
+# SERVICE - flag-service
+# ============================================================
+# Alcancavel internamente por http://flag-service:8002
+# O evaluation-service usa exatamente esse endereco (ver o ConfigMap
+# dele, chave FLAG_SERVICE_URL).
+# ============================================================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  # O nome vira o hostname DNS. Mudar aqui quebra o evaluation-service.
+  name: flag-service
+  labels:
+    app: flag-service
+
+spec:
+  # Apenas interno (D-012).
+  type: ClusterIP
+
+  # Liga o Service aos pods do Deployment por label.
+  selector:
+    app: flag-service
+
+  ports:
+    - name: http
+      port: 8002
+      targetPort: 8002
+      protocol: TCP

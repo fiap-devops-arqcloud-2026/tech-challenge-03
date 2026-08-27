@@ -1,0 +1,34 @@
+# ============================================================
+# SERVICE - postgres-targeting (headless)
+# ============================================================
+# O targeting-service alcanca o banco por postgres-targeting:5432.
+# Essa string aparece dentro do DATABASE_URL guardado no Secrets Manager.
+# ============================================================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  # O nome precisa ser identico ao spec.serviceName do StatefulSet.
+  name: postgres-targeting
+  labels:
+    app: postgres-targeting
+
+spec:
+  # clusterIP: None cria um Service HEADLESS: em vez de um IP virtual que
+  # balanceia entre pods, o DNS resolve direto para o IP do pod.
+  #
+  # Por que isso importa num banco: com balanceamento, uma conexao poderia
+  # cair em qualquer replica. Com headless, o cliente fala sempre com o
+  # mesmo pod - que e o comportamento correto para um banco com estado.
+  clusterIP: None
+
+  selector:
+    app: postgres-targeting
+
+  ports:
+    - name: postgres
+      # Porta padrao do PostgreSQL.
+      port: 5432
+      targetPort: 5432
+      protocol: TCP

@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 15:55 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 18:30 -03:00, Claude.
+
+## 2026-08-27 18:30 (-03:00) - Claude - gitops/ criado e validado (P-027)
+
+Feito: criado o `gitops/` com 34 arquivos, derivado de `infra/k8s/` da Fase 2. Base com os 5 microsservicos mais o `postgres-targeting`, e overlay unico `prod`. Build validado com `kubectl kustomize` (Kustomize 5.8.1 embutido no kubectl 1.36.1): 28 recursos na base e 29 no overlay. Conferidos individualmente: substituicao das imagens, anotacoes IRSA, fusao dos ConfigMaps e propagacao do namespace.
+
+Decisoes/Por que: cada Deployment referencia apenas um nome logico de imagem, e o registro e a tag entram pelo bloco `images:` do overlay. E isso que permite ao CI rodar `kustomize edit set image` alterando um unico campo, em vez de aplicar `sed` em YAML (O-24). Os `secret.yaml` da Fase 2 viraram `ExternalSecret`, que nao guardam valor nenhum no Git. As chaves estaticas da AWS sairam de `evaluation` e `analytics`, substituidas por IRSA; o `analytics` ficou sem nenhum segredo. A `AWS_SQS_URL` saiu do Secret e foi para o ConfigMap, porque URL de fila nunca foi segredo. O `ingress.yaml` nao foi copiado (D-012) e o `postgres-targeting/` foi (D-015).
+
+Arquivos: 34 novos em `gitops/`; atualizados `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md` e `LOG_DE_TRABALHO.md`.
+
+Descobertas: F-027. O `kubectl kustomize` renderiza, mas nao tem o subcomando `edit` - o passo do CI que atualiza a tag precisa do binario `kustomize` standalone. Virou P-036. Varredura confirmou que nenhum valor de senha, chave ou token ficou versionado em `gitops/`.
+
+Estado p/ o proximo agente: `gitops/` completo e com build valido, mas AINDA NAO SINCRONIZAVEL - faltam as Etapas 2 e 3 do Terraform e o preenchimento dos placeholders em `overlays/prod/patches/`. O-22 fechado, O-35 parcial. Proximo passo e a Etapa 2 do Terraform (P-028), lembrando de incluir o addon `aws-ebs-csi-driver` com StorageClass default (P-035) e o runbook de custo (P-034). Atencao permanente a F-026: restam ~190 horas de credito.
 
 ## 2026-08-27 15:55 (-03:00) - Claude - Terraform validado, tags corrigidas e padrao de comentarios
 

@@ -1,0 +1,22 @@
+# Git / repo
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Ambientes virtuais (NUNCA copiar pro container)
+.venv/
+venv/
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Arquivos de ambiente (segredos)
+.env
+.env.*

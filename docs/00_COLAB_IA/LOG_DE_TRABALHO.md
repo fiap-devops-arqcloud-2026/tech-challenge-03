@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+
+## 2026-08-27 11:12 (-03:00) - Claude - Decisoes D-007/D-008 e bootstrap do backend S3
+
+Feito: levantado o estado real do repo e detectado descompasso entre a documentacao (parada em 2026-07-30, afirmando "nenhuma implementacao iniciada") e a working tree de 2026-08-26, que ja continha os 5 microsservicos em `services/`, o `.gitignore`, os esqueletos `terraform/` e `gitops/` e a migracao de `00_COLAB_IA/` para `docs/00_COLAB_IA/`. O usuario confirmou que monorepo e Kustomize foram decisoes dele. Registradas D-007 e D-008; encerradas P-004 e P-005; criado `terraform/BOOTSTRAP-BACKEND-S3.md` com o passo a passo do bucket de estado; toda a documentacao de contexto foi realinhada.
+
+Decisoes/Por que: D-007 fixa o codigo dos 5 microsservicos neste monorepo, porque sem codigo no repo os workflows de CI (O-10) nao teriam onde rodar. D-008 fixa Kustomize na area GitOps: o enunciado aceita YAML ou Helm (R-06), e Kustomize da overlays por ambiente e um `kustomize edit set image` limpo para o passo de CI que atualiza a tag (O-24), sem o peso de manter um chart. O bucket de estado sera criado fora do Terraform por bootstrap, unica excecao documentada a regra "se nao esta no codigo, nao existe", pelo problema do ovo e da galinha.
+
+Arquivos: criado `terraform/BOOTSTRAP-BACKEND-S3.md`; atualizados `docs/00_COLAB_IA/DECISOES.md`, `PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md`, `DOSSIE_CONTEXTO.md`, `LEIA-PRIMEIRO.md`, `ORGANIZACAO_DE_PASTAS.md`, `LOG_DE_TRABALHO.md`, `CLAUDE.md` e `README.md`.
+
+Descobertas: F-011 a F-013 registradas em PENDENCIAS. Varredura de segredos nos 5 servicos nao encontrou credencial, chave ou senha hardcoded; toda a configuracao vem de variaveis de ambiente, o que facilita ConfigMap/Secret no Kustomize. Os marcos M1 (2026-08-08) e M2 (2026-08-22) venceram sem serem concluidos; restam 19 dias ate a entrega e o cronograma foi rebaseado.
+
+Estado p/ o proximo agente: documentacao alinhada ao disco e commitada. O bloqueio agora e operacional, nao de decisao: o usuario precisa executar `terraform/BOOTSTRAP-BACKEND-S3.md` e informar o nome do bucket (P-019). Com o bucket criado, iniciar `terraform/backend.tf` e a VPC (P-003). P-018 (nomes do grupo) continua aberta.
 
 ## 2026-07-30 15:38 (-03:00) - Claude - Condicoes de entrega confirmadas e projeto atualizado
 

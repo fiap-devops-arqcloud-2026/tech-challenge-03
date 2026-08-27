@@ -6,7 +6,7 @@ Repositorio da terceira entrega do Tech Challenge da FIAP. O projeto continua o 
 
 - Modalidade: trabalho em grupo.
 - Prazo final: **2026-09-15**.
-- Escopo item a item: [`00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`](00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md).
+- Escopo item a item: [`docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`](docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md).
 
 ## Estado atual
 
@@ -14,7 +14,11 @@ Em 2026-07-18, a etapa de estudos foi concluida. Os cinco modulos da Fase 3 poss
 
 Em 2026-07-30, o enunciado foi mapeado em um checklist com 39 requisitos obrigatorios, 9 itens que o proprio enunciado marca como opcionais ou recomendados e 9 sugestoes extras derivadas das aulas.
 
-A implementacao ainda nao foi iniciada. As proximas decisoes estao registradas em [`00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`](00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md).
+Em 2026-08-27, as decisoes estruturais foram fechadas: o projeto e um **monorepo**, com o codigo dos 5 microsservicos em `services/` (D-007), e a area GitOps usa **Kustomize** (D-008). O codigo da Fase 2 ja foi copiado; `terraform/`, `gitops/` e `.github/workflows/` ainda estao vazios.
+
+O proximo passo e uma acao manual, feita uma unica vez: criar o bucket S3 que vai guardar o estado do Terraform, seguindo [`terraform/BOOTSTRAP-BACKEND-S3.md`](terraform/BOOTSTRAP-BACKEND-S3.md). Sem esse bucket nenhum `terraform init` funciona.
+
+As pendencias e o cronograma estao em [`docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`](docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md).
 
 ## Guias de estudo
 
@@ -31,23 +35,27 @@ A implementacao ainda nao foi iniciada. As proximas decisoes estao registradas e
 - Terraform modular para VPC, EKS, bancos, cache, filas, ECR, IAM e backend remoto.
 - GitHub Actions para testes, analises de seguranca e publicacao de imagens.
 - Amazon ECR como registro de imagens Docker.
-- ArgoCD e GitOps para reconciliar as aplicacoes no Amazon EKS.
+- ArgoCD e GitOps com Kustomize para reconciliar as aplicacoes no Amazon EKS.
 - OIDC, menor privilegio, criptografia, protecao de segredos e auditoria como controles basicos.
 
-Essas escolhas representam a direcao atual e ainda serao detalhadas durante a implementacao.
+Monorepo e Kustomize ja estao decididos (D-007 e D-008). As demais escolhas representam a direcao atual e serao detalhadas durante a implementacao.
 
 ## Organizacao
 
+- `services/`: codigo dos 5 microsservicos, copiado da Fase 2.
+- `terraform/`: infraestrutura como codigo (VPC, EKS, RDS, Redis, DynamoDB, SQS, ECR, IAM) e o bootstrap do backend de estado.
+- `gitops/`: manifestos Kubernetes em Kustomize, monitorados pelo ArgoCD.
+- `.github/workflows/`: pipelines de CI e DevSecOps dos 5 servicos.
 - `docs/`: enunciado, materiais das aulas e guias HTML.
-- `00_COLAB_IA/`: contexto, decisoes, pendencias, checklist de requisitos e historico entre agentes.
-- `01_ENTRADAS/`: insumos de origem.
-- `02_TRABALHO/`: arquivos em desenvolvimento.
-- `03_ENTREGAVEIS/`: artefatos finais.
-- `04_REFERENCIAS/`: materiais de apoio.
-- `_ARQUIVO_MORTO/`: versoes obsoletas preservadas.
+- `docs/00_COLAB_IA/`: contexto, decisoes, pendencias, checklist de requisitos e historico entre agentes.
+- `docs/00_COLAB_IA/01_ENTRADAS/`: insumos de origem.
+- `docs/00_COLAB_IA/02_TRABALHO/`: arquivos em desenvolvimento.
+- `docs/00_COLAB_IA/03_ENTREGAVEIS/`: artefatos finais.
+- `docs/00_COLAB_IA/04_REFERENCIAS/`: materiais de apoio.
+- `docs/00_COLAB_IA/_ARQUIVO_MORTO/`: versoes obsoletas preservadas.
 
 ## Continuidade
 
-Antes de trabalhar no repositorio, leia [`00_COLAB_IA/LEIA-PRIMEIRO.md`](00_COLAB_IA/LEIA-PRIMEIRO.md). O contexto consolidado esta em [`00_COLAB_IA/DOSSIE_CONTEXTO.md`](00_COLAB_IA/DOSSIE_CONTEXTO.md).
+Antes de trabalhar no repositorio, leia [`docs/00_COLAB_IA/LEIA-PRIMEIRO.md`](docs/00_COLAB_IA/LEIA-PRIMEIRO.md). O contexto consolidado esta em [`docs/00_COLAB_IA/DOSSIE_CONTEXTO.md`](docs/00_COLAB_IA/DOSSIE_CONTEXTO.md).
 
 Nao versione credenciais AWS, arquivos `.env`, kubeconfigs sensiveis, senhas ou `terraform.tfstate`.

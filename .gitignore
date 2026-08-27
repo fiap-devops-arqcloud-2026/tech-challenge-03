@@ -1,0 +1,84 @@
+# ---------------------------------------------------------------
+# Terraform - NUNCA versionar estado: contem senhas em texto puro
+# ---------------------------------------------------------------
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+!example.tfvars
+!terraform.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+tfplan
+*.tfplan
+
+# ---------------------------------------------------------------
+# Credenciais e segredos
+# ---------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!**/key.go
+*.p12
+*.pfx
+credentials
+.aws/
+kubeconfig
+kubeconfig.*
+*.kubeconfig
+
+# ---------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+
+# ---------------------------------------------------------------
+# Go
+# ---------------------------------------------------------------
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# ---------------------------------------------------------------
+# Kubernetes / Kustomize / Helm
+# ---------------------------------------------------------------
+charts/*.tgz
+*.orig
+
+# ---------------------------------------------------------------
+# Sistema operacional e editores
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~

@@ -1,8 +1,8 @@
 # CHECKLIST_REQUISITOS_FASE3
 
-TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Nada aqui foi implementado ainda.
+TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Em 2026-08-27 a implementacao comecou: os 5 microsservicos ja estao em `services/`; o restante segue pendente.
 
-Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
 
 Prazo final: 2026-09-15. Modalidade: entrega em grupo (D-006).
 
@@ -80,8 +80,8 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 - [ ] R-03 Flag `use_lockfile` no backend S3 para lock de estado ("opcionalmente").
 - [ ] R-04 Testes unitarios no job de build ("se houver" - condicional, nao exigido).
 - [ ] R-05 Criar roles e policies IAM via Terraform - liberado e "recomendado para um portfolio profissional" porque o projeto usa conta pessoal (Opcao B). Nao se aplica a restricao da LabRole do AWS Academy.
-- [ ] R-06 Usar Helm Charts em vez de YAMLs puros na area GitOps (o enunciado aceita os dois).
-- [ ] R-07 Repositorio GitOps separado em vez de pasta no monorepo (o enunciado aceita os dois).
+- [ ] R-06 Usar Helm Charts em vez de YAMLs puros na area GitOps (o enunciado aceita os dois). **Nao adotado**: D-008 escolheu Kustomize.
+- [ ] R-07 Repositorio GitOps separado em vez de pasta no monorepo (o enunciado aceita os dois). **Nao adotado**: D-007 escolheu monorepo com a pasta `gitops/`.
 - [ ] R-08 SonarCloud gratuito como SAST (alternativa a `gosec`/`bandit`).
 - [ ] R-09 GitHub Actions como ferramenta de CI (o enunciado diz "ex.:" e "ou ferramenta similar").
 
@@ -101,25 +101,32 @@ Estes itens nao valem nota por si so, mas apareceram nas aulas da Fase 3 e refor
 
 ---
 
-## 5. Decisoes em aberto que travam o inicio
+## 5. Decisoes que travavam o inicio - todas fechadas
 
-- P-004: o codigo dos 5 microsservicos sera copiado da Fase 2 para este repo ou ficara como referencia externa? Sem isso, O-10 nao tem onde rodar.
-- P-005: YAML puro, Kustomize ou Helm na area GitOps (afeta O-22 e R-06).
-- P-018: obter os nomes dos integrantes do grupo para o relatorio (O-36). [INCERTO]
+- P-004: **fechada em 2026-08-27** (D-007). O codigo dos 5 microsservicos vive neste monorepo em `services/`.
+- P-005: **fechada em 2026-08-27** (D-008). A area GitOps usa Kustomize em `gitops/`.
 - Resolvido em 2026-07-30: entrega em grupo, prazo final 2026-09-15 (D-006). Encerra P-016 e P-017.
 
-## 5.1 Marcos sugeridos ate 2026-09-15
+Bloqueios remanescentes, agora operacionais:
 
-Sao marcos propostos por mim para caber no prazo, nao imposicoes do enunciado. Ajuste conforme a agenda do grupo.
+- P-019: criar o bucket S3 de estado seguindo `terraform/BOOTSTRAP-BACKEND-S3.md`. Sem ele, O-09 nao fecha e nenhum `terraform init` funciona.
+- P-018: obter os nomes dos integrantes do grupo para o relatorio (O-36). [INCERTO]
 
-| Marco | Alvo | Cobre |
-|---|---|---|
-| M1 - Decisoes e esqueleto | 2026-08-08 | P-004, P-005, backend S3 (O-09) |
-| M2 - Infra Terraform aplicada | 2026-08-22 | O-01 a O-09, R-01, R-02, R-05 |
-| M3 - CI/DevSecOps nos 5 servicos | 2026-09-01 | O-10 a O-21 |
-| M4 - ArgoCD e GitOps sincronizando | 2026-09-08 | O-22 a O-26 |
-| M5 - Video, relatorio e revisao final | 2026-09-13 | O-27 a O-39 |
-| Entrega | 2026-09-15 | - |
+## 5.1 Marcos rebaseados em 2026-08-27
+
+Os marcos M1 e M2 originais (2026-08-08 e 2026-08-22) venceram sem conclusao. Restam 19 dias ate a entrega. Continuam sendo proposta minha de cronograma, nao exigencia do enunciado.
+
+| Marco | Alvo | Cobre | Situacao |
+|---|---|---|---|
+| M1 - Decisoes e esqueleto | 2026-08-27 | D-007, D-008, servicos em `services/` | Concluido, com 19 dias de atraso |
+| M2 - Backend S3 e primeiro plan | 2026-08-30 | O-09, R-03, `terraform/backend.tf`, VPC | Em andamento (P-019) |
+| M3 - Infra Terraform aplicada | 2026-09-05 | O-01 a O-08, R-01, R-02, R-05 | |
+| M4 - CI/DevSecOps nos 5 servicos | 2026-09-09 | O-10 a O-21 | |
+| M5 - ArgoCD e GitOps sincronizando | 2026-09-12 | O-22 a O-26 | |
+| M6 - Video, relatorio e revisao final | 2026-09-14 | O-27 a O-39 | |
+| Entrega | 2026-09-15 | - | |
+
+Observacao de risco: o caminho critico e M2 -> M3. O `terraform apply` de EKS + 3 RDS + ElastiCache leva de 20 a 40 minutos por rodada e costuma falhar nas primeiras tentativas. Nao deixar para a semana da entrega.
 
 ## 6. Observacoes de leitura do enunciado
 

@@ -1,8 +1,32 @@
 # DECISOES
 
-TL;DR: decisoes atuais concentram destino dos guias, estrategia de documentacao, direcao tecnica da Fase 3 e as condicoes de entrega (grupo, prazo 2026-09-15).
+TL;DR: decisoes atuais cobrem destino dos guias, estrategia de documentacao, direcao tecnica da Fase 3, condicoes de entrega (grupo, prazo 2026-09-15) e a estrutura de implementacao (monorepo + Kustomize).
 
-Ultima atualizacao: 2026-07-30 15:38 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+
+## D-008 - Kustomize na area GitOps
+
+Contexto: P-005 perguntava se os manifestos do Kubernetes seriam YAML puro, Kustomize ou Helm. O enunciado aceita YAML ou Helm Charts (R-06) e nao exige nenhum dos dois.
+
+Decisao: usar **Kustomize** em `gitops/`, com `base/` por microsservico e `overlays/` por ambiente. Confirmada pelo usuario em 2026-08-27; ja refletida no `README.md` desde 2026-08-26.
+
+Por que: Kustomize e nativo do `kubectl` e do ArgoCD, nao exige templating nem manter um chart. O passo final do CI que atualiza a tag da imagem (O-24) vira um `kustomize edit set image`, que altera um unico campo de um `kustomization.yaml` - mais simples de automatizar e de auditar em diff do que reescrever `values.yaml` de Helm.
+
+Alternativas: YAML puro (duplicaria manifesto por ambiente); Helm Charts (R-06, mais poder de templating, mais complexidade para 5 servicos parecidos).
+
+Status: aceita em 2026-08-27, informada pelo usuario. Encerra P-005.
+
+## D-007 - Codigo dos microsservicos neste monorepo
+
+Contexto: P-004 perguntava se o codigo dos 5 microsservicos viria da Fase 2 para este repo ou ficaria como referencia externa. O enunciado tambem aceita repo GitOps separado ou pasta no monorepo (R-07).
+
+Decisao: o codigo dos 5 microsservicos vive neste repositorio em `services/`, e a area GitOps e a pasta `gitops/` do mesmo monorepo. Confirmada pelo usuario em 2026-08-27; a copia ja havia sido feita em 2026-08-26.
+
+Por que: os workflows de CI (O-10 a O-21) precisam do codigo no mesmo repo para disparar em Pull Request e push na `main`. Monorepo tambem simplifica o passo de CI que atualiza a tag no GitOps (O-24), que passa a ser um commit no proprio repositorio, sem precisar de token cruzado entre repos.
+
+Alternativas: manter o codigo em `tech-challenge-02` como referencia externa; criar um repositorio GitOps separado (R-07).
+
+Status: aceita em 2026-08-27, informada pelo usuario. Encerra P-004.
 
 ## D-006 - Modalidade e prazo da entrega
 

@@ -1,0 +1,5 @@
+Flask
+gunicorn
+python-dotenv==0.21.0
+boto3==1.26.50
+setuptools

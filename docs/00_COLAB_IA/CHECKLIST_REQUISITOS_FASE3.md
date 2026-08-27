@@ -66,7 +66,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ### 2.3 Relatorio de entrega (.PDF ou .txt)
 
-- [ ] O-36 Nomes dos participantes do grupo. [INCERTO] a lista de integrantes ainda nao foi informada.
+- [~] O-36 Nomes dos participantes do grupo. Grupo 203 recuperado do README da Fase 2 e ja no `README.md`; aguarda confirmacao do usuario de que o grupo nao mudou.
 - [ ] O-37 Link da documentacao e do video.
 - [ ] O-38 Breve resumo dos desafios encontrados e das decisoes tomadas.
 - [ ] O-39 Print da estimativa de custos da AWS.

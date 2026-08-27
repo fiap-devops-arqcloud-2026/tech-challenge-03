@@ -2,14 +2,15 @@
 
 TL;DR: caminho A aprovado pelo professor - 2 RDS + banco do targeting em pod (D-015), node group `c7i-flex.large` (D-016). ATENCAO AO CREDITO: restam US$ 70,33, cerca de 190 horas de uptime da pilha completa (F-026); derrubar ao fim de cada sessao e obrigatorio. Prontos: Etapa 1 do Terraform e `gitops/` completo, ambos validados. Proximo: Etapa 2 do Terraform. Entrega em 2026-09-15.
 
-Ultima atualizacao: 2026-08-27 18:30 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 19:15 -03:00, Claude.
 
 ## Alta prioridade
 
 - P-036: no CI, o passo de atualizar a tag precisa do binario `kustomize` standalone. O `kubectl kustomize` renderiza mas nao tem o subcomando `edit`. Usar a action `imranismail/setup-kustomize` ou equivalente.
-- P-034: escrever o runbook de subir e derrubar a infraestrutura (`terraform/RUNBOOK-CUSTO.md`), com a ordem correta e a conferencia de que nada caro ficou de pe. Critico por causa de F-026.
+- P-034: escrever o runbook de subir, semear, gravar e derrubar (`terraform/RUNBOOK-CUSTO.md`). Janela definida pelo usuario: **3 horas de cluster ligado por sessao** (~US$ 1,10). Precisa incluir script de seed, porque o destroy apaga os bancos e sem chave de API nem flag cadastrada a demo fica vazia.
 - P-035: no Terraform da Etapa 2, incluir o addon `aws-ebs-csi-driver` e uma StorageClass default. Sem isso o PVC do banco do targeting fica Pending, como ocorreu na Fase 2 (F-025).
-- P-018: obter os nomes dos integrantes do grupo para o relatorio de entrega (O-36). [INCERTO]
+- P-018: os nomes do Grupo 203 foram encontrados no README da Fase 2 em 2026-08-27 e ja estao no `README.md` da Fase 3 (Gabriel Pinelli Silva RM373763, Joao Vitor de Jesus Ciardullo RM372155, Douglas Deveza dos Santos RM373827, Joao Carlos da Silva Brito RM371738, Joao Gabriel da Cruz Sales RM372444). **Falta o usuario confirmar** que o grupo continua o mesmo na Fase 3. [INCERTO]
+- P-037: decidir se o External Secrets Operator sai do escopo. E item S-02 (sugestao das aulas, nao obrigatorio) e e a unica peca do plano que adiciona operador e CRDs em runtime - justamente o tipo de coisa que pode falhar na janela de gravacao. Alternativa sem ESO descrita na conversa de 2026-08-27.
 
 ## Proximos passos
 
@@ -65,6 +66,8 @@ Ultima atualizacao: 2026-08-27 18:30 -03:00, Claude.
 - F-017: na Fase 2, `analytics` e `evaluation` acessam SQS e DynamoDB com `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` estaticas dentro de um Secret do Kubernetes. E literalmente a dor descrita no enunciado e o "antes" ideal para demonstrar IRSA no video e no relatorio (O-38).
 - F-018: o enunciado da Fase 3 nao exige Ingress, Load Balancer nem acesso externo. Extracao do PDF em 2026-08-27 com `pdftotext`: as palavras "ingress", "load balancer", "balanceador", "acesso externo", "http", "url", "endpoint", "dominio", "expor", "publico", "nginx" e "alb" aparecem zero vezes nas 7 paginas. Base factual de D-012.
 - F-019: nomes canonicos ja em uso na Fase 2, reaproveitados para evitar divergencia entre Terraform, Kustomize e codigo: namespace `togglemaster`; repositorios ECR `<servico>-service`; fila `togglemaster-events`; cache `togglemaster-redis`; tabela `ToggleMasterAnalytics`; bancos `auth_db`, `flags_db`, `targeting_db` com usuario `toggle`; portas auth 8001, flag 8002, targeting 8003, evaluation 8004, analytics 8005.
+- F-028: metade dos itens de video nao precisa do cluster. O pipeline falhando e passando (O-28, O-29) e a atualizacao da tag no GitOps (O-30) rodam inteiramente no GitHub Actions, com custo zero de AWS. So o bloco do ArgoCD (O-31, O-32) exige o EKS no ar. Isso reduz a pressao sobre a janela de gravacao.
+- F-029: os nomes e RMs do Grupo 203 estavam no README da Fase 2 desde sempre. A P-018 ficou aberta por 28 dias porque ninguem procurou na fonte obvia.
 - F-027: o `kubectl kustomize` renderiza mas nao possui o subcomando `edit`. O passo do CI que atualiza a tag da imagem (O-24) precisa do binario `kustomize` standalone instalado no runner (P-036).
 - F-026: em 2026-08-27 restavam US$ 70,33 de credito e 42 dias de plano gratuito (fim por volta de 2026-10-08). O prazo de entrega, 2026-09-15, cabe folgado na janela de dias; o limitante e o CREDITO. Estimativa de consumo com a pilha completa de pe: EKS control plane US$ 0,10/h + 2 x c7i-flex.large US$ 0,17/h + NAT US$ 0,045/h + 2 x db.t3.micro US$ 0,036/h + ElastiCache US$ 0,017/h = aproximadamente **US$ 0,37/h, ou US$ 8,80 por dia**. Ou seja: cerca de **190 horas de uptime** no total, nao 19 dias. Trabalhar 5h por dia ate a entrega consome ~95h e cabe; UM fim de semana esquecido ligado consome 48h, um quarto do orcamento. Destruir ao fim de cada sessao deixa de ser otimizacao e vira requisito.
 - F-023: a conta 891376952395 esta no plano gratuito novo da AWS, que impoe DOIS bloqueios rigidos, ambos comprovados na Fase 2. (1) Maximo de 2 instancias RDS simultaneas: a terceira falha com "maximum number of instances available with free plan accounts" (Fase 2, D-001). (2) Somente tipos de instancia elegiveis ao Free Tier podem ser lancados: a `t3.medium` foi recusada com "The specified instance type is not eligible for Free Tier" (Fase 2, D-007). Nao sao limites de custo, e recusa de API.

@@ -2,7 +2,19 @@
 
 TL;DR: log append-only com entradas novas no topo.
 
-Ultima atualizacao: 2026-08-27 18:30 -03:00, Claude.
+Ultima atualizacao: 2026-08-27 19:15 -03:00, Claude.
+
+## 2026-08-27 19:15 (-03:00) - Claude - README do projeto e correcao de rumo de escopo
+
+Feito: reescrito o `README.md` da Fase 3 usando o da Fase 2 como referencia de estrutura e tom. Cobre o problema resolvido, escopo obrigatorio contra extra, arquitetura, tecnologias, os 5 problemas encontrados com o contorno de cada um, controle de custo, como reproduzir e o time. Registrada a janela de 3 horas de cluster por sessao. Encontrados os nomes do Grupo 203.
+
+Decisoes/Por que: o usuario avaliou que eu estava complicando o projeto e reforcou que quer o basico que funcione, atendendo o enunciado. A avaliacao procede. Por isso o README ganhou uma secao de escopo com tres listas explicitas - obrigatorio, extras adotados com justificativa, e o que foi deliberadamente deixado de fora - para servir de ancora contra desvio. A preferencia foi gravada na memoria do projeto, junto com a de comentario linha a linha.
+
+Arquivos: `README.md` reescrito; atualizados `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`, `CHECKLIST_REQUISITOS_FASE3.md` e `LOG_DE_TRABALHO.md`; criada a memoria `entregar-o-basico-que-funciona`.
+
+Descobertas: F-028 e F-029. Metade dos itens de video nao precisa do cluster ligado - pipeline falhando/passando e atualizacao da tag rodam so no GitHub Actions -, o que tira pressao da janela de gravacao. E os nomes do Grupo 203 estavam no README da Fase 2 desde sempre; a P-018 ficou 28 dias aberta porque ninguem olhou na fonte obvia. Falta o usuario confirmar que o grupo nao mudou.
+
+Estado p/ o proximo agente: README pronto e servindo de ancora de escopo. Aberta P-037: avaliar tirar o External Secrets Operator, que e item S-02 e a unica peca do plano que adiciona operador e CRDs em runtime. Antes de propor qualquer coisa, conferir se e item O-* ou S-* no checklist. Proximo passo tecnico segue sendo a Etapa 2 do Terraform, agora com escopo mais enxuto.
 
 ## 2026-08-27 18:30 (-03:00) - Claude - gitops/ criado e validado (P-027)
 

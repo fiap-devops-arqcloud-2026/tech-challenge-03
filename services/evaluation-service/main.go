@@ -81,7 +81,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Não foi possível criar sessão AWS: %v", err)
 		}
-		sqsSvc = sqs.New(sess)
+		sqsConfig := aws.NewConfig()
+		if endpoint := os.Getenv("SQS_ENDPOINT"); endpoint != "" {
+			sqsConfig.WithEndpoint(endpoint)
+		}
+		sqsSvc = sqs.New(sess, sqsConfig)
 		log.Println("Cliente SQS inicializado com sucesso.")
 	}
 

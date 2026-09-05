@@ -56,3 +56,6 @@ docker compose up --build -d
 ```
 
 Para a nuvem, consulte [docs/fase-3/GUIA_EXECUCAO.md](docs/fase-3/GUIA_EXECUCAO.md).
+
+Para testar os cinco serviços juntos, incluindo eventos de analytics com AWS
+simulada, consulte [o teste integrado com Docker Compose](docs/fase-3/TESTE_COMPOSE.md).

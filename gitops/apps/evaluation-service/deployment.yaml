@@ -1,0 +1,87 @@
+# ============================================================
+# DEPLOYMENT — evaluation-service
+# ============================================================
+# O "hot path" do sistema — serviço Go de alta performance que avalia flags.
+# É o serviço mais chamado, por isso tem mais réplicas e limites maiores.
+# Escala automaticamente via HPA (ver hpa.yaml) com base na CPU.
+#
+# ANTES DE APLICAR: substitua <AWS_ACCOUNT_ID> e <AWS_REGION>
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evaluation-service
+  namespace: togglemaster
+  labels:
+    app: evaluation-service
+
+spec:
+  # Começa com 1 réplica — alinhado ao minReplicas do HPA (ver hpa.yaml); o HPA sobe até o máximo sob carga
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: evaluation-service
+
+  template:
+    metadata:
+      labels:
+        app: evaluation-service
+    spec:
+      containers:
+        - name: evaluation-service
+          # Imagem do ECR — substitua com seus dados reais
+          image: 000000000000.dkr.ecr.us-east-2.amazonaws.com/evaluation-service:bootstrap
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8004
+              name: http
+
+          # Injeta PORT, REDIS_URL, FLAG_SERVICE_URL, TARGETING_SERVICE_URL, AWS_REGION do ConfigMap
+          envFrom:
+            - configMapRef:
+                name: evaluation-service-config
+
+          # Variáveis sensíveis injetadas individualmente do Secret
+          env:
+            - name: SERVICE_API_KEY          # chave para autenticar nos outros serviços
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: SERVICE_API_KEY
+
+            - name: AWS_SQS_URL              # URL da fila SQS para publicar eventos
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: AWS_SQS_URL
+
+          # Go é muito mais eficiente que Python — usa menos recursos para a mesma carga
+          # Limites maiores pois este serviço é o mais chamado do sistema
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"     # mais CPU disponível para o hot path
+              memory: "128Mi"
+
+          # ReadinessProbe: só recebe tráfego quando o Redis e dependências estiverem prontos
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # LivenessProbe: reinicia o pod em caso de travamento
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

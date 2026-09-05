@@ -1,0 +1,21 @@
+# ============================================================
+# CONFIGMAP — targeting-service
+# ============================================================
+# Configurações não sensíveis do targeting-service.
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: targeting-service-config
+  namespace: togglemaster
+  labels:
+    app: targeting-service
+
+data:
+  # Porta em que o gunicorn escuta dentro do container
+  PORT: "8003"
+
+  # URL interna do auth-service para validação de chaves de API
+  # O Kubernetes resolve o nome "auth-service" para o IP do Service automaticamente
+  AUTH_SERVICE_URL: "http://auth-service:8001"

@@ -1,0 +1,49 @@
+# ============================================================
+# HPA — analytics-service (Horizontal Pod Autoscaler)
+# ============================================================
+# Escala o analytics-service com base em CPU.
+#
+# Como funciona na prática:
+# 1. A fila SQS enche de eventos (evaluation-service publicando)
+# 2. O worker Python processa mais mensagens → CPU aumenta
+# 3. O HPA detecta CPU acima de 70% → adiciona pods
+# 4. Mais pods processam mais mensagens em paralelo → fila esvazia
+# 5. CPU cai → HPA remove pods extras (respeitando minReplicas)
+#
+# ALTERNATIVA RECOMENDADA (Opção B):
+# Usar KEDA com ScaledObject monitorando diretamente o tamanho da fila SQS
+# (queueDepth). Isso é mais preciso pois escala baseado na carga real da fila,
+# não na CPU indireta. Ver documentação: https://keda.sh/docs/scalers/aws-sqs/
+#
+# PRÉ-REQUISITO: Metrics Server instalado no cluster.
+# ============================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: analytics-service-hpa
+  namespace: togglemaster
+  labels:
+    app: analytics-service
+
+spec:
+  # Define qual Deployment o HPA vai controlar
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: analytics-service   # deve bater com o nome do Deployment
+
+  # Mínimo de 1 pod — worker sempre rodando para processar mensagens
+  minReplicas: 1
+
+  # Máximo de 2 pods — limita custo e evita sobrecarga no DynamoDB (demo enxuta)
+  maxReplicas: 2
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          # Quando a CPU média dos pods passar de 70%, adiciona mais réplicas
+          type: Utilization
+          averageUtilization: 70

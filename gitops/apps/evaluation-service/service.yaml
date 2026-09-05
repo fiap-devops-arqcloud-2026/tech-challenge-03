@@ -1,0 +1,27 @@
+# ============================================================
+# SERVICE — evaluation-service (tipo ClusterIP)
+# ============================================================
+# Ponto de acesso estável ao evaluation-service dentro do cluster.
+# O Ingress redireciona requisições externas de /evaluate para cá.
+# Outros pods acessam como: http://evaluation-service:8004
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: evaluation-service   # hostname DNS: http://evaluation-service:8004
+  namespace: togglemaster
+  labels:
+    app: evaluation-service
+
+spec:
+  type: ClusterIP             # acesso apenas interno — o Ingress faz a exposição externa
+
+  selector:
+    app: evaluation-service   # encaminha para pods com este label
+
+  ports:
+    - name: http
+      port: 8004
+      targetPort: 8004
+      protocol: TCP

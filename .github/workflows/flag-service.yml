@@ -1,0 +1,12 @@
+name: flag-service
+on:
+  pull_request: { paths: ['services/flag-service/**', '.github/workflows/**'] }
+  push: { branches: [main], paths: ['services/flag-service/**', '.github/workflows/**'] }
+jobs:
+  devsecops:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/reusable-devsecops.yml
+    with: { service: flag-service, language: python }
+    secrets: inherit
+

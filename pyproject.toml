@@ -1,0 +1,5 @@
+[tool.ruff.lint]
+# Os handlers HTTP e loops de consumo são fronteiras de processo: eles precisam
+# capturar falhas inesperadas, registrar o erro e devolver uma resposta segura.
+ignore = ["BLE001"]
+

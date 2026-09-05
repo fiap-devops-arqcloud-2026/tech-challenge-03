@@ -1,0 +1,17 @@
+name: Terraform Check
+on:
+  pull_request: { paths: ['terraform/**'] }
+  push: { branches: [main], paths: ['terraform/**'] }
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: '1.10.5' }
+      - run: terraform fmt -check -recursive terraform
+      - run: terraform -chdir=terraform/environments/dev init -backend=false
+      - run: terraform -chdir=terraform/environments/dev validate
+

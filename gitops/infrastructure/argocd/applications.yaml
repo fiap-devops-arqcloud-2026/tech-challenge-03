@@ -1,0 +1,104 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: auth-service
+  namespace: argocd
+spec:
+  project: togglemaster
+  source:
+    repoURL: https://github.com/jgabrieldev1/tech-challenge-03.git
+    targetRevision: main
+    path: gitops/apps/auth-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: togglemaster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flag-service
+  namespace: argocd
+spec:
+  project: togglemaster
+  source:
+    repoURL: https://github.com/jgabrieldev1/tech-challenge-03.git
+    targetRevision: main
+    path: gitops/apps/flag-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: togglemaster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: targeting-service
+  namespace: argocd
+spec:
+  project: togglemaster
+  source:
+    repoURL: https://github.com/jgabrieldev1/tech-challenge-03.git
+    targetRevision: main
+    path: gitops/apps/targeting-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: togglemaster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: evaluation-service
+  namespace: argocd
+spec:
+  project: togglemaster
+  source:
+    repoURL: https://github.com/jgabrieldev1/tech-challenge-03.git
+    targetRevision: main
+    path: gitops/apps/evaluation-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: togglemaster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: analytics-service
+  namespace: argocd
+spec:
+  project: togglemaster
+  source:
+    repoURL: https://github.com/jgabrieldev1/tech-challenge-03.git
+    targetRevision: main
+    path: gitops/apps/analytics-service
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: togglemaster
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,16 @@
+.git
+.gitignore
+
+# binários/build local
+bin/
+dist/
+*.exe
+*.out
+
+# IDE/editor
+.vscode/
+.idea/
+
+# env local
+.env
+.env.*

@@ -1,0 +1,12 @@
+name: targeting-service
+on:
+  pull_request: { paths: ['services/targeting-service/**', '.github/workflows/**'] }
+  push: { branches: [main], paths: ['services/targeting-service/**', '.github/workflows/**'] }
+jobs:
+  devsecops:
+    permissions:
+      contents: write
+    uses: ./.github/workflows/reusable-devsecops.yml
+    with: { service: targeting-service, language: python }
+    secrets: inherit
+

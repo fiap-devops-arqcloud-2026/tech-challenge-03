@@ -1,0 +1,215 @@
+services:
+  # =========================
+  # DATA STORES (4 containers)
+  # =========================
+
+  postgres-auth:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${AUTH_DB}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_auth_data:/var/lib/postgresql/data
+      - ./services/auth-service/db/init.sql:/docker-entrypoint-initdb.d/01-auth.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${AUTH_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [toggle-net]
+
+  postgres-app:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${FLAGS_DB}
+      FLAGS_DB: ${FLAGS_DB}
+      TARGETING_DB: ${TARGETING_DB}
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_app_data:/var/lib/postgresql/data
+
+      # script de init (roda na primeira criação do volume)
+      - ./infra/postgres-app/01-init-multi-db.sh:/docker-entrypoint-initdb.d/01-init-multi-db.sh:ro
+
+      # schemas montados fora do initdb.d para não rodarem automaticamente
+      - ./services/flag-service/db/init.sql:/opt/schema/flags.sql:ro
+      - ./services/targeting-service/db/init.sql:/opt/schema/targeting.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${FLAGS_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [toggle-net]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [toggle-net]
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:3.3.0
+    restart: unless-stopped
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      - "8000:8000"
+    networks: [toggle-net]
+
+  # =========================
+  # APPS (5 containers)
+  # =========================
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    restart: on-failure
+    environment:
+      PORT: "8001"
+      MASTER_KEY: ${MASTER_KEY}
+      DATABASE_URL: ${AUTH_DATABASE_URL}
+    ports:
+      - "${AUTH_PORT}:8001"
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+    healthcheck:
+      # wget está disponível no Alpine (imagem base do serviço Go)
+      # -q: silencioso (sem progresso), -O-: joga a resposta no stdout (descartada)
+      # O Docker considera saudável se o comando retornar código 0 (sucesso HTTP)
+      test: ["CMD", "wget", "-qO-", "http://localhost:8001/health"]
+      interval: 10s      # verifica a cada 10 segundos
+      timeout: 5s        # espera até 5s pela resposta antes de considerar falha
+      retries: 5         # após 5 falhas seguidas, marca como "unhealthy"
+      start_period: 15s  # aguarda 15s após o início antes de começar a verificar
+    networks: [toggle-net]
+
+  flag-service:
+    build:
+      context: ./services/flag-service
+    restart: on-failure
+    environment:
+      PORT: "8002"
+      DATABASE_URL: ${FLAGS_DATABASE_URL}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+    ports:
+      - "${FLAG_PORT}:8002"
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy  # mudado de service_started: agora espera o auth responder de verdade
+    healthcheck:
+      # Python slim não tem wget/curl instalado, então usamos o próprio Python
+      # urllib.request é uma biblioteca nativa do Python, sem instalação extra
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [toggle-net]
+
+  targeting-service:
+    build:
+      context: ./services/targeting-service
+    restart: on-failure
+    environment:
+      PORT: "8003"
+      DATABASE_URL: ${TARGETING_DATABASE_URL}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+    ports:
+      - "${TARGETING_PORT}:8003"
+    depends_on:
+      postgres-app:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy  # mudado de service_started: agora espera o auth responder de verdade
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [toggle-net]
+
+  evaluation-service:
+    build:
+      context: ./services/evaluation-service
+    restart: on-failure
+    environment:
+      PORT: "8004"
+      REDIS_URL: ${REDIS_URL}
+      FLAG_SERVICE_URL: ${FLAG_SERVICE_URL}
+      TARGETING_SERVICE_URL: ${TARGETING_SERVICE_URL}
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+
+      # SQS desabilitado no local (seu código Go já tolera)
+      AWS_SQS_URL: ""
+      AWS_REGION: ${AWS_REGION}
+    ports:
+      - "${EVALUATION_PORT}:8004"
+    depends_on:
+      redis:
+        condition: service_healthy
+      flag-service:
+        condition: service_healthy  # mudado de service_started: espera o flag-service estar respondendo
+      targeting-service:
+        condition: service_healthy  # mudado de service_started: espera o targeting-service estar respondendo
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [toggle-net]
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+    restart: on-failure
+    environment:
+      PORT: "8005"
+
+      AWS_REGION: ${AWS_REGION}
+      AWS_DYNAMODB_TABLE: ${AWS_DYNAMODB_TABLE}
+      DYNAMODB_ENDPOINT: ${DYNAMODB_ENDPOINT}
+
+      # credenciais dummy (muitos SDKs exigem isso mesmo em local)
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+
+      # SQS desabilitado no local
+      AWS_SQS_URL: ""
+    ports:
+      - "${ANALYTICS_PORT}:8005"
+    depends_on:
+      dynamodb-local:
+        condition: service_started  # mantido: dynamodb-local não tem healthcheck configurável
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8005/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks: [toggle-net]
+
+networks:
+  toggle-net:
+    driver: bridge
+
+volumes:
+  pg_auth_data:
+  pg_app_data:

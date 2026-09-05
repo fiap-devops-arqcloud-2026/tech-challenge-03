@@ -1,0 +1,19 @@
+# ============================================================
+# NAMESPACES — Separadores lógicos do cluster Kubernetes
+# ============================================================
+# Um Namespace funciona como uma "pasta" dentro do cluster.
+# Agrupa todos os recursos do ToggleMaster e os isola de outros projetos
+# que possam existir no mesmo cluster EKS.
+#
+# Boa prática: sempre separar aplicações por namespace para facilitar
+# gerenciamento, aplicação de políticas e controle de acesso.
+# ============================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  # Nome do namespace — todos os outros recursos usarão "namespace: togglemaster"
+  name: togglemaster
+  labels:
+    # Label que identifica todos os recursos como pertencentes a este projeto
+    app.kubernetes.io/part-of: togglemaster

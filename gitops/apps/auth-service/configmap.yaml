@@ -1,0 +1,19 @@
+# ============================================================
+# CONFIGMAP — auth-service
+# ============================================================
+# ConfigMaps guardam configurações NÃO sensíveis em texto puro.
+# Tudo que não é senha, token ou credencial pode ficar aqui.
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: togglemaster
+  labels:
+    app: auth-service
+
+data:
+  # Porta em que o serviço escuta dentro do container
+  # Deve coincidir com o EXPOSE do Dockerfile e o targetPort do Service
+  PORT: "8001"

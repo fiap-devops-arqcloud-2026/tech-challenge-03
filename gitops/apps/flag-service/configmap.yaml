@@ -1,0 +1,24 @@
+# ============================================================
+# CONFIGMAP — flag-service
+# ============================================================
+# Configurações não sensíveis do flag-service.
+# A URL do auth-service usa o nome DNS interno do cluster
+# (o Kubernetes resolve "auth-service" para o IP do Service automaticamente).
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flag-service-config
+  namespace: togglemaster
+  labels:
+    app: flag-service
+
+data:
+  # Porta em que o gunicorn escuta dentro do container
+  PORT: "8002"
+
+  # URL interna do auth-service para validação de chaves de API
+  # Formato DNS interno do Kubernetes: http://<nome-do-service>:<porta>
+  # Não precisa de IP — o cluster resolve automaticamente
+  AUTH_SERVICE_URL: "http://auth-service:8001"

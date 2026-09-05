@@ -1,0 +1,26 @@
+# ============================================================
+# SERVICE — flag-service (tipo ClusterIP)
+# ============================================================
+# Ponto de acesso estável ao flag-service dentro do cluster.
+# Outros pods acessam como: http://flag-service:8002
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: flag-service    # hostname DNS interno: http://flag-service:8002
+  namespace: togglemaster
+  labels:
+    app: flag-service
+
+spec:
+  type: ClusterIP       # visível apenas dentro do cluster
+
+  selector:
+    app: flag-service   # encaminha tráfego para pods com este label
+
+  ports:
+    - name: http
+      port: 8002
+      targetPort: 8002
+      protocol: TCP

@@ -1,0 +1,51 @@
+# Test-only AWS emulation. No AWS credentials or cloud resources are used.
+services:
+  aws-local:
+    image: motoserver/moto:5.2.2@sha256:d8ae5edc2bf080e7e4c13f9bd4b29b53ac3b4427e92956318db3dbe23ec43eb7
+    environment:
+      MOTO_PORT: "5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/moto-api/')"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+    networks: [toggle-net]
+
+  aws-local-init:
+    build: ./services/analytics-service
+    entrypoint: ["python", "/tests/bootstrap-aws.py"]
+    volumes:
+      - ./scripts/integration:/tests:ro
+    environment:
+      AWS_DEFAULT_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_EC2_METADATA_DISABLED: "true"
+      AWS_DYNAMODB_TABLE: ${AWS_DYNAMODB_TABLE}
+    depends_on:
+      aws-local:
+        condition: service_healthy
+    networks: [toggle-net]
+
+  evaluation-service:
+    environment:
+      AWS_SQS_URL: http://aws-local:5000/123456789012/evaluations
+      SQS_ENDPOINT: http://aws-local:5000
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_EC2_METADATA_DISABLED: "true"
+    depends_on:
+      aws-local-init:
+        condition: service_completed_successfully
+
+  analytics-service:
+    environment:
+      AWS_SQS_URL: http://aws-local:5000/123456789012/evaluations
+      SQS_ENDPOINT: http://aws-local:5000
+      DYNAMODB_ENDPOINT: http://aws-local:5000
+      AWS_EC2_METADATA_DISABLED: "true"
+    volumes:
+      - ./scripts/integration:/tests:ro
+    depends_on:
+      aws-local-init:
+        condition: service_completed_successfully

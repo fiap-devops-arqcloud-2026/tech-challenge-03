@@ -4,6 +4,8 @@ on:
   push: { branches: [main], paths: ['services/flag-service/**', '.github/workflows/**'] }
 jobs:
   devsecops:
+    permissions:
+      contents: write
     uses: ./.github/workflows/reusable-devsecops.yml
     with: { service: flag-service, language: python }
     secrets: inherit

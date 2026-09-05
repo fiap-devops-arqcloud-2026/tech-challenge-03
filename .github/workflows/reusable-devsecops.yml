@@ -1,0 +1,159 @@
+name: Reusable DevSecOps
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      language:
+        required: true
+        type: string
+      aws_region:
+        required: false
+        type: string
+        default: us-east-2
+    secrets:
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+      AWS_SESSION_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test-lint-sast:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/${{ inputs.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        if: inputs.language == 'go'
+        with:
+          go-version: '1.22'
+          cache-dependency-path: services/${{ inputs.service }}/go.sum
+
+      - uses: actions/setup-python@v5
+        if: inputs.language == 'python'
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: services/${{ inputs.service }}/requirements.txt
+
+      - name: Go test
+        if: inputs.language == 'go'
+        run: go test ./...
+
+      - name: Go lint
+        if: inputs.language == 'go'
+        continue-on-error: true
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: services/${{ inputs.service }}
+          version: v1.64.8
+
+      - name: Go SAST
+        if: inputs.language == 'go'
+        continue-on-error: true
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.2
+          gosec -severity high -confidence high ./...
+
+      - name: Python dependencies
+        if: inputs.language == 'python'
+        run: pip install -r requirements.txt ruff bandit pytest
+
+      - name: Python tests
+        if: inputs.language == 'python'
+        run: pytest -q || test $? -eq 5
+
+      - name: Python lint
+        if: inputs.language == 'python'
+        run: ruff check .
+
+      - name: Python SAST
+        if: inputs.language == 'python'
+        continue-on-error: true
+        run: bandit -r . -x tests -ll
+
+  sca:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependency vulnerability scan
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: services/${{ inputs.service }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+  image:
+    needs: [test-lint-sast, sca]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build local image
+        run: docker build -t ${{ inputs.service }}:${{ github.sha }} services/${{ inputs.service }}
+
+      - name: Container vulnerability scan
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ inputs.service }}:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+      - name: Configure temporary AWS credentials
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ inputs.aws_region }}
+
+      - name: Login to ECR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push immutable image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          SERVICE: ${{ inputs.service }}
+          SHA: ${{ github.sha }}
+        run: |
+          docker tag "$SERVICE:$SHA" "$REGISTRY/$SERVICE:$SHA"
+          docker push "$REGISTRY/$SERVICE:$SHA"
+          echo "IMAGE=$REGISTRY/$SERVICE:$SHA" >> "$GITHUB_ENV"
+
+      - name: Update GitOps image tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
+        env:
+          SERVICE: ${{ inputs.service }}
+        run: |
+          git pull --rebase origin main
+          sed -i "s|^[[:space:]]*image:.*|          image: ${IMAGE}|" "gitops/apps/${SERVICE}/deployment.yaml"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "gitops/apps/${SERVICE}/deployment.yaml"
+          git diff --cached --quiet || git commit -m "chore(gitops): deploy ${SERVICE} ${GITHUB_SHA::7}"
+          for attempt in 1 2 3; do
+            git push && exit 0
+            git pull --rebase origin main
+          done
+          exit 1

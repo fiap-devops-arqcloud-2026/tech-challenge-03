@@ -1,0 +1,26 @@
+# ============================================================
+# SERVICE — targeting-service (tipo ClusterIP)
+# ============================================================
+# Ponto de acesso estável ao targeting-service dentro do cluster.
+# Outros pods acessam como: http://targeting-service:8003
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: targeting-service   # hostname DNS interno: http://targeting-service:8003
+  namespace: togglemaster
+  labels:
+    app: targeting-service
+
+spec:
+  type: ClusterIP           # visível apenas dentro do cluster
+
+  selector:
+    app: targeting-service  # encaminha tráfego para pods com este label
+
+  ports:
+    - name: http
+      port: 8003
+      targetPort: 8003
+      protocol: TCP

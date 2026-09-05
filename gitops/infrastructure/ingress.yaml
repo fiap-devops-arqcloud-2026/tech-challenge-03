@@ -1,0 +1,109 @@
+# ============================================================
+# INGRESS — Roteamento externo do ToggleMaster
+# ============================================================
+# O Ingress é a "porta de entrada" do cluster para o mundo externo.
+# Define quais URLs públicas existem e para qual serviço interno cada uma vai.
+#
+# PRÉ-REQUISITO: Nginx Ingress Controller instalado no cluster.
+# Instalação via Helm:
+#   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+#   helm repo update
+#   helm install ingress-nginx ingress-nginx/ingress-nginx \
+#     --namespace ingress-nginx --create-namespace
+#
+# Após aplicar o Ingress, descubra o endereço do Load Balancer com:
+#   kubectl get ingress -n togglemaster
+# O campo ADDRESS mostrará o DNS do Load Balancer criado na AWS.
+#
+# ROTAS configuradas:
+#   /evaluate  → evaluation-service (hot path — mais acessado)
+#   /flags     → flag-service       (CRUD de flags)
+#   /rules     → targeting-service  (regras de segmentação)
+#   /validate  → auth-service       (validação de chaves)
+#   /admin     → auth-service       (criação de chaves — protegido pela MASTER_KEY)
+# ============================================================
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: togglemaster-ingress
+  namespace: togglemaster
+  labels:
+    app.kubernetes.io/part-of: togglemaster
+
+  annotations:
+    # Especifica que usaremos o Nginx como controlador de Ingress
+    kubernetes.io/ingress.class: "nginx"
+
+    # Reescreve o path antes de repassar para o serviço de destino
+    # Exemplo: /evaluate → /evaluate (sem reescrita, pois os serviços já esperam esses caminhos)
+    nginx.ingress.kubernetes.io/use-regex: "true"
+
+    # Tamanho máximo do body das requisições (importante para o flag-service que recebe JSONs)
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+
+    # Timeout de conexão com os pods de destino (em segundos)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+
+spec:
+  # Define as regras de roteamento por host/path
+  rules:
+    - http:
+        paths:
+          # ── /evaluate → evaluation-service ──────────────────────────────
+          # O caminho mais importante: chamado por aplicativos para avaliar flags
+          # Exemplo: GET /evaluate?user_id=u1&flag_name=novo-dashboard
+          - path: /evaluate
+            pathType: Prefix    # Prefix: /evaluate, /evaluate?user_id=... → tudo bate
+            backend:
+              service:
+                name: evaluation-service
+                port:
+                  number: 8004
+
+          # ── /flags → flag-service ────────────────────────────────────────
+          # CRUD de feature flags
+          # Exemplo: GET /flags, POST /flags, PUT /flags/nome, DELETE /flags/nome
+          - path: /flags
+            pathType: Prefix
+            backend:
+              service:
+                name: flag-service
+                port:
+                  number: 8002
+
+          # ── /rules → targeting-service ──────────────────────────────────
+          # CRUD de regras de segmentação
+          # Exemplo: GET /rules/nome, POST /rules, PUT /rules/nome
+          - path: /rules
+            pathType: Prefix
+            backend:
+              service:
+                name: targeting-service
+                port:
+                  number: 8003
+
+          # ── /validate → auth-service ─────────────────────────────────────
+          # Validação de chaves de API (pode ser chamado por clientes externos)
+          # Exemplo: GET /validate com header Authorization: Bearer tm_key_...
+          - path: /validate
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8001
+
+          # ── /admin → auth-service ────────────────────────────────────────
+          # Criação e gerenciamento de chaves de API (protegido pela MASTER_KEY)
+          # Exemplo: POST /admin/keys com Authorization: Bearer <MASTER_KEY>
+          # ATENÇÃO: em produção real, considere não expor este endpoint externamente
+          - path: /admin
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 8001

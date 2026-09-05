@@ -1,0 +1,15 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: togglemaster
+  namespace: argocd
+spec:
+  description: ToggleMaster - Tech Challenge Fase 3
+  sourceRepos:
+    - https://github.com/jgabrieldev1/tech-challenge-03.git
+  destinations:
+    - namespace: togglemaster
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

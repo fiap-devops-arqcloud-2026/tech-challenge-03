@@ -1,0 +1,36 @@
+# ============================================================
+# SERVICE — auth-service (tipo ClusterIP)
+# ============================================================
+# O Service é o "endereço fixo" do auth-service dentro do cluster.
+# Pods têm IPs que mudam ao reiniciar — o Service fornece um IP estável.
+#
+# ClusterIP = acessível APENAS de dentro do cluster (outros pods).
+# Os outros serviços se conectam usando o nome DNS: http://auth-service:8001
+# O Kubernetes resolve automaticamente esse nome para o IP do Service.
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  # Este nome vira o hostname DNS dentro do cluster
+  # Outros pods acessam com: http://auth-service:8001
+  name: auth-service
+  namespace: togglemaster
+  labels:
+    app: auth-service
+
+spec:
+  # ClusterIP: IP virtual acessível apenas dentro do cluster
+  # Não expõe o serviço para fora — isso é feito pelo Ingress
+  type: ClusterIP
+
+  # Seleciona os pods que receberão o tráfego deste Service
+  # Deve bater com o label "app: auth-service" definido no Deployment
+  selector:
+    app: auth-service
+
+  ports:
+    - name: http
+      port: 8001        # porta do Service (o que outros pods usam para chamar)
+      targetPort: 8001  # porta do container que receberá o tráfego
+      protocol: TCP

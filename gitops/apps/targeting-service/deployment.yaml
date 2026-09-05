@@ -1,0 +1,78 @@
+# ============================================================
+# DEPLOYMENT — targeting-service
+# ============================================================
+# Gerencia os pods do targeting-service (regras de segmentação).
+# Estrutura idêntica ao flag-service — mesmo padrão Flask/Gunicorn/PostgreSQL.
+#
+# ANTES DE APLICAR: substitua <AWS_ACCOUNT_ID> e <AWS_REGION>
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: targeting-service
+  namespace: togglemaster
+  labels:
+    app: targeting-service
+
+spec:
+  replicas: 1           # 1 réplica — entrega mínima/enxuta (sem HPA; só evaluation/analytics escalam)
+
+  selector:
+    matchLabels:
+      app: targeting-service
+
+  template:
+    metadata:
+      labels:
+        app: targeting-service
+    spec:
+      containers:
+        - name: targeting-service
+          # Imagem do ECR — substitua com seus dados reais
+          image: 000000000000.dkr.ecr.us-east-2.amazonaws.com/targeting-service:bootstrap
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8003
+              name: http
+
+          # Injeta PORT e AUTH_SERVICE_URL do ConfigMap
+          envFrom:
+            - configMapRef:
+                name: targeting-service-config
+
+          # Injeta DATABASE_URL sensível do Secret
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: targeting-service-secret
+                  key: DATABASE_URL
+
+          # Mesmos limites do flag-service — ambos são serviços Python similares
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          # Só recebe tráfego quando /health retornar sucesso
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Reinicia o pod em caso de travamento
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

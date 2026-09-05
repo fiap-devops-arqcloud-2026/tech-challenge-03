@@ -1,0 +1,32 @@
+# ============================================================
+# CONFIGMAP — evaluation-service
+# ============================================================
+# Configurações não sensíveis do evaluation-service (hot path).
+# URLs internas usam DNS automático do Kubernetes.
+# URL do Redis aponta para o ElastiCache da AWS (externo ao cluster).
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: evaluation-service-config
+  namespace: togglemaster
+  labels:
+    app: evaluation-service
+
+data:
+  # Porta em que o serviço Go escuta dentro do container
+  PORT: "8004"
+
+  # URL do ElastiCache Redis na AWS — cluster togglemaster-redis (us-east-2, sub-rede privada)
+  # Endpoint primário real preenchido abaixo. Formato: redis://<ENDPOINT>:6379
+  REDIS_URL: "redis://togglemaster-redis.ewbn3x.ng.0001.use2.cache.amazonaws.com:6379"
+
+  # URL interna do flag-service — resolvida automaticamente pelo DNS do cluster
+  FLAG_SERVICE_URL: "http://flag-service:8002"
+
+  # URL interna do targeting-service — resolvida automaticamente pelo DNS do cluster
+  TARGETING_SERVICE_URL: "http://targeting-service:8003"
+
+  # Região AWS onde o SQS e outros serviços estão provisionados
+  AWS_REGION: "us-east-2"   # Ohio — região onde toda a infra do projeto foi criada

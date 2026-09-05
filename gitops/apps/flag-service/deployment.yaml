@@ -1,0 +1,79 @@
+# ============================================================
+# DEPLOYMENT — flag-service
+# ============================================================
+# Gerencia os pods do flag-service (CRUD de feature flags).
+# Depende do auth-service (para validar chaves) e do RDS (para persistir dados).
+#
+# ANTES DE APLICAR: substitua <AWS_ACCOUNT_ID> e <AWS_REGION>
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flag-service
+  namespace: togglemaster
+  labels:
+    app: flag-service
+
+spec:
+  # 1 réplica — entrega mínima/enxuta (sem HPA; só evaluation/analytics escalam)
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: flag-service
+
+  template:
+    metadata:
+      labels:
+        app: flag-service
+    spec:
+      containers:
+        - name: flag-service
+          # Imagem do ECR — substitua com seus dados reais
+          image: 000000000000.dkr.ecr.us-east-2.amazonaws.com/flag-service:bootstrap
+          imagePullPolicy: Always  # sempre baixa a versão mais recente da tag :latest
+
+          ports:
+            - containerPort: 8002
+              name: http
+
+          # Injeta PORT e AUTH_SERVICE_URL do ConfigMap
+          envFrom:
+            - configMapRef:
+                name: flag-service-config
+
+          # Injeta a DATABASE_URL sensível do Secret
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flag-service-secret
+                  key: DATABASE_URL
+
+          # Recursos conservadores para um serviço Python com Flask/Gunicorn
+          resources:
+            requests:
+              cpu: "100m"      # Python usa mais CPU que Go na inicialização
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          # Só recebe tráfego quando responder /health com sucesso
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 15  # Python/Gunicorn leva um pouco mais para iniciar
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Reinicia o pod se parar de responder
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

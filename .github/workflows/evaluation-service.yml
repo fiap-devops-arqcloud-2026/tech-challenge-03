@@ -1,0 +1,10 @@
+name: evaluation-service
+on:
+  pull_request: { paths: ['services/evaluation-service/**', '.github/workflows/**'] }
+  push: { branches: [main], paths: ['services/evaluation-service/**', '.github/workflows/**'] }
+jobs:
+  devsecops:
+    uses: ./.github/workflows/reusable-devsecops.yml
+    with: { service: evaluation-service, language: go }
+    secrets: inherit
+

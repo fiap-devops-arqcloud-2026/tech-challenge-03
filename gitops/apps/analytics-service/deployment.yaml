@@ -1,0 +1,82 @@
+# ============================================================
+# DEPLOYMENT — analytics-service
+# ============================================================
+# Worker Python que consome eventos da fila SQS e salva no DynamoDB.
+# Não tem API pública significativa (apenas /health).
+# Escala via HPA com base em CPU — quando a fila encher, o processamento
+# aumenta, a CPU sobe, e o HPA adiciona pods automaticamente.
+#
+# ANTES DE APLICAR: substitua <AWS_ACCOUNT_ID> e <AWS_REGION>
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: togglemaster
+  labels:
+    app: analytics-service
+
+spec:
+  # Começa com 1 réplica — o HPA escala conforme a carga da fila aumentar
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: analytics-service
+
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+    spec:
+      containers:
+        - name: analytics-service
+          # Imagem do ECR — substitua com seus dados reais
+          image: 000000000000.dkr.ecr.us-east-2.amazonaws.com/analytics-service:bootstrap
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8005
+              name: http
+
+          # Injeta PORT, AWS_REGION e AWS_DYNAMODB_TABLE do ConfigMap
+          envFrom:
+            - configMapRef:
+                name: analytics-service-config
+
+          # Variáveis sensíveis do Secret (credenciais AWS e URL da fila)
+          env:
+            - name: AWS_SQS_URL              # URL da fila SQS a ser monitorada
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: AWS_SQS_URL
+
+          # Worker Python com boto3 — recursos similares ao flag/targeting
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          # ReadinessProbe: só recebe tráfego no /health quando o Flask estiver pronto
+          # O worker SQS roda em thread separada e não bloqueia o Flask
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # LivenessProbe: reinicia o pod se o Flask parar de responder
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

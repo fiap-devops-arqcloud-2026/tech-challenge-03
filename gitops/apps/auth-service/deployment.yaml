@@ -1,0 +1,103 @@
+# ============================================================
+# DEPLOYMENT — auth-service
+# ============================================================
+# O Deployment gerencia o ciclo de vida dos pods.
+# Garante que o número desejado de réplicas esteja sempre rodando.
+# Se um pod morrer ou o node falhar, o Deployment cria um novo automaticamente.
+#
+# ANTES DE APLICAR: substitua <AWS_ACCOUNT_ID> e <AWS_REGION>
+# pelo seu Account ID da AWS e a região onde criou o ECR.
+# Exemplo de imagem: 123456789012.dkr.ecr.us-east-2.amazonaws.com/auth-service:latest
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: togglemaster
+  labels:
+    app: auth-service
+
+spec:
+  # Número de cópias (pods) rodando ao mesmo tempo
+  # 1 réplica — entrega mínima/enxuta. A FIAP não exige réplica extra aqui;
+  # só evaluation e analytics escalam (via HPA). Sem HPA, este serviço fica fixo em 1 pod.
+  replicas: 1
+
+  # Define quais pods este Deployment controla (pelo label "app: auth-service")
+  selector:
+    matchLabels:
+      app: auth-service
+
+  # Template: o "molde" de cada pod que será criado
+  template:
+    metadata:
+      labels:
+        # Este label é usado pelo selector acima e pelo Service para encontrar os pods
+        app: auth-service
+    spec:
+      containers:
+        - name: auth-service
+          # Imagem publicada no ECR — substitua com seus dados reais
+          # Para usar DockerHub: seu-usuario/auth-service:latest
+          image: 000000000000.dkr.ecr.us-east-2.amazonaws.com/auth-service:bootstrap
+
+          # Always: garante que o Kubernetes sempre baixe a imagem mais recente
+          # Essencial quando se usa a tag :latest para garantir que o deploy seja aplicado
+          imagePullPolicy: Always
+
+          # Porta exposta pelo container (deve coincidir com o EXPOSE do Dockerfile)
+          ports:
+            - containerPort: 8001
+              name: http
+
+          # Injeta TODAS as variáveis do ConfigMap como variáveis de ambiente
+          envFrom:
+            - configMapRef:
+                name: auth-service-config  # referencia o ConfigMap por nome
+
+          # Variáveis sensíveis são injetadas individualmente do Secret
+          # (evita expor outras chaves que possam existir no Secret no futuro)
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret  # nome do objeto Secret
+                  key: DATABASE_URL          # chave específica dentro do Secret
+
+            - name: MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: MASTER_KEY
+
+          # Recursos de CPU e Memória
+          # requests = mínimo garantido ao pod (usado pelo scheduler para alocar no node)
+          # limits   = teto máximo (se ultrapassar memória → pod é encerrado; CPU → throttling)
+          resources:
+            requests:
+              cpu: "50m"      # 50 milicores = 5% de 1 vCPU
+              memory: "64Mi"  # 64 mebibytes de RAM garantidos
+            limits:
+              cpu: "200m"     # 200 milicores = 20% de 1 vCPU no máximo
+              memory: "128Mi" # 128 mebibytes no máximo
+
+          # ReadinessProbe: o pod SÓ recebe tráfego quando esta verificação passar
+          # Evita que requisições vão para um pod que ainda está inicializando ou com problema
+          readinessProbe:
+            httpGet:
+              path: /health   # endpoint de health check já existente no serviço
+              port: 8001
+            initialDelaySeconds: 10  # aguarda 10s após o container iniciar antes da 1ª verificação
+            periodSeconds: 10        # repete a verificação a cada 10s
+            failureThreshold: 3      # após 3 falhas consecutivas, para de enviar tráfego ao pod
+
+          # LivenessProbe: se falhar, o Kubernetes REINICIA o pod
+          # Detecta estados inválidos (deadlocks, travamentos) que não se recuperam sozinhos
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30  # dá mais tempo antes de monitorar vitalidade
+            periodSeconds: 30        # menos frequente que readiness (reiniciar é mais impactante)
+            failureThreshold: 3

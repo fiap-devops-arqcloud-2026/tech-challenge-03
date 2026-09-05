@@ -1,0 +1,27 @@
+# ============================================================
+# CONFIGMAP — analytics-service
+# ============================================================
+# Configurações não sensíveis do analytics-service.
+# Em produção (EKS), NÃO usamos DYNAMODB_ENDPOINT — o boto3 se conecta
+# automaticamente ao DynamoDB real da AWS com base na região.
+# O DYNAMODB_ENDPOINT era necessário apenas para apontar ao DynamoDB Local.
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-service-config
+  namespace: togglemaster
+  labels:
+    app: analytics-service
+
+data:
+  # Porta do health check Flask dentro do container
+  PORT: "8005"
+
+  # Região AWS onde o SQS e DynamoDB estão criados
+  AWS_REGION: "us-east-2"   # Ohio — região onde toda a infra do projeto foi criada
+
+  # Nome da tabela DynamoDB onde os eventos de avaliação são salvos
+  # Deve ser exatamente o mesmo nome da tabela criada no console AWS
+  AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"

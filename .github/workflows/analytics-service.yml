@@ -1,0 +1,10 @@
+name: analytics-service
+on:
+  pull_request: { paths: ['services/analytics-service/**', '.github/workflows/**'] }
+  push: { branches: [main], paths: ['services/analytics-service/**', '.github/workflows/**'] }
+jobs:
+  devsecops:
+    uses: ./.github/workflows/reusable-devsecops.yml
+    with: { service: analytics-service, language: python }
+    secrets: inherit
+

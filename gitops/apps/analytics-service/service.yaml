@@ -1,0 +1,27 @@
+# ============================================================
+# SERVICE — analytics-service (tipo ClusterIP)
+# ============================================================
+# Ponto de acesso estável ao analytics-service dentro do cluster.
+# Este serviço não precisa ser acessado externamente — é um worker.
+# O /health é acessado internamente pelo Kubernetes para as probes.
+# ============================================================
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service   # hostname DNS: http://analytics-service:8005
+  namespace: togglemaster
+  labels:
+    app: analytics-service
+
+spec:
+  type: ClusterIP            # apenas interno — não é exposto pelo Ingress
+
+  selector:
+    app: analytics-service   # encaminha para pods com este label
+
+  ports:
+    - name: http
+      port: 8005
+      targetPort: 8005
+      protocol: TCP

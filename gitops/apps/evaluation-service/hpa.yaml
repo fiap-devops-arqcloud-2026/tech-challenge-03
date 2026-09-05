@@ -1,0 +1,45 @@
+# ============================================================
+# HPA — evaluation-service (Horizontal Pod Autoscaler)
+# ============================================================
+# O HPA escala automaticamente o número de pods com base no uso de CPU.
+# Quando a CPU média dos pods ultrapassar 70%, novos pods são criados.
+# Quando a carga cair, pods extras são removidos (até o mínimo definido).
+#
+# PRÉ-REQUISITO: o Metrics Server deve estar instalado no cluster.
+# Instalação: kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+#
+# Os recursos "requests.cpu" no Deployment são obrigatórios para o HPA funcionar.
+# O percentual é calculado em relação ao requests.cpu de cada pod.
+# ============================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: evaluation-service-hpa
+  namespace: togglemaster
+  labels:
+    app: evaluation-service
+
+spec:
+  # Define qual Deployment o HPA vai controlar
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: evaluation-service  # deve bater com o nome do Deployment
+
+  # Número mínimo de pods — nunca vai abaixo disso (baseline enxuto p/ economizar recursos)
+  minReplicas: 1
+
+  # Número máximo de pods — nunca vai acima disso (controla custo / demo enxuta)
+  maxReplicas: 2
+
+  # Critérios de escalonamento
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          # Utilization: percentual em relação ao "requests.cpu" do container
+          # Quando a CPU MÉDIA de todos os pods passar de 70%, o HPA adiciona réplicas
+          type: Utilization
+          averageUtilization: 70

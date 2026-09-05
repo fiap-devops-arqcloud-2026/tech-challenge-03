@@ -1,0 +1,6 @@
+aws_region         = "us-east-2"
+project_name       = "togglemaster"
+environment        = "dev"
+lab_role_arn       = "arn:aws:iam::SEU_ACCOUNT_ID:role/LabRole"
+enable_nat_gateway = true
+

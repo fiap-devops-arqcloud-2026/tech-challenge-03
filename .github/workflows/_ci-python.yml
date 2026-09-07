@@ -1,0 +1,564 @@
+# ============================================================
+# WORKFLOW REUTILIZAVEL - CI e DevSecOps para servicos em Python
+# ============================================================
+# Este arquivo NAO roda sozinho. Ele e chamado por flag-service.yml,
+# targeting-service.yml e analytics-service.yml (F-008: os tres sao
+# Python 3.12).
+#
+# Espelha _ci-go.yml na estrutura e nos portoes de seguranca. So mudam
+# as ferramentas: flake8/pylint no lugar do golangci-lint e bandit no
+# lugar do gosec. Os jobs image e gitops sao identicos aos de Go.
+#
+# Cobre do checklist: O-11 a O-21, O-24 e O-26.
+#
+# ORDEM DOS JOBS
+#   build, lint, sast e sca rodam EM PARALELO (sao independentes).
+#   image so comeca se os quatro passarem (O-16).
+#   gitops so roda depois do image, e apenas em push na main.
+# ============================================================
+
+# Nome exibido na aba Actions. O sufixo avisa que nao roda sozinho.
+name: CI Python (reutilizavel)
+
+# Bloco "on": define o que dispara este workflow.
+on:
+  # workflow_call torna o arquivo chamavel por outro workflow. Nao ha
+  # gatilho de push nem de PR aqui: quem decide quando rodar sao os
+  # arquivos chamadores, um por servico.
+  workflow_call:
+
+    # Parametros que o chamador e obrigado a informar.
+    inputs:
+
+      # Unico parametro. O mesmo valor resolve a pasta em services/,
+      # o repositorio no ECR e o nome logico da imagem no Kustomize.
+      service:
+        # Texto de ajuda exibido na interface do GitHub.
+        description: "Nome do servico, ex: flag-service"
+        # true = o chamador nao pode omitir.
+        required: true
+        # Tipo do parametro.
+        type: string
+
+# ------------------------------------------------------------
+# VARIAVEIS COMPARTILHADAS POR TODOS OS JOBS
+# ------------------------------------------------------------
+env:
+  # Regiao da conta (F-012). Toda a infra do projeto vive em Ohio.
+  AWS_REGION: us-east-2
+
+  # Endereco do registro de imagens do ECR. O numero da conta nao e
+  # credencial: sem token OIDC deste repositorio nao da acesso a nada.
+  ECR_REGISTRY: 891376952395.dkr.ecr.us-east-2.amazonaws.com
+
+  # Role assumida na AWS via OIDC (S-01). Substitui a dupla
+  # AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY usada na Fase 2.
+  AWS_ROLE_ARN: arn:aws:iam::891376952395:role/togglemaster-github-actions
+
+  # Versao fixa do kustomize standalone usada no job gitops. Fixa para
+  # que release nova nao mude o comportamento sem ninguem pedir.
+  KUSTOMIZE_VERSION: "5.4.3"
+
+  # Versao do Python. Casa com o "FROM python:3.12-slim" dos
+  # Dockerfiles: linter e SAST precisam analisar na mesma versao que
+  # roda em producao, senao acusam problema que nao existe (ou pior,
+  # deixam passar problema que existe).
+  PYTHON_VERSION: "3.12"
+
+# Lista de jobs. Sem "needs" entre eles, rodam todos em paralelo.
+jobs:
+
+  # ==========================================================
+  # JOB 1 - BUILD e TESTES UNITARIOS (O-12)
+  # ==========================================================
+  # Python nao compila, entao "build" aqui significa: instalar as
+  # dependencias e provar que todo arquivo .py carrega sem erro de
+  # sintaxe. Cumpre o mesmo papel do "go build" no pipeline de Go.
+  # ==========================================================
+  build:
+    # Nome legivel exibido no grafo de execucao.
+    name: Build e testes
+    # Maquina virtual descartavel do GitHub, nasce limpa a cada run.
+    runs-on: ubuntu-latest
+
+    # Sequencia de passos deste job, executados em ordem.
+    steps:
+      # Passo 1: baixa o codigo para dentro do runner.
+      - name: Checkout do codigo
+        # Baixa o codigo. Repetido em todo job porque cada um roda numa maquina isolada.
+        uses: actions/checkout@v4
+
+      # Passo 2: instala o interpretador Python.
+      - name: Instalar Python
+        # Instala o interpretador Python nesta maquina.
+        uses: actions/setup-python@v5
+        # Parametros passados para a action declarada acima.
+        with:
+          # Versao vinda do env do topo do arquivo.
+          python-version: ${{ env.PYTHON_VERSION }}
+          # Liga o cache de pacotes do pip.
+          cache: pip
+          # Arquivo usado como chave do cache. Mudou o requirements,
+          # o cache e refeito; nao mudou, reaproveita.
+          cache-dependency-path: services/${{ inputs.service }}/requirements.txt
+
+      # Passo 3: instala as dependencias do servico.
+      - name: Instalar dependencias
+        # Cada servico tem o proprio requirements.txt, entao os
+        # comandos rodam dentro da pasta dele.
+        working-directory: services/${{ inputs.service }}
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # Atualiza o pip primeiro: versao antiga falha ao resolver
+          # certos pacotes e o erro resultante e confuso de ler.
+          python -m pip install --upgrade pip
+          # Instala exatamente o que o servico declara.
+          pip install -r requirements.txt
+
+      # Passo 4: equivalente ao "go build". Se houver erro de sintaxe
+      # em qualquer arquivo .py, o compileall falha aqui.
+      - name: Verificar sintaxe
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # -q = modo silencioso, so imprime se houver erro.
+        # O ponto final = a pasta atual, recursivamente.
+        run: python -m compileall -q .
+
+      # Passo 5: testes. O enunciado pede testes "se houver" (R-04).
+      # Hoje nenhum servico Python tem arquivo de teste, entao o passo
+      # detecta a ausencia e segue. Quando alguem adicionar testes,
+      # eles rodam sozinhos - sem precisar mexer no workflow.
+      - name: Testes unitarios (se houver)
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # Tres formas de o pytest encontrar testes: pasta tests/,
+          # arquivos test_*.py ou arquivos *_test.py. compgen -G
+          # testa se o padrao casa com algum arquivo de verdade.
+          if [ -d tests ] || compgen -G "test_*.py" > /dev/null || compgen -G "*_test.py" > /dev/null; then
+            # Instala o pytest so quando ha o que rodar.
+            pip install pytest
+            # -v = saida detalhada, um teste por linha no log.
+            pytest -v
+          else
+            # Sem testes o passo termina com sucesso, de proposito.
+            echo "Nenhum arquivo de teste encontrado neste servico."
+            echo "O enunciado pede testes unitarios 'se houver' (R-04). Passo concluido."
+          fi
+
+  # ==========================================================
+  # JOB 2 - LINTER / ANALISE ESTATICA (O-13)
+  # ==========================================================
+  lint:
+    # Nome legivel deste job, exibido no grafo de execucao.
+    name: Linter (flake8 e pylint)
+    # Runner Ubuntu descartavel, um por job. Nasce limpo a cada execucao.
+    runs-on: ubuntu-latest
+
+    # Passos deste job, executados de cima para baixo.
+    steps:
+      # Cada job roda numa maquina propria e isolada, por isso o
+      # checkout se repete em todos.
+      - name: Checkout do codigo
+        # Baixa o codigo. Repetido em todo job porque cada um roda numa maquina isolada.
+        uses: actions/checkout@v4
+
+      # O passo seguinte precisa do interpretador Python disponivel.
+      - name: Instalar Python
+        # Instala o interpretador Python nesta maquina.
+        uses: actions/setup-python@v5
+        # Parametros passados para a action declarada acima.
+        with:
+          # Versao do Python vinda do env do topo do arquivo.
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # As duas ferramentas citadas nominalmente pelo enunciado para
+      # Python. Sao complementares: flake8 pega erro, pylint da nota.
+      - name: Instalar linters
+        # Instala os dois linters citados pelo enunciado.
+        run: pip install flake8 pylint
+
+      # PRIMEIRA PASSADA - so os codigos que sao ERRO de verdade.
+      # Falha o job. Nao ha discussao de estilo aqui.
+      - name: flake8 - erros que quebram o codigo
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # --count = imprime o total de ocorrencias no fim.
+        # --select limita a analise a quatro familias:
+        #   E9  erro de sintaxe ou de indentacao
+        #   F63 comparacao invalida (ex.: "is" com literal)
+        #   F7  uso de construcao fora de contexto (break solto)
+        #   F82 variavel usada sem nunca ter sido definida
+        # --show-source = imprime a linha ofensora no log.
+        # --statistics = resumo agrupado por tipo de erro.
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      # SEGUNDA PASSADA - todo o resto, que e estilo. Reporta e NAO
+      # falha. O codigo veio da Fase 2 e nunca passou por linter;
+      # travar a entrega por linha longa nao ajudaria ninguem.
+      - name: flake8 - estilo (apenas relatorio)
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # --exit-zero = sempre devolve sucesso, so informa.
+        #   Para endurecer no futuro, remover esta flag.
+        # --max-line-length=120 = limite pratico. O padrao do flake8
+        #   e 79 colunas, herdado de terminal antigo.
+        run: flake8 . --count --exit-zero --max-line-length=120 --statistics
+
+      # pylint da uma nota de 0 a 10 para o codigo.
+      - name: pylint
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # --fail-under=7.0 = corte escolhido para o codigo legado da
+        #   Fase 2 conseguir passar. E o limite entre "codigo com
+        #   pontas soltas" e "codigo com problema real". Suba o numero
+        #   quando quiser apertar a regua.
+        # --disable=C0114,C0115,C0116 = desliga a exigencia de
+        #   docstring em modulo, classe e funcao. Sao 3 avisos por
+        #   arquivo que afundariam a nota sem indicar defeito algum.
+        # $(git ls-files '*.py') = lista so os .py versionados,
+        #   evitando analisar arquivo gerado ou de dependencia.
+        run: pylint --fail-under=7.0 --disable=C0114,C0115,C0116 $(git ls-files '*.py')
+
+  # ==========================================================
+  # JOB 3 - SAST: vulnerabilidade no CODIGO FONTE (O-15)
+  # ==========================================================
+  # Diferenca entre SAST e SCA, que confunde:
+  #   SAST (este job) olha o codigo que NOS escrevemos.
+  #   SCA  (job seguinte) olha as bibliotecas de TERCEIROS.
+  # ==========================================================
+  sast:
+    # Nome legivel deste job, exibido no grafo de execucao.
+    name: SAST (bandit)
+    # Runner Ubuntu descartavel, um por job. Nasce limpo a cada execucao.
+    runs-on: ubuntu-latest
+
+    # Passos deste job, executados de cima para baixo.
+    steps:
+      # Baixa o codigo do repositorio para dentro deste runner.
+      - name: Checkout do codigo
+        # Baixa o codigo. Repetido em todo job porque cada um roda numa maquina isolada.
+        uses: actions/checkout@v4
+
+      # O passo seguinte precisa do interpretador Python disponivel.
+      - name: Instalar Python
+        # Instala o interpretador Python nesta maquina.
+        uses: actions/setup-python@v5
+        # Parametros passados para a action declarada acima.
+        with:
+          # Versao do Python vinda do env do topo do arquivo.
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      # bandit e o SAST para Python citado pelo enunciado.
+      - name: Instalar bandit
+        # Instala o bandit, o SAST de Python.
+        run: pip install bandit
+
+      # Procura no NOSSO codigo: SQL montado por concatenacao, senha
+      # fixa no fonte, subprocess com shell=True, hash criptografico
+      # fraco, uso de assert em codigo de producao.
+      - name: Rodar bandit
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # -r = varre a pasta recursivamente.
+        # -ll = so severidade MEDIA ou ALTA quebra o job. E o
+        #   equivalente ao "-severity high" do gosec no pipeline Go:
+        #   achado baixo aparece no log sem travar a entrega.
+        run: bandit -r . -ll
+
+  # ==========================================================
+  # JOB 4 - SCA: vulnerabilidade nas DEPENDENCIAS (O-14)
+  # ==========================================================
+  sca:
+    # Nome legivel deste job, exibido no grafo de execucao.
+    name: SCA (Trivy fs)
+    # Runner Ubuntu descartavel, um por job. Nasce limpo a cada execucao.
+    runs-on: ubuntu-latest
+
+    # Passos deste job, executados de cima para baixo.
+    steps:
+      # Baixa o codigo do repositorio para dentro deste runner.
+      - name: Checkout do codigo
+        # Baixa o codigo. Repetido em todo job porque cada um roda numa maquina isolada.
+        uses: actions/checkout@v4
+
+      # Trivy em modo "fs" le o requirements.txt e cruza cada pacote
+      # com a base publica de CVEs. E ESTE o job da demonstracao do
+      # video (O-28): despinar uma versao vulneravel deixa ele vermelho
+      # e trava o pipeline inteiro.
+      - name: Rodar Trivy no sistema de arquivos
+        # Versao da action fixada por reprodutibilidade.
+        uses: aquasecurity/trivy-action@0.28.0
+        # Parametros passados para a action declarada acima.
+        with:
+          # fs = varre arquivos de dependencia no disco.
+          scan-type: fs
+          # Pasta a varrer: so o servico deste pipeline.
+          scan-ref: services/${{ inputs.service }}
+          # REGRA DE BLOQUEIO (O-16): apenas CRITICAL derruba o job.
+          severity: CRITICAL
+          # exit-code 1 = achou algo critico, job falha. SEM esta linha
+          # o Trivy so imprime a lista e devolve sucesso - o pipeline
+          # pareceria seguro sendo apenas silencioso.
+          exit-code: "1"
+          # Ignora CVE sem correcao publicada: travar o build sem
+          # existir versao corrigida so gera bloqueio inutil.
+          ignore-unfixed: true
+          # Saida em tabela, legivel no log da execucao.
+          format: table
+
+  # ==========================================================
+  # JOB 5 - IMAGEM: build, scan, login e push (O-17 a O-20)
+  # ==========================================================
+  image:
+    # Nome legivel deste job, exibido no grafo de execucao.
+    name: Imagem Docker e push no ECR
+    # Runner Ubuntu descartavel, um por job. Nasce limpo a cada execucao.
+    runs-on: ubuntu-latest
+
+    # PORTAO DE SEGURANCA (O-16). "needs" faz este job esperar os
+    # quatro anteriores. Se qualquer um falhar, este nem e agendado -
+    # aparece como "skipped". E a leitura literal do enunciado:
+    # "o pipeline deve falhar e nao prosseguir".
+    needs: [build, lint, sast, sca]
+
+    # Publica somente a partir da main. Em Pull Request os quatro jobs
+    # de verificacao rodam (O-11), mas nada e publicado: PR de fork nao
+    # recebe token OIDC, e tag de PR poluiria o registro.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # Declarar permissions aqui SUBSTITUI o conjunto herdado do
+    # chamador, deixando o job com o minimo necessario.
+    permissions:
+      # Emite o token OIDC trocado por credencial temporaria na AWS.
+      id-token: write
+      # Leitura do repositorio, necessaria para o checkout.
+      contents: read
+
+    # Valores publicados para outros jobs consumirem via needs.
+    outputs:
+      # A tag calculada abaixo. O job gitops precisa dela.
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+
+    # Passos deste job, executados de cima para baixo.
+    steps:
+      # Baixa o codigo do repositorio para dentro deste runner.
+      - name: Checkout do codigo
+        # Baixa o codigo. Repetido em todo job porque cada um roda numa maquina isolada.
+        uses: actions/checkout@v4
+
+      # Monta a tag no padrao exigido: v1.0.0-<commit hash de 7 chars>
+      # (exemplo literal do PDF: v1.0.0-a1b2c3d).
+      - name: Calcular a tag da imagem
+        # "id" permite referenciar a saida deste passo mais adiante.
+        id: tag
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # GITHUB_SHA e o hash completo (40 chars) do commit atual.
+          # cut pega os 7 primeiros, o formato curto do Git.
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          # Escrever em $GITHUB_OUTPUT e como um passo devolve valor
+          # para os proximos passos e para o bloco outputs do job.
+          echo "image_tag=v1.0.0-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          # Ecoa no log para facilitar a conferencia na gravacao.
+          echo "Tag desta execucao: v1.0.0-${SHORT_SHA}"
+
+      # Constroi a imagem e deixa apenas no runner, com tag temporaria.
+      # O scan roda ANTES de qualquer envio: imagem reprovada nao pode
+      # existir no ECR nem por um instante.
+      - name: Build da imagem Docker (O-17)
+        # Roda dentro da pasta do servico, nao na raiz do monorepo.
+        working-directory: services/${{ inputs.service }}
+        # O ponto final indica que o Dockerfile esta na pasta atual.
+        run: docker build -t "${{ inputs.service }}:scan" .
+
+      # Segunda camada de seguranca. O job sca olhou o requirements;
+      # aqui o alvo e a imagem inteira, incluindo os pacotes do sistema
+      # que vem da base python:3.12-slim.
+      - name: Scan da imagem com Trivy (O-18)
+        # Action oficial do Trivy, com versao fixada.
+        uses: aquasecurity/trivy-action@0.28.0
+        # Parametros passados para a action declarada acima.
+        with:
+          # image = varre uma imagem Docker, nao arquivos soltos.
+          scan-type: image
+          # A imagem local criada no passo anterior.
+          image-ref: ${{ inputs.service }}:scan
+          # Mesma regra de bloqueio do SCA.
+          severity: CRITICAL
+          # Achou algo na severidade acima: falha o job.
+          exit-code: "1"
+          # Ignora CVE que ainda nao tem correcao publicada.
+          ignore-unfixed: true
+          # Saida em tabela, legivel no log da execucao.
+          format: table
+
+      # Troca o token OIDC do GitHub por credencial temporaria da AWS.
+      # Nao ha secret de chave no repositorio: a confianca vem da
+      # policy da role, que so aceita token deste repositorio.
+      - name: Autenticar na AWS via OIDC (S-01)
+        # Action oficial da AWS que faz a troca do token OIDC.
+        uses: aws-actions/configure-aws-credentials@v4
+        # Parametros passados para a action declarada acima.
+        with:
+          # Role definida no env do topo, criada pelo modulo iam-ci.
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          # Regiao onde a credencial sera usada.
+          aws-region: ${{ env.AWS_REGION }}
+          # Nome da sessao: aparece no CloudTrail e permite auditar
+          # qual servico fez qual chamada (S-07).
+          role-session-name: gh-actions-${{ inputs.service }}
+
+      # Busca o token do ECR e configura o Docker automaticamente.
+      - name: Login no Amazon ECR (O-19)
+        # Action oficial da AWS que configura o Docker para o ECR.
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Renomeia a imagem ja aprovada e envia ao registro.
+      - name: Push para o ECR (O-20)
+        # Traz a tag calculada para dentro do shell deste passo.
+        env:
+          # Tag calculada no passo "Calcular a tag da imagem".
+          IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # Tag imutavel com o hash do commit: e a que o GitOps
+          # referencia e a que prova a rastreabilidade exigida.
+          docker tag "${{ inputs.service }}:scan" "${ECR_REGISTRY}/${{ inputs.service }}:${IMAGE_TAG}"
+          # Tag "latest": conveniencia para inspecao manual. Nao e
+          # usada pelo deploy, justamente por nao ser rastreavel.
+          docker tag "${{ inputs.service }}:scan" "${ECR_REGISTRY}/${{ inputs.service }}:latest"
+          # Envia as duas. Camadas ja existentes sao reaproveitadas.
+          docker push "${ECR_REGISTRY}/${{ inputs.service }}:${IMAGE_TAG}"
+          docker push "${ECR_REGISTRY}/${{ inputs.service }}:latest"
+
+  # ==========================================================
+  # JOB 6 - GITOPS: atualizar a tag no repositorio (O-24)
+  # ==========================================================
+  # Este job fecha o ciclo. O CI NAO faz kubectl apply (O-26): ele so
+  # escreve a nova tag no Git e para. Quem aplica no cluster e o
+  # ArgoCD, que observa a pasta gitops/ e sincroniza sozinho (O-25).
+  # ==========================================================
+  gitops:
+    name: Atualizar tag no GitOps
+    # Runner Ubuntu descartavel, um por job. Nasce limpo a cada execucao.
+    runs-on: ubuntu-latest
+
+    # So faz sentido depois que a imagem existe no ECR. Referenciar
+    # "image" aqui tambem e o que libera acesso ao output dele.
+    needs: [image]
+    # Mesma trava do job anterior: so na main, so em push.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    # Permissoes do GITHUB_TOKEN neste job. Declarar aqui substitui o conjunto herdado.
+    permissions:
+      # ESCRITA no repositorio: este job comita a alteracao da tag.
+      # E a unica permissao de escrita em todo o pipeline.
+      contents: write
+
+    # Impede que dois servicos comitem no mesmo arquivo ao mesmo tempo.
+    concurrency:
+      # Nome do grupo, fixo de proposito: os 5 servicos compartilham o
+      # mesmo grupo e por isso entram em fila em vez de disputar.
+      group: gitops-tag-update
+      # false = a execucao em andamento NAO e cancelada. Cancelar aqui
+      # perderia a atualizacao de tag de um dos servicos.
+      cancel-in-progress: false
+
+    # Passos deste job, executados de cima para baixo.
+    steps:
+      # Baixa o codigo do repositorio para dentro deste runner.
+      - name: Checkout do codigo
+        # Baixa o codigo. Repetido em todo job porque cada um roda numa maquina isolada.
+        uses: actions/checkout@v4
+        # Parametros passados para a action declarada acima.
+        with:
+          # 0 = historico completo. O padrao (1) traz so o ultimo
+          # commit, e sem historico o "git pull --rebase" do fim falha.
+          fetch-depth: 0
+
+      # O kubectl embutido no runner renderiza Kustomize mas NAO tem o
+      # subcomando "edit" (F-027). Por isso o binario standalone.
+      - name: Instalar kustomize (P-036)
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # Baixa o tar.gz da release fixada no env do topo.
+          # O %2F no meio da URL e a barra do nome da tag, codificada.
+          curl -sSLo kustomize.tar.gz \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          # Extrai o binario no diretorio atual.
+          tar -xzf kustomize.tar.gz
+          # Move para uma pasta do PATH, para chamar pelo nome.
+          sudo mv kustomize /usr/local/bin/
+          # Confirma no log qual versao ficou instalada.
+          kustomize version
+
+      # O comando de uma linha so. Reescreve APENAS o campo newTag do
+      # servico correspondente no bloco images: do kustomization.yaml.
+      - name: Atualizar a tag da imagem
+        # "kustomize edit" precisa rodar na pasta do kustomization.yaml.
+        working-directory: gitops/overlays/prod
+        # Variaveis de ambiente visiveis apenas neste passo.
+        env:
+          # Pega a tag publicada pelo job image via needs.
+          IMAGE_TAG: ${{ needs.image.outputs.image_tag }}
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # Sintaxe: <nome-logico>=<registro>/<repo>:<tag>.
+          # O nome logico da esquerda e o mesmo do campo "image:" nos
+          # Deployments da base - e assim que o Kustomize casa os dois.
+          kustomize edit set image \
+            "${{ inputs.service }}=${ECR_REGISTRY}/${{ inputs.service }}:${IMAGE_TAG}"
+          # Imprime o diff no log. E ESTA saida que aparece no video
+          # como evidencia do O-30: uma unica linha alterada.
+          echo "--- diff gerado ---"
+          git --no-pager diff
+
+      # Registra a alteracao no Git e empurra para a main.
+      - name: Comitar e enviar
+        # Variaveis de ambiente visiveis apenas neste passo.
+        env:
+          # Tag publicada pelo job image, recebida via needs.
+          IMAGE_TAG: ${{ needs.image.outputs.image_tag }}
+        # Bloco de shell. O pipe indica varias linhas de comando.
+        run: |
+          # Identidade do autor do commit. Usa a conta de bot do
+          # proprio GitHub Actions, deixando claro no historico que a
+          # alteracao foi automatica e nao de uma pessoa.
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Se a tag ja estiver correta (reexecucao do mesmo commit),
+          # nao ha o que comitar. "git commit" vazio falharia e
+          # deixaria o pipeline vermelho sem motivo.
+          if git diff --quiet; then
+            echo "Nada mudou: a tag ja estava atualizada. Encerrando."
+            exit 0
+          fi
+
+          # Adiciona apenas o arquivo alterado, nunca "git add .".
+          git add gitops/overlays/prod/kustomization.yaml
+
+          # [skip ci] impede que este commit dispare os pipelines de
+          # novo. Os workflows ja filtram por services/**, entao e
+          # cinto e suspensorio - mas custa nada e evita loop infinito.
+          git commit -m "chore(gitops): ${{ inputs.service }} para ${IMAGE_TAG} [skip ci]"
+
+          # Ate 3 tentativas de enviar. Cenario real: dois servicos
+          # terminam juntos e o segundo tenta empurrar sobre um commit
+          # que acabou de chegar. O rebase resolve; a repeticao cobre
+          # a corrida entre o rebase e o push.
+          for tentativa in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              echo "Commit enviado com sucesso."
+              exit 0
+            fi
+            echo "Tentativa ${tentativa} falhou, repetindo em 5s..."
+            sleep 5
+          done
+
+          # Esgotadas as tentativas, falha explicitamente. Melhor o
+          # pipeline vermelho do que a tag em silencio desatualizada.
+          echo "Nao foi possivel enviar o commit apos 3 tentativas."
+          exit 1

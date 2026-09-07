@@ -15,37 +15,37 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 ### 1.1 Infraestrutura como Codigo (Terraform)
 
 - [ ] O-01 Projeto Terraform substituindo a criacao manual da Fase 2.
-- [ ] O-02 Networking: VPC, subnets publicas, subnets privadas, Internet Gateway e Route Tables.
+- [x] O-02 Networking: VPC, subnets publicas, subnets privadas, Internet Gateway e Route Tables. Aplicado na AWS em 2026-09-07 (P-038).
 - [ ] O-03 Cluster EKS provisionado por Terraform.
 - [ ] O-04 Node Groups do EKS provisionados por Terraform.
 - [ ] O-05 3 instancias RDS PostgreSQL.
 - [ ] O-06 1 cluster ElastiCache (Redis).
-- [ ] O-07 1 tabela DynamoDB chamada `ToggleMasterAnalytics` (nome literal do enunciado).
-- [ ] O-08 1 fila SQS.
-- [~] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27; blocos `backend "s3"` escritos nas duas camadas, com chaves `prod/base.tfstate` e `prod/cluster.tfstate` (D-017). Falta aplicar.
+- [x] O-07 1 tabela DynamoDB chamada `ToggleMasterAnalytics` (nome literal do enunciado). Aplicado na AWS em 2026-09-07 (P-038).
+- [x] O-08 1 fila SQS. Aplicado na AWS em 2026-09-07 (P-038).
+- [x] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27; blocos `backend "s3"` escritos nas duas camadas, com chaves `prod/base.tfstate` e `prod/cluster.tfstate` (D-017). Aplicado em 2026-09-07: `prod/base.tfstate` (61 KiB) existe no bucket e nada ficou local (P-038).
 
 ### 1.2 Pipeline de CI e DevSecOps
 
-- [ ] O-10 Workflow de CI para cada um dos 5 microsservicos (`auth`, `flag`, `targeting`, `evaluation`, `analytics`).
-- [ ] O-11 Gatilho em Pull Request e em push na `main`.
-- [ ] O-12 Job Build (compilar/empacotar o codigo).
-- [ ] O-13 Job Linter / analise estatica (ex.: `golangci-lint` para Go, `pylint`/`flake8` para Python).
-- [ ] O-14 Job SCA - vulnerabilidade em dependencias (ex.: Trivy modo `fs` ou OWASP Dependency Check).
-- [ ] O-15 Job SAST - vulnerabilidade no codigo fonte (ex.: SonarCloud gratuito, `gosec`, `bandit`).
-- [ ] O-16 Regra de bloqueio: vulnerabilidade CRITICA faz o pipeline falhar e nao prosseguir.
-- [ ] O-17 Build da imagem Docker.
-- [ ] O-18 Scan de vulnerabilidade na imagem (container scan com Trivy).
-- [ ] O-19 Login no AWS ECR pelo pipeline.
-- [ ] O-20 Push da imagem para o ECR com tag do commit hash (padrao do enunciado: `v1.0.0-a1b2c3d`).
-- [ ] O-21 Os 5 repositorios ECR precisam existir (criar via Terraform e recomendado, ver R-02).
+- [x] O-10 Workflow de CI para cada um dos 5 microsservicos (`auth`, `flag`, `targeting`, `evaluation`, `analytics`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-11 Gatilho em Pull Request e em push na `main`. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-12 Job Build (compilar/empacotar o codigo). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-13 Job Linter / analise estatica (ex.: `golangci-lint` para Go, `pylint`/`flake8` para Python). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-14 Job SCA - vulnerabilidade em dependencias (ex.: Trivy modo `fs` ou OWASP Dependency Check). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-15 Job SAST - vulnerabilidade no codigo fonte (ex.: SonarCloud gratuito, `gosec`, `bandit`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-16 Regra de bloqueio: vulnerabilidade CRITICA faz o pipeline falhar e nao prosseguir. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-17 Build da imagem Docker. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-18 Scan de vulnerabilidade na imagem (container scan com Trivy). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-19 Login no AWS ECR pelo pipeline. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-20 Push da imagem para o ECR com tag do commit hash (padrao do enunciado: `v1.0.0-a1b2c3d`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-21 Os 5 repositorios ECR precisam existir (criar via Terraform e recomendado, ver R-02). Aplicado na AWS em 2026-09-07 (P-038).
 
 ### 1.3 Entrega Continua (CD) e GitOps
 
 - [x] O-22 Area de GitOps com apenas manifestos Kubernetes / Helm Charts (repo separado OU pasta separada no monorepo). Pasta `gitops/` no monorepo, em Kustomize (D-007, D-008).
 - [ ] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`).
-- [ ] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`).
+- [x] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
 - [ ] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS.
-- [ ] O-26 Deploy sem `kubectl apply` direto pelo CI (o enunciado abandona o push direto).
+- [x] O-26 Deploy sem `kubectl apply` direto pelo CI (o enunciado abandona o push direto). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
 
 ## 2. OBRIGATORIO - Entregaveis
 
@@ -120,7 +120,7 @@ Reorganizados para refletir o plano em 4 fases de `PENDENCIAS_E_PROXIMOS_PASSOS.
 | Marco | Alvo | Cobre | Situacao |
 |---|---|---|---|
 | M1 - Decisoes e esqueleto | 2026-08-27 | D-007, D-008, servicos em `services/` | Concluido, com 19 dias de atraso |
-| M2 - Etapa 1 aplicada e CI dos 5 servicos | 2026-08-31 | O-02, O-07 a O-09, O-21, O-10 a O-20, R-03 | Etapa 1 escrita e validada; falta aplicar |
+| M2 - Etapa 1 aplicada e CI dos 5 servicos | 2026-08-31 | O-02, O-07 a O-09, O-21, O-10 a O-20, R-03 | CONCLUIDO em 2026-09-07: camada base aplicada (33 recursos) e 5 workflows escritos. Falta a primeira execucao dos pipelines (P-044). |
 | M3 - Etapas 2 e 3 escritas + runbook | 2026-09-04 | O-01, O-03 a O-06, O-23, R-01, R-05 | |
 | M4 - Sessao de ensaio (3h de cluster) | 2026-09-07 | valida O-01 a O-26 ponta a ponta | |
 | M5 - Sessao de gravacao (3h de cluster) | 2026-09-11 | O-27, O-31, O-32 | |

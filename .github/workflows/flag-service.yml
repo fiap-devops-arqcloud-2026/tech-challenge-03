@@ -1,0 +1,109 @@
+# ============================================================
+# PIPELINE DE CI - flag-service
+# ============================================================
+# Servico: CRUD das feature flags.
+# Banco flags_db em RDS. Porta 8002. E onde as flags nascem,
+# sao editadas e desligadas.
+#
+# Stack: Python (F-008).
+#
+# Este arquivo e proposital MAGRO. Toda a logica - build, linter,
+# SAST, SCA, imagem, push no ECR e atualizacao da tag no GitOps -
+# vive em .github/workflows/_ci-python.yml, compartilhado com os
+# outros servicos Python. Assim uma correcao vale para todos.
+#
+# O enunciado pede "workflows para cada um dos 5 microsservicos"
+# (O-10): sao 5 arquivos como este, um por servico, cada um com o
+# proprio historico de execucoes na aba Actions.
+# ============================================================
+
+# Nome exibido na aba Actions. Igual ao nome do servico para que a
+# lista de execucoes seja lida de bate-pronto.
+name: flag-service
+
+# ------------------------------------------------------------
+# QUANDO ESTE PIPELINE RODA (O-11)
+# ------------------------------------------------------------
+on:
+  # GATILHO 1 - push direto numa das branches de trabalho.
+  push:
+    # main = branch de entrega; dev = branch do dia a dia.
+    # A publicacao no ECR e a atualizacao do GitOps acontecem SO na
+    # main - quem faz esse controle e o "if" dos jobs image e gitops
+    # dentro do workflow reutilizavel. Em dev roda so a verificacao.
+    branches: [main, dev]
+
+    # FILTRO DE CAMINHO: este pipeline so acorda se algo DESTE servico
+    # mudar. Sem ele, um commit em qualquer lugar do monorepo
+    # dispararia os 5 pipelines de uma vez, gastando minuto de runner
+    # e poluindo o historico.
+    #
+    # Repare que gitops/** NAO esta na lista. E o que impede o loop
+    # infinito: o proprio pipeline comita em gitops/ no ultimo passo,
+    # e esse commit nao dispara nada.
+    paths:
+      # O codigo do servico em si.
+      - "services/flag-service/**"
+      # Este proprio arquivo: mexeu no gatilho, roda para validar.
+      - ".github/workflows/flag-service.yml"
+      # O workflow reutilizavel: mexeu na logica compartilhada, todos
+      # os servicos daquela stack rodam para provar que nada quebrou.
+      - ".github/workflows/_ci-python.yml"
+
+  # GATILHO 2 - Pull Request. Roda a verificacao ANTES do merge, que
+  # e o ponto do DevSecOps: barrar o problema antes de entrar na main.
+  pull_request:
+    # PR cujo DESTINO seja main ou dev.
+    branches: [main, dev]
+    # Mesmo filtro de caminho do push.
+    paths:
+      - "services/flag-service/**"
+      - ".github/workflows/flag-service.yml"
+      - ".github/workflows/_ci-python.yml"
+
+  # GATILHO 3 - botao "Run workflow" na aba Actions. Permite disparar
+  # a mao, sem commit. Util na gravacao do video e para reexecutar uma
+  # rodada que falhou por instabilidade de rede.
+  workflow_dispatch:
+
+# ------------------------------------------------------------
+# PERMISSOES
+# ------------------------------------------------------------
+# Um workflow chamado NAO pode ter mais permissao do que quem o
+# chamou. Por isso o teto e declarado aqui, no chamador, e cada job
+# la dentro pede so o pedaco que precisa.
+# ------------------------------------------------------------
+permissions:
+  # Emite o token OIDC que e trocado por credencial temporaria na AWS
+  # (S-01). Sem esta linha o login no ECR falha com "Not authorized".
+  id-token: write
+  # Escrita no repositorio: o ultimo job comita a nova tag da imagem
+  # em gitops/overlays/prod/kustomization.yaml (O-24).
+  contents: write
+
+# ------------------------------------------------------------
+# CANCELAMENTO DE EXECUCOES ANTIGAS
+# ------------------------------------------------------------
+concurrency:
+  # Um grupo por servico e por branch. Dois pushes seguidos na mesma
+  # branch caem no mesmo grupo; pushes em branches diferentes nao se
+  # atrapalham.
+  group: ci-flag-service-${{ github.ref }}
+  # Cancela a execucao anterior ainda em andamento - MENOS na main.
+  # Na main toda execucao precisa terminar, senao o ECR e o GitOps
+  # ficam fora de sincronia com um deploy pela metade.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# Um unico job, que apenas delega.
+jobs:
+  # Nome interno do job. Aparece no grafo de execucao do GitHub.
+  ci:
+    # Aponta para o workflow reutilizavel dentro deste mesmo
+    # repositorio. O "./" no inicio e obrigatorio para caminho local.
+    uses: ./.github/workflows/_ci-python.yml
+    # Parametros repassados ao workflow chamado.
+    with:
+      # Unico parametro: o nome do servico. Ele resolve a pasta em
+      # services/, o repositorio no ECR e o nome logico da imagem no
+      # bloco images: do kustomization.yaml.
+      service: flag-service

@@ -1,8 +1,8 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
-TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada (Etapa 1 aplicada + workflows de CI) e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform e `gitops/`. Proxima acao: P-038, aplicar a Etapa 1 com o NAT desligado.
+TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform, `gitops/` (sem ESO, ver D-018) e os 5 workflows de CI. Proxima acao: P-038, aplicar a camada base com o NAT desligado - e o que destrava a primeira execucao real do pipeline (P-044).
 
-Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
+Ultima atualizacao: 2026-09-07, Claude.
 
 ## Plano em 4 fases ate 2026-09-15
 
@@ -11,16 +11,10 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 
 ### Fase A - trabalho sem custo (alvo: 2026-08-31)
 
-- P-038: aplicar a camada BASE (`terraform/`, estado `prod/base.tfstate`) com `enable_nat_gateway = false`.
-  Cria VPC, 5 repositorios ECR, SQS, DynamoDB e a role OIDC do CI. Custo
-  praticamente zero: VPC, IGW, subnets, SQS, DynamoDB e IAM nao cobram
-  parados, e o ECR fica em centavos. Fecha O-02, O-07, O-08, O-09 e O-21.
-- P-030: escrever os 5 workflows de CI (O-10 a O-21). **Maior bloco unico
-  do checklist: 12 itens obrigatorios.** Nao depende do cluster - so
-  precisa do ECR e da role OIDC criados em P-038. Dois conjuntos de
-  linter/SAST por causa das duas stacks (F-008).
-- P-036: instalar o binario `kustomize` standalone no runner, para o passo
-  final que atualiza a tag (O-24).
+- P-044: primeira execucao real dos 5 pipelines. Os workflows estao
+  escritos e com YAML validado, mas NUNCA rodaram. Depende de P-038
+  (a role OIDC e os repositorios ECR precisam existir). Espere ajustes
+  na primeira rodada - ver a secao "Riscos conhecidos de P-044".
 - Ao fim da Fase A da para GRAVAR O-28, O-29 e O-30: pipeline falhando,
   pipeline passando e a tag sendo atualizada no GitOps. Tudo no GitHub
   Actions, com o cluster desligado (F-028).
@@ -37,8 +31,8 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
   e a `Application` apontando para `gitops/overlays/prod`.
 - P-034: runbook de subir, semear, gravar e derrubar, com script de seed
   (chave de API, uma flag e uma regra), porque o destroy apaga os bancos.
-- P-040: ajustar `gitops/` conforme a decisao de P-037 e preencher os
-  placeholders de `overlays/prod/patches/` apos o primeiro apply.
+- P-040: preencher os placeholders de `overlays/prod/patches/` apos o
+  primeiro apply da camada cluster (ARNs de role IRSA e endpoints).
 
 ### Fase C - sessoes com o cluster (alvo: 2026-09-11)
 
@@ -58,8 +52,6 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 
 ### Decisoes pendentes que nao bloqueiam o inicio
 
-- P-037: cortar ou nao o External Secrets Operator (item S-02). Afeta
-  apenas as Fases B e C.
 - P-018: confirmar que o Grupo 203 continua o mesmo. Afeta so o relatorio.
 
 ### Fora do caminho critico
@@ -71,7 +63,51 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 
 - P-007, P-009, P-011, P-013, P-015: revisar os cinco guias HTML de estudo da Fase 3.
 
+## Riscos conhecidos de P-044 (primeira execucao do pipeline)
+
+Os workflows foram escritos contra codigo da Fase 2 que nunca passou por
+linter nem por scanner. E esperado que a primeira rodada acuse coisas.
+Onde olhar primeiro, em ordem de probabilidade:
+
+1. **SCA (Trivy fs) nos servicos Python.** Os `requirements.txt` trazem
+   versoes antigas e pinadas: `Flask==2.2.2`, `requests==2.28.1`,
+   `gunicorn==20.1.0`, `Werkzeug<3`. Se alguma tiver CVE CRITICAL com
+   correcao publicada, o pipeline barra (O-16) e a dependencia precisa
+   subir de versao. Observacao: `flag-service/requirements.txt` declara
+   `Flask==2.2.2` DUAS vezes - vale limpar.
+2. **pylint.** O corte esta em `--fail-under=7.0`. Codigo legado pode
+   ficar abaixo disso. Ajuste o numero ou corrija os apontamentos.
+3. **gosec e bandit.** Configurados para falhar so em severidade alta.
+   Se acusarem, e achado real e vale corrigir, nao afrouxar.
+4. **Scan da imagem.** As bases `python:3.12-slim` e `alpine:3.20` podem
+   ter CVE critico de sistema operacional. A correcao e reconstruir com
+   a base atualizada.
+
+Recomendacao: rodar primeiro em `dev`, onde os jobs de verificacao
+executam mas nada e publicado no ECR nem no GitOps.
+
 ## Encerradas ou substituidas
+
+- P-038: concluida em 2026-09-07. Camada base aplicada na AWS: 33 recursos
+  (VPC com 4 subnets, IGW e route tables; 5 repositorios ECR com lifecycle;
+  SQS `togglemaster-events` mais DLQ; tabela `ToggleMasterAnalytics`;
+  provedor OIDC, role e policy do CI). Estado gravado em
+  `s3://togglemaster-tfstate-891376952395-us-east-2-an/prod/base.tfstate`
+  (61 KiB). NAT desligado. Fecha O-02, O-07, O-08, O-09 e O-21.
+  Conferido: `github_actions_role_arn` bate com o ARN escrito nos dois
+  workflows reutilizaveis, e o registro ECR bate com o `newName` do
+  `gitops/overlays/prod/kustomization.yaml`.
+
+- P-030: concluida em 2026-09-01. Sete workflows criados em
+  `.github/workflows/`: dois reutilizaveis (`_ci-go.yml`, `_ci-python.yml`)
+  e cinco chamadores, um por servico. YAML validado nos 7. Cobre O-10 a
+  O-20, O-24 e O-26 - 13 itens obrigatorios.
+- P-036: concluida em 2026-09-01. O binario `kustomize` v5.4.3 e instalado
+  no job `gitops` dos dois workflows reutilizaveis (F-027).
+- P-037: encerrada em 2026-09-01 por D-018. O External Secrets Operator foi
+  cortado; os Secrets passam a ser criados pelo Terraform. Os 5
+  `externalsecret.yaml` e o `secretstore.yaml` foram removidos, e o
+  contrato ficou documentado em `gitops/SECRETS-CONTRATO.md`.
 
 - P-001: encerrada em 2026-07-18. Os guias Markdown anteriores foram rejeitados e apagados; D-005 define o novo padrao HTML por modulo.
 - P-002: substituida em 2026-07-18 por P-014, que representava o ultimo modulo pendente.
@@ -93,6 +129,18 @@ cluster para o fim, em poucas sessoes de 3 horas (F-026, F-028).
 - P-025: encerrada em 2026-08-27. O usuario aprovou o plano do Terraform, com duas alteracoes: ambiente unico chamado `prod` (D-011) e remocao do Ingress (D-012).
 
 ## Achados
+
+- F-031: a infraestrutura da Fase 2 ainda estava de pe na conta em
+  2026-09-07 e fez o primeiro `terraform apply` falhar pela metade: 19 dos
+  33 recursos foram criados e 7 falharam com `RepositoryAlreadyExists`,
+  `QueueAlreadyExists` e `ResourceInUseException`. Os recursos eram de
+  junho: 5 repositorios ECR com 3 imagens cada e a tabela
+  `ToggleMasterAnalytics` com 117.757 itens (13,7 MB). Foram avaliados dois
+  caminhos - `terraform import` (nao destrutivo) ou apagar e recriar. O
+  usuario optou por apagar, executando os comandos de delecao manualmente,
+  e o apply seguinte criou os 14 restantes sem erro. Licao para o relatorio
+  (O-38): um apply que falha no meio nao corrompe nada - o estado guarda o
+  que deu certo e o comando seguinte mira so no que falta.
 
 - F-001: a pasta de material da Fase 2 contem 6 modulos, 34 PDFs e guias HTML por modulo.
 - F-002: a Fase 2 explica a base operacional que a Fase 3 automatiza: containers, Kubernetes, escalabilidade, Ingress, balanceamento e HA.

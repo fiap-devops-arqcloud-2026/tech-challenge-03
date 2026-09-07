@@ -4,6 +4,24 @@ TL;DR: decisoes cobrem guias e documentacao, condicoes de entrega (grupo, 2026-0
 
 Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
 
+## D-018 - Sem External Secrets Operator: Terraform cria os Secrets
+
+Contexto: D-013 escolheu AWS Secrets Manager + External Secrets Operator (ESO) para os segredos. A P-037 deixou em aberto se o ESO valia a pena. Ao revisar o plano com 14 dias de prazo, a conta nao fechou: o ESO e o item S-02, sugestao das aulas, NAO requisito do enunciado - nao vale ponto sozinho.
+
+Decisao: cortar o ESO. O Terraform da camada cluster gera as senhas com `random_password`, grava no AWS Secrets Manager e aplica os Secrets no cluster pelo provider `kubernetes`. Os 5 `externalsecret.yaml` e o `secretstore.yaml` foram removidos de `gitops/`.
+
+Por que: o ESO e uma peca nova em runtime no caminho critico da gravacao. Se o Helm chart, a role IRSA ou o ClusterSecretStore falharem durante a sessao de 3 horas, os 5 servicos nao recebem segredo e nada sobe. Trocar isso por um recurso do Terraform - que ja roda antes de tudo e ja tem as senhas em maos - elimina o modo de falha sem perder o que interessa.
+
+O que NAO se perde: nenhuma senha entra no Git, que e a dor citada no enunciado ("credenciais em arquivos de texto sem seguranca") e o argumento do relatorio (O-38). O Secrets Manager continua no desenho.
+
+O que se perde: o Secret passa a nascer fora do GitOps, o que e menos "GitOps puro", e a rotacao automatica de senha deixa de ser sincronizada sozinha. Nenhum dos dois e item avaliado.
+
+Alternativas: manter o ESO (rejeitada pelo risco em runtime); Secret versionado no Git (rejeitada - e exatamente o que o enunciado critica); preencher o Secret a mao apos o apply (rejeitada pelo mesmo motivo).
+
+Consequencia operacional: o acoplamento entre Terraform e GitOps ficou invisivel - o Deployment referencia um Secret que nao esta versionado. Mitigacao: `gitops/SECRETS-CONTRATO.md` documenta nome e chave de cada Secret que o Terraform precisa criar.
+
+Status: aceita em 2026-09-01, aprovada pelo usuario. Encerra P-037 e altera D-013.
+
 ## D-017 - Dois estados Terraform: base permanente e cluster efemero
 
 Contexto: o plano previa uma unica raiz Terraform com tudo dentro. Ao explicar o ciclo de subir e derrubar, o usuario perguntou se nao seria melhor deixar tudo pronto antes de aplicar. A pergunta expos um furo: com um estado unico, o `terraform destroy` feito ao fim de cada sessao para parar de gastar credito levaria junto os repositorios ECR. Como eles usam `force_delete = true`, as imagens iriam junto, e o CI teria de reconstruir e reenviar as 5 antes de cada sessao.

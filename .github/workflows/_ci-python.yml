@@ -288,8 +288,17 @@ jobs:
       # video (O-28): despinar uma versao vulneravel deixa ele vermelho
       # e trava o pipeline inteiro.
       - name: Rodar Trivy no sistema de arquivos
-        # Versao da action fixada por reprodutibilidade.
-        uses: aquasecurity/trivy-action@0.28.0
+        # Action oficial do Trivy, presa por SHA de commit e nao por tag.
+        # Por que SHA: uma tag pode ser movida para outro commit pelo dono
+        # do repositorio; um SHA nao. E a forma mais segura de fixar action
+        # de terceiro, e impede que codigo novo entre no nosso pipeline sem
+        # revisao. O comentario ao lado diz a que versao o SHA corresponde -
+        # confirmado em 2026-09-08 pela API do GitHub, e e o mesmo pin que a
+        # branch main ja usa com o CI verde.
+        #
+        # A versao anterior aqui era "@0.28.0", que NAO EXISTE - por isso os
+        # 5 jobs de SCA morriam em "Unable to resolve action".
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         # Parametros passados para a action declarada acima.
         with:
           # fs = varre arquivos de dependencia no disco.
@@ -377,8 +386,17 @@ jobs:
       # aqui o alvo e a imagem inteira, incluindo os pacotes do sistema
       # que vem da base python:3.12-slim.
       - name: Scan da imagem com Trivy (O-18)
-        # Action oficial do Trivy, com versao fixada.
-        uses: aquasecurity/trivy-action@0.28.0
+        # Action oficial do Trivy, presa por SHA de commit e nao por tag.
+        # Por que SHA: uma tag pode ser movida para outro commit pelo dono
+        # do repositorio; um SHA nao. E a forma mais segura de fixar action
+        # de terceiro, e impede que codigo novo entre no nosso pipeline sem
+        # revisao. O comentario ao lado diz a que versao o SHA corresponde -
+        # confirmado em 2026-09-08 pela API do GitHub, e e o mesmo pin que a
+        # branch main ja usa com o CI verde.
+        #
+        # A versao anterior aqui era "@0.28.0", que NAO EXISTE - por isso os
+        # 5 jobs de SCA morriam em "Unable to resolve action".
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         # Parametros passados para a action declarada acima.
         with:
           # image = varre uma imagem Docker, nao arquivos soltos.

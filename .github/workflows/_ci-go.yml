@@ -150,6 +150,10 @@ jobs:
         with:
           # Versao do Go lida do go.mod do proprio servico.
           go-version-file: services/${{ inputs.service }}/go.mod
+          # Sem esta linha o setup-go procura go.sum na RAIZ do monorepo,
+          # nao encontra e emite "Restore cache failed". Nao quebra o job,
+          # mas desliga o cache e deixa a execucao mais lenta.
+          cache-dependency-path: services/${{ inputs.service }}/go.sum
 
       # golangci-lint agrega dezenas de linters numa passada so.
       # E a ferramenta citada nominalmente pelo enunciado para Go.
@@ -193,8 +197,13 @@ jobs:
         uses: actions/setup-go@v5
         # Parametros passados para a action declarada acima.
         with:
-          # Versao do Go lida do go.mod do proprio servico.
-          go-version-file: services/${{ inputs.service }}/go.mod
+          # ATENCAO: aqui a versao e FIXA, e nao lida do go.mod como nos
+          # outros jobs. Motivo: o passo seguinte compila o gosec a partir
+          # do fonte, e o gosec atual exige Go mais novo que o 1.21 que os
+          # servicos declaram. Isso NAO afeta a analise - o gosec le o
+          # codigo dos servicos independentemente da versao de Go usada
+          # para compilar a propria ferramenta.
+          go-version: "1.23"
 
       # gosec e o SAST para Go citado pelo enunciado. Procura padroes
       # perigosos no nosso codigo: SQL montado por concatenacao,
@@ -202,7 +211,12 @@ jobs:
       # sensivel. Versao fixada para o resultado nao mudar sozinho.
       - name: Instalar gosec
         # Compila e instala o gosec na versao fixada.
-        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
+        #
+        # v2.29.0, e nao v2.21.4: a versao antiga NAO COMPILA com o
+        # toolchain atual e derrubava o job com o erro
+        # "invalid array length -delta * delta". Confirmado em 2026-09-08
+        # pela API do GitHub que v2.29.0 e a release mais recente.
+        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
 
       # Executa a varredura de SAST sobre o codigo do servico.
       - name: Rodar gosec
@@ -236,8 +250,17 @@ jobs:
       # (O-28): fixar uma versao vulneravel de biblioteca deixa ele
       # vermelho e trava o pipeline.
       - name: Rodar Trivy no sistema de arquivos
-        # Versao da action fixada por reprodutibilidade.
-        uses: aquasecurity/trivy-action@0.28.0
+        # Action oficial do Trivy, presa por SHA de commit e nao por tag.
+        # Por que SHA: uma tag pode ser movida para outro commit pelo dono
+        # do repositorio; um SHA nao. E a forma mais segura de fixar action
+        # de terceiro, e impede que codigo novo entre no nosso pipeline sem
+        # revisao. O comentario ao lado diz a que versao o SHA corresponde -
+        # confirmado em 2026-09-08 pela API do GitHub, e e o mesmo pin que a
+        # branch main ja usa com o CI verde.
+        #
+        # A versao anterior aqui era "@0.28.0", que NAO EXISTE - por isso os
+        # 5 jobs de SCA morriam em "Unable to resolve action".
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         # Parametros passados para a action declarada acima.
         with:
           # fs = varre arquivos de dependencia no disco.
@@ -328,8 +351,17 @@ jobs:
       # do codigo; aqui o alvo e a imagem inteira, incluindo os pacotes
       # do sistema operacional que vem da imagem base.
       - name: Scan da imagem com Trivy (O-18)
-        # Action oficial do Trivy, com versao fixada.
-        uses: aquasecurity/trivy-action@0.28.0
+        # Action oficial do Trivy, presa por SHA de commit e nao por tag.
+        # Por que SHA: uma tag pode ser movida para outro commit pelo dono
+        # do repositorio; um SHA nao. E a forma mais segura de fixar action
+        # de terceiro, e impede que codigo novo entre no nosso pipeline sem
+        # revisao. O comentario ao lado diz a que versao o SHA corresponde -
+        # confirmado em 2026-09-08 pela API do GitHub, e e o mesmo pin que a
+        # branch main ja usa com o CI verde.
+        #
+        # A versao anterior aqui era "@0.28.0", que NAO EXISTE - por isso os
+        # 5 jobs de SCA morriam em "Unable to resolve action".
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         # Parametros passados para a action declarada acima.
         with:
           # image = varre uma imagem Docker, nao arquivos soltos.

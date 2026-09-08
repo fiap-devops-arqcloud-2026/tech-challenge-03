@@ -16,10 +16,10 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 - [ ] O-01 Projeto Terraform substituindo a criacao manual da Fase 2.
 - [x] O-02 Networking: VPC, subnets publicas, subnets privadas, Internet Gateway e Route Tables. Aplicado na AWS em 2026-09-07 (P-038).
-- [ ] O-03 Cluster EKS provisionado por Terraform.
-- [ ] O-04 Node Groups do EKS provisionados por Terraform.
-- [ ] O-05 3 instancias RDS PostgreSQL.
-- [ ] O-06 1 cluster ElastiCache (Redis).
+- [x] O-03 Cluster EKS provisionado por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
+- [x] O-04 Node Groups do EKS provisionados por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
+- [~] O-05 3 instancias RDS PostgreSQL. PARCIAL e de forma consciente: esta conta esta no plano gratuito novo da AWS e RECUSA a terceira instancia com "maximum number of instances available with free plan accounts" (F-023). Foram criadas 2 - `auth_db` e `flags_db` - e o terceiro banco, `targeting_db`, roda como StatefulSet dentro do EKS (D-015), mesmo arranjo da Fase 2 e confirmado com o professor em 2026-08-27. Precisa constar no relatorio (O-38).
+- [x] O-06 1 cluster ElastiCache (Redis). Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
 - [x] O-07 1 tabela DynamoDB chamada `ToggleMasterAnalytics` (nome literal do enunciado). Aplicado na AWS em 2026-09-07 (P-038).
 - [x] O-08 1 fila SQS. Aplicado na AWS em 2026-09-07 (P-038).
 - [x] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27; blocos `backend "s3"` escritos nas duas camadas, com chaves `prod/base.tfstate` e `prod/cluster.tfstate` (D-017). Aplicado em 2026-09-07: `prod/base.tfstate` (61 KiB) existe no bucket e nada ficou local (P-038).

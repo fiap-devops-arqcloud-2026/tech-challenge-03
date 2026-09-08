@@ -111,3 +111,24 @@ variable "elasticache_node_type" {
   type        = string
   default     = "cache.t3.micro"
 }
+
+variable "redis_transit_encryption" {
+  description = <<-EOT
+    Liga TLS na conexao com o ElastiCache.
+
+    PADRAO false, e a escolha e deliberada. O evaluation-service monta o
+    cliente com redis.ParseURL do go-redis/v8, que decide usar TLS pelo
+    ESQUEMA da URL: "redis://" e texto claro, "rediss://" e TLS.
+
+    Ligar aqui sem trocar o REDIS_URL em
+    gitops/overlays/prod/patches/endpoints.yaml para rediss:// faz o
+    servico morrer no boot: o codigo chama log.Fatalf quando a conexao
+    inicial falha, o pod entra em CrashLoopBackOff e nao se recupera.
+
+    Para ligar, nesta ordem: 1) trocar o esquema no patch do overlay;
+    2) passar true aqui. Criptografia em transito NAO e item avaliado; a
+    criptografia em repouso, essa sim, fica sempre ligada (S-05).
+  EOT
+  type        = bool
+  default     = false
+}

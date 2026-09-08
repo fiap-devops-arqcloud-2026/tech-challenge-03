@@ -30,6 +30,22 @@ terraform {
       # restricao interna dos modulos da comunidade. O lock file trava.
       version = ">= 5.46"
     }
+
+    # Gera as senhas dos dois bancos RDS. Usado em modules/rds/main.tf.
+    # Sem declarar aqui, o terraform init nao baixa o provider e o
+    # random_password falha com "provider not found".
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.5"
+    }
+
+    # Le o certificado do emissor OIDC do cluster para extrair a
+    # impressao digital exigida pelo provedor OIDC do IAM. Usado em
+    # modules/eks/main.tf, no bloco que habilita o IRSA (S-06).
+    tls = {
+      source  = "hashicorp/tls"
+      version = ">= 4.0"
+    }
   }
 
   backend "s3" {

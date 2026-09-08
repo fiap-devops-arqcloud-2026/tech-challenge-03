@@ -2,7 +2,7 @@
 
 TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform, `gitops/` (sem ESO, ver D-018) e os 5 workflows de CI. Proxima acao: P-038, aplicar a camada base com o NAT desligado - e o que destrava a primeira execucao real do pipeline (P-044).
 
-Ultima atualizacao: 2026-09-07, Claude.
+Ultima atualizacao: 2026-09-08, Claude.
 
 ## Plano em 4 fases ate 2026-09-15
 
@@ -88,6 +88,19 @@ executam mas nada e publicado no ECR nem no GitOps.
 
 ## Encerradas ou substituidas
 
+- P-028: concluida em 2026-09-08. Camada `terraform/cluster/` escrita com
+  quatro modulos novos - eks, rds, elasticache e irsa. `validate` e `fmt`
+  passam; o `plan` resolve em 35 recursos, 0 a destruir. NAO aplicada.
+  Fecha O-03, O-04 e O-06; deixa O-05 parcial por D-015.
+- P-035: concluida em 2026-09-08. Addon `aws-ebs-csi-driver` incluido no
+  modulo eks, com role IRSA propria. Sem ele o PVC do banco em pod ficaria
+  Pending, como travou a Fase 2 (F-025).
+- P-039: concluida em 2026-09-08. Addon `metrics-server` incluido. Sem ele
+  os dois HPA ficariam com `<unknown>` e nunca escalariam.
+- P-044: parcialmente resolvida em 2026-09-08. Os 5 pipelines rodaram pela
+  primeira vez e falharam. Dois defeitos meus foram corrigidos (ver F-032);
+  tres achados sao legitimos e exigem mexer no codigo dos servicos (F-033).
+
 - P-038: concluida em 2026-09-07. Camada base aplicada na AWS: 33 recursos
   (VPC com 4 subnets, IGW e route tables; 5 repositorios ECR com lifecycle;
   SQS `togglemaster-events` mais DLQ; tabela `ToggleMasterAnalytics`;
@@ -129,6 +142,43 @@ executam mas nada e publicado no ECR nem no GitOps.
 - P-025: encerrada em 2026-08-27. O usuario aprovou o plano do Terraform, com duas alteracoes: ambiente unico chamado `prod` (D-011) e remocao do Ingress (D-012).
 
 ## Achados
+
+- F-034: em 2026-09-08 descobriu-se que a branch `main` tem uma
+  implementacao COMPLETA e PARALELA da Fase 3, feita por outro integrante
+  (PR #1 `feature/import-fase-3-joao` e PR #2), com CI verde desde
+  2026-09-05. Ela traz `terraform/{bootstrap,environments,modules}` com
+  modulos de network, ecr, dynamodb, eks, elasticache, rds e sqs;
+  `gitops/apps/` em YAML plano; 9 workflows, incluindo
+  `compose-integration.yml` e `terraform-check.yml`. Os 5 arquivos de
+  workflow tem os MESMOS nomes dos nossos - um merge `dev` -> `main` vai
+  colidir. Tres fatos relevantes: (1) o Terraform da main NUNCA foi
+  aplicado - o backend deles e `backend.tf.example` e o bucket estava
+  vazio antes do nosso apply; (2) o EKS deles usa `var.lab_role_arn`, ou
+  seja, foi escrito para a LabRole do AWS Academy, que nao se aplica a
+  conta pessoal; (3) os dois passos de Trivy la tem
+  `continue-on-error: true`, o que faz o job reportar falha mas o pipeline
+  seguir - conflita com o O-16, que exige "falhar e nao prosseguir".
+  Decisao do usuario em 2026-09-08: caminho C, manter a nossa camada base
+  (ja aplicada) e trazer os modulos de EKS/ElastiCache/RDS da main
+  adaptados para `terraform/cluster/`.
+
+- F-033: achados legitimos na primeira execucao dos pipelines, que exigem
+  mexer no codigo dos servicos e ainda estao ABERTOS:
+  (a) golangci-lint acusa `errcheck` em `services/auth-service/handlers.go`
+      linhas 25, 54 e 98 - retorno de `json.Encoder.Encode` ignorado;
+  (b) pylint sai com codigo 22 nos servicos Python, abaixo do corte de 7.0;
+  (c) bandit sai com codigo 1, achados de severidade media ou alta.
+  Nenhum deles e defeito do pipeline: e o pipeline funcionando.
+
+- F-032: dois defeitos de configuracao nos workflows, corrigidos em
+  2026-09-08. (1) `aquasecurity/trivy-action@0.28.0` NAO EXISTE - essa
+  versao nunca foi publicada, e os 5 jobs de SCA morriam em "Unable to
+  resolve action". Corrigido para o SHA `ed142fd0...` (v0.36.0),
+  confirmado pela API do GitHub e ja usado pela main. (2)
+  `gosec@v2.21.4` nao compila com o toolchain Go atual, falhando com
+  "invalid array length -delta * delta"; corrigido para v2.29.0, e o job
+  de SAST passou a fixar Go 1.23 em vez de ler o go.mod (1.21), porque o
+  gosec moderno exige toolchain mais novo para COMPILAR.
 
 - F-031: a infraestrutura da Fase 2 ainda estava de pe na conta em
   2026-09-07 e fez o primeiro `terraform apply` falhar pela metade: 19 dos

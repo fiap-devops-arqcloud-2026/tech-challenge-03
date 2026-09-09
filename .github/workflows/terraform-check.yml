@@ -1,17 +1,97 @@
+# ============================================================
+# TERRAFORM CHECK - validacao da infraestrutura em PR (S-08)
+# ============================================================
+# Este arquivo veio da branch main e foi ADAPTADO no merge hibrido de
+# 2026-09-09. A versao original validava `terraform/environments/dev`,
+# estrutura que foi substituida pelas tres camadas com estado
+# independente (D-017). Sem a adaptacao, o workflow apontaria para uma
+# pasta inexistente e quebraria em todo PR.
+#
+# O QUE ELE FAZ
+# Roda `fmt` e `validate` nas tres camadas a cada alteracao no Terraform.
+# E barato - nao toca na AWS e nao custa nada - e pega o erro de sintaxe
+# ANTES da sessao com o cluster no ar, quando o tempo e caro.
+#
+# POR QUE `-backend=false`
+# O init normal tentaria conectar no bucket S3 do estado, o que exigiria
+# credencial da AWS no CI. Aqui so queremos checar sintaxe e referencias
+# entre modulos, entao o backend e dispensado.
+#
+# LIMITE CONHECIDO: a camada k8s NAO entra no validate com backend
+# desligado de forma util - ela usa kubernetes_manifest, que consulta a
+# API do cluster em tempo de plan. O validate de sintaxe funciona, mas
+# um plan completo dela so e possivel com o cluster no ar.
+# ============================================================
+
 name: Terraform Check
+
 on:
-  pull_request: { paths: ['terraform/**'] }
-  push: { branches: [main], paths: ['terraform/**'] }
+  # Em Pull Request: barra o erro antes de entrar na main.
+  pull_request:
+    # So acorda se algo do Terraform mudar.
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-check.yml"
+
+  # Em push na main: confirma que o que foi mesclado continua valido.
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-check.yml"
+
+  # Permite disparar a mao pela aba Actions.
+  workflow_dispatch:
+
+# Somente leitura do repositorio: este workflow nao publica nada.
 permissions:
   contents: read
+
 jobs:
   validate:
+    name: fmt e validate nas tres camadas
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-        with: { terraform_version: '1.10.5' }
-      - run: terraform fmt -check -recursive terraform
-      - run: terraform -chdir=terraform/environments/dev init -backend=false
-      - run: terraform -chdir=terraform/environments/dev validate
 
+    steps:
+      # Baixa o codigo para o runner.
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      # Instala o Terraform. A versao precisa ser >= 1.11 por causa da
+      # flag use_lockfile usada nos backends (R-03).
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.0"
+          # false = nao embrulha a saida dos comandos, deixando o log
+          # legivel quando algo falha.
+          terraform_wrapper: false
+
+      # Formatacao de TODO o diretorio, recursivamente.
+      # -check faz o job falhar se algum arquivo estiver desalinhado, em
+      # vez de corrigir em silencio.
+      - name: terraform fmt
+        run: terraform fmt -recursive -check terraform/
+
+      # --------------------------------------------------------
+      # Uma etapa por camada. Sao root modules independentes: cada um
+      # precisa do proprio init antes do validate.
+      # --------------------------------------------------------
+
+      # Camada BASE: rede, ECR, SQS, DynamoDB e OIDC do CI.
+      - name: validate - camada base
+        run: |
+          terraform -chdir=terraform init -backend=false -input=false
+          terraform -chdir=terraform validate
+
+      # Camada CLUSTER: EKS, node group, RDS, ElastiCache e IRSA.
+      - name: validate - camada cluster
+        run: |
+          terraform -chdir=terraform/cluster init -backend=false -input=false
+          terraform -chdir=terraform/cluster validate
+
+      # Camada K8S: Secrets, StorageClass e ArgoCD.
+      - name: validate - camada k8s
+        run: |
+          terraform -chdir=terraform/k8s init -backend=false -input=false
+          terraform -chdir=terraform/k8s validate

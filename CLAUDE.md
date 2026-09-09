@@ -1,5 +1,15 @@
 # Tech Challenge 03 - Contexto de Colaboracao
 
+## Aviso de continuidade - auditoria 2026-09-09
+
+TL;DR: o resumo historico abaixo esta desatualizado. Leia primeiro o topo de docs/00_COLAB_IA/LOG_DE_TRABALHO.md e PENDENCIAS_E_PROXIMOS_PASSOS.md, atualizados pela auditoria. Fonte: [parecer](docs/00_COLAB_IA/03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
+Ultima atualizacao deste aviso: 2026-09-09 13:31 -03:00, Codex.
+
+A implementacao principal e os workflows existem; falta corrigir bootstrap ArgoCD, schemas/seed e filtro CRITICAL, atualizar documentacao e ensaiar no EKS. Diretriz D-019: dev -> PR -> main; dev precisa receber os 19 commits que ja estao em main. Auditoria nao fez checkout, merge, commit, push ou apply. P-049 consolida os documentos antigos preservados abaixo.
+
+## Contexto anterior preservado
+
+
 Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
 
 TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML, e o escopo esta mapeado em `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. A entrega e em grupo e vence em 2026-09-15. A implementacao comecou: e um monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). O bucket S3 de estado ja existe (`togglemaster-tfstate-891376952395-us-east-2-an`, `us-east-2`). O proximo passo e escrever o Terraform, aguardando o usuario aprovar o plano (P-025). Antes de trabalhar, leia `docs/00_COLAB_IA/LEIA-PRIMEIRO.md`.

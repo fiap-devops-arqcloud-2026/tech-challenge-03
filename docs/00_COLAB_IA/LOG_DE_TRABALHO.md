@@ -1,5 +1,36 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-09 13:31 (-03:00) - Codex - Auditoria FIAP, implementacao e fluxo Git concluida
+
+TL;DR: boa base tecnica, entrega ainda nao pronta; corrigir P-045 a P-051 antes do ensaio. Ultima atualizacao desta entrada: 2026-09-09 13:31 -03:00, Codex.
+
+Feito: lido integralmente e inspecionado visualmente o PDF de sete paginas; comparado ao checklist; revisados Terraform/GitOps, servicos, CI, docs e scripts. Consultados PRs, execucoes GitHub e suporte/precos oficiais EKS. Criado parecer em docs/00_COLAB_IA/03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md.
+
+Decisoes/Por que: D-019 registra a preferencia informada pelo usuario (dev -> PR -> main). Manter arquitetura e extras uteis; nao propor expansao antes de corrigir o basico. D-015 preservada como excecao ja aprovada conforme registro anterior; sem nova solicitacao de aprovacao.
+
+Arquivos: criado parecer e plano de auditoria; acrescentadas sinteses ao LOG, PENDENCIAS, DECISOES, DOSSIE e CLAUDE. Auxiliares PDF em docs/00_COLAB_IA/02_TRABALHO/auditoria-2026-09-09/pdf/. Nenhuma implementacao ou entrada anterior de outro agente foi reescrita; nao houve substituicao de versao anterior de entregavel, portanto nenhum de-para de arquivo morto nesta sessao.
+
+Descobertas: F-042 a F-049. Falhas principais: ignore-unfixed em scans CRITICAL; CRD ArgoCD ausente no primeiro plan; schemas RDS nao executados; seed com parametros/regra errados e Secret sujeito a reversao; Redis placeholder; documentos/scripts de arquiteturas diferentes; default EKS 1.31 com tarifa de suporte estendido. Todo detalhamento e fontes estao no parecer.
+
+Verificacao: fmt e validate passaram nas tres camadas; Kustomize renderizou 23 recursos com Redis placeholder; AST Python de seis arquivos passou. GitHub confirma cinco pipelines de servico em conteudos vigentes, Terraform Check e Compose Integration no HEAD (sete eventos em AWS emulada). Nao houve ensaio/apply/plan remoto nesta sessao; sucesso de Compose nao comprova EKS.
+
+Estado p/ o proximo agente: main e origin/main em 0242d33, dev e origin/dev em cc80c4e; 19 commits faltam na dev e nenhum exclusivo dela. PR #3 foi integrado, mas houve alteracoes humanas posteriores sem PR. Somente documentos desta auditoria estao modificados/novos localmente; sem commit/push, portanto ainda NAO sincronizados com GitHub. Comecar por P-051, preservando estes arquivos locais, depois P-045/P-046/P-047/P-048/P-050 e P-049. Nao repetir P-038 nem confiar nos resumos historicos; P-040/P-041/P-042/P-006/P-043 continuam abertos. Prazo registrado: 2026-09-15.
+
+
+## 2026-09-09 13:24 (-03:00) - Codex - Inicio da auditoria de entrega e fluxo Git
+
+TL;DR: auditoria em andamento; entradas anteriores preservadas. Ultima atualizacao desta entrada: 2026-09-09 13:24 -03:00, Codex.
+
+Feito: lido o protocolo e o contexto; conferida working tree limpa na main (0242d33), com dev em cc80c4e. Iniciadas revisoes independentes do PDF, Git/CI e Terraform/GitOps.
+
+Decisoes/Por que: pedido do usuario e de analise. Nao alterar implementacao nem AWS; produzir evidencias e registrar pendencias. Preferencia informada nesta sessao: trabalhar na dev e promover para main por PR.
+
+Arquivos: criado docs/00_COLAB_IA/02_TRABALHO/auditoria-2026-09-09/PLANO_AUDITORIA_2026-09-09_v01.md; acrescentada esta entrada.
+
+Descobertas: resumos do README, CLAUDE e contexto ainda descrevem estagios anteriores ao codigo existente. CONFLITO documental sera detalhado no parecer, sem apagar as versoes dos outros agentes.
+
+Estado p/ o proximo agente: auditoria em andamento. Seguir a lista de verificacao do plano e aguardar consolidacao; nao tratar status historicos como prova de execucao atual.
+
 TL;DR: log append-only com entradas novas no topo.
 
 Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.

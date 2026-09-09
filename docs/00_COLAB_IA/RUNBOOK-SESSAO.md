@@ -177,6 +177,55 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 
 Acesse http://localhost:8080.
 
+### 1.7 Criar as tabelas nos bancos RDS
+
+**PASSO OBRIGATORIO E FACIL DE ESQUECER.**
+
+O Terraform cria as INSTANCIAS RDS e os bancos vazios - mas nao cria
+TABELA nenhuma. Os schemas existem em `services/*/db/init.sql` e sao
+montados automaticamente apenas pelo docker-compose, no ambiente local.
+
+No caminho AWS ninguem os executa. Sem este passo, o `auth-service` e o
+`flag-service` sobem, respondem `/health` com 200 e falham no primeiro
+INSERT, com `relation "api_keys" does not exist`. Health verde nao prova
+banco pronto.
+
+O `targeting_db` e a excecao: como roda em pod, o schema vai num
+ConfigMap e o proprio PostgreSQL o executa na primeira subida.
+
+Pegue os endpoints e as senhas:
+
+```bash
+terraform -chdir=terraform/cluster output rds_endpoints
+```
+
+```bash
+kubectl get secret auth-service-secret -n togglemaster -o jsonpath='{.data.DATABASE_URL}' | base64 -d
+```
+
+O RDS esta em subnet privada, entao o `psql` precisa rodar DE DENTRO do
+cluster. Um pod descartavel resolve - repita trocando o banco:
+
+```bash
+kubectl run psql-auth --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine --env="PGPASSWORD=<SENHA_AUTH>" -- psql -h <ENDPOINT_AUTH> -U toggle -d auth_db < services/auth-service/db/init.sql
+```
+
+```bash
+kubectl run psql-flag --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine --env="PGPASSWORD=<SENHA_FLAG>" -- psql -h <ENDPOINT_FLAG> -U toggle -d flags_db < services/flag-service/db/init.sql
+```
+
+Os schemas usam `CREATE TABLE IF NOT EXISTS`, entao rodar duas vezes nao
+quebra nada.
+
+Confira antes de seguir:
+
+```bash
+kubectl run psql-check --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine --env="PGPASSWORD=<SENHA_AUTH>" -- psql -h <ENDPOINT_AUTH> -U toggle -d auth_db -c "\dt"
+```
+
+Tem que listar a tabela `api_keys`. Se vier "No relations found", o
+schema nao foi aplicado e o seed da Fase 2 vai falhar.
+
 ---
 
 ## FASE 2 - Semear os dados (10 min)
@@ -241,19 +290,37 @@ curl -X POST http://localhost:8002/flags -H "Content-Type: application/json" -H 
 ```
 
 ```bash
-curl -X POST http://localhost:8003/rules -H "Content-Type: application/json" -H "Authorization: Bearer <CHAVE_tm_key>" -d '{"flag_name":"novo-painel","rules":{"user_ids":["user-123"]},"is_enabled":true}'
+curl -X POST http://localhost:8003/rules -H "Content-Type: application/json" -H "Authorization: Bearer <CHAVE_tm_key>" -d '{"flag_name":"novo-painel","rules":{"type":"PERCENTAGE","value":100},"is_enabled":true}'
 ```
+
+O `evaluation-service` implementa **apenas o tipo `PERCENTAGE`** (ver
+`evaluator.go`, degrau 3). Uma regra com `user_ids` seria aceita pelo
+targeting mas ignorada na avaliacao. Com `value: 100` o resultado e
+sempre `true`, e com `value: 0` sempre `false` - deterministico, que e o
+que se quer numa demonstracao gravada.
 
 ### 2.4 Provar que o sistema funciona ponta a ponta
 
 ```bash
-curl "http://localhost:8004/evaluate?flag=novo-painel&user=user-123" -H "Authorization: Bearer <CHAVE_tm_key>"
+curl "http://localhost:8004/evaluate?flag_name=novo-painel&user_id=user-123" -H "Authorization: Bearer <CHAVE_tm_key>"
 ```
 
-Esperado: `"result": true`. Repita com `user=user-999` e deve vir
-`false`. Isso exercita o caminho completo - evaluation le do Redis,
-consulta flag e targeting, e publica o evento na SQS, que o analytics
-consome e grava no DynamoDB.
+ATENCAO AOS NOMES DOS PARAMETROS: sao `flag_name` e `user_id`, nao
+`flag` e `user`. O handler exige exatamente esses dois e devolve 400 com
+qualquer outro nome (ver `handlers.go`, evaluationHandler).
+
+Esperado: `"result": true`, porque a regra e de 100%.
+
+Para ver o caminho oposto, crie uma segunda flag com
+`{"type":"PERCENTAGE","value":0}` e avalie: deve vir `false`. Nao adianta
+so trocar o `user_id` na mesma flag - com 100% todo usuario da true.
+
+Lembre do TTL do cache no Redis: se voce alterar a regra e reavaliar o
+MESMO par flag/usuario logo em seguida, a resposta pode vir do cache.
+
+Isso exercita o caminho completo - evaluation le do Redis, consulta flag
+e targeting, e publica o evento na SQS, que o analytics consome e grava
+no DynamoDB.
 
 ---
 
@@ -369,7 +436,7 @@ parado.
 | Fase | Tempo | Observacao |
 |---|---|---|
 | 0 - Pre-voo | 5 min | custo zero |
-| 1 - Subir | 30-40 min | o relogio comeca no passo 1.1 |
+| 1 - Subir | 35-45 min | o relogio comeca no passo 1.1; inclui criar os schemas (1.7) |
 | 2 - Seed | 10 min | refazer a cada sessao |
 | 3 - Gravar | 40 min | metade pode ser gravada antes |
 | 4 - Derrubar | 20-25 min | nenhum passo e opcional |

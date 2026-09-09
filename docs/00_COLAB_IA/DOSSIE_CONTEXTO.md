@@ -1,5 +1,21 @@
 # DOSSIE_CONTEXTO
 
+## Sintese da auditoria de 2026-09-09
+
+TL;DR: monorepo com cinco servicos, Terraform em tres roots (base/cluster/k8s), CI com execucoes verdes e GitOps com tags reais. Ainda nao considerar a entrega concluida: faltam correcoes do bootstrap/seed/seguranca e demonstracao no EKS. Ultima atualizacao desta sintese: 2026-09-09 13:31 -03:00, Codex.
+
+Fonte compartilhada da revisao: [parecer de auditoria](03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md). Ler o topo atualizado de LOG e PENDENCIAS antes das instrucoes historicas abaixo.
+
+- Snapshot: main/origin/main 0242d33; dev/origin/dev cc80c4e, 19 commits atras, sem exclusivos. Fluxo preferido dev -> PR -> main registrado em D-019.
+- Decisoes preservadas: conta pessoal AWS em us-east-2; monorepo; Kustomize para apps; ambiente prod; sem Ingress; dois RDS + pod conforme D-015; Secrets por Terraform conforme D-018, no root k8s.
+- O codigo atual nao exige nova arquitetura. Trabalho prioritario: P-045 a P-051; depois completar P-040, ensaiar/gravar e concluir video/relatorio.
+- Verificado localmente: fmt/validate das tres camadas e render Kustomize. Verificado no GitHub: cinco pipelines em conteudos vigentes, Terraform Check e Compose integrado. Nao houve apply nem verificacao viva AWS nesta auditoria.
+- CONFLITO documental: guias anteriores descrevem estruturas e estagios diferentes. Mantidos para rastreabilidade; consolidacao em P-049. Nao reconfirmar bucket/decisoes que ja estao registrados.
+- Nenhuma memoria global foi alterada; esta sintese e o espelho compartilhado do essencial da sessao.
+
+## Conteudo anterior preservado
+
+
 TL;DR: repo da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 foram estudados e possuem guias HTML ao lado dos PDFs; o escopo esta em `CHECKLIST_REQUISITOS_FASE3.md`. Entrega em grupo, prazo final 2026-09-15. A implementacao comecou: monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). Proximo bloqueio: criar o bucket S3 de estado (P-019).
 
 Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.

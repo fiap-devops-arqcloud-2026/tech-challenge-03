@@ -32,9 +32,30 @@ variable "default_tags" {
 # ------------------------------------------------------------
 
 variable "kubernetes_version" {
-  description = "Versao do Kubernetes no EKS."
+  description = <<-EOT
+    Versao do Kubernetes no EKS.
+
+    1.34, e NAO 1.31. O motivo e custo, nao funcionalidade: a partir do
+    fim do suporte padrao a AWS cobra SUPORTE ESTENDIDO pelo control
+    plane, e o preco sai de US$ 0,10/h para US$ 0,60/h - seis vezes mais.
+
+    Consultado em 2026-09-09 via `aws eks describe-cluster-versions`:
+
+      1.31  EXTENDED_SUPPORT  (padrao terminou em 2025-11-25)
+      1.32  EXTENDED_SUPPORT
+      1.33  EXTENDED_SUPPORT
+      1.34  STANDARD_SUPPORT  ate 2026-12-01   <-- escolhida
+      1.35  STANDARD_SUPPORT  ate 2027-03-26
+      1.36  STANDARD_SUPPORT  ate 2027-08-01
+
+    Com a 1.31 o custo total da pilha subiria de ~US$ 0,37/h para
+    ~US$ 0,87/h, o que reduziria o credito disponivel de ~190 horas para
+    ~80. A 1.34 e a mais conservadora entre as de suporte padrao - a
+    mais madura, com menor risco de incompatibilidade de addon - e o
+    suporte dela vai bem alem da entrega de 2026-09-15.
+  EOT
   type        = string
-  default     = "1.31"
+  default     = "1.34"
 }
 
 variable "node_instance_type" {

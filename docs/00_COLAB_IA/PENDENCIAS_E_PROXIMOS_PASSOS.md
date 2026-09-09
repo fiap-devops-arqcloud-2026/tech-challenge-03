@@ -1,5 +1,40 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
+TL;DR da auditoria: implementacao principal existe e CI tem execucoes verdes, mas ainda ha bloqueios antes do ensaio AWS. Seguir P-045 a P-051 e depois P-040/P-041/P-042/P-006/P-043. Nao repetir P-038 nem tratar ArgoCD escrito como instalado.
+
+Ultima atualizacao desta sintese: 2026-09-09 13:31 -03:00, Codex.
+Fonte: [parecer verificado](03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md), snapshot main 0242d33 e consultas GitHub de 2026-09-09.
+
+## Pendencias da auditoria (prioridade vigente)
+
+- P-045 - ALTA: retirar ignore-unfixed dos quatro scans CRITICAL e validar falha/sucesso reais (F-042).
+- P-046 - ALTA: corrigir bootstrap da Application ArgoCD; o CRD precisa existir no plan do kubernetes_manifest (F-043).
+- P-047 - ALTA: executar schemas idempotentes dos RDS auth e flag antes do seed (F-044).
+- P-048 - ALTA: corrigir parametros e regras do seed; resolver disputa de SERVICE_API_KEY entre seed e Terraform; verificar apply/restart (F-045/F-046).
+- P-049 - MEDIA: consolidar README, CLAUDE, dossie, checklist, guias e scripts; arquivar documentos substituidos com de-para, preservando testes uteis (F-048). CONFLITO: docs/fase-3 descreve Academy/LabRole/Ingress/3 RDS; codigo e decisoes descrevem conta pessoal/OIDC/IRSA/sem Ingress/2 RDS + pod. Nesta auditoria apenas registramos as duas versoes, sem eliminar nenhuma.
+- P-050 - ANTES DE SUBIR AWS: revisar Kubernetes 1.31 e estimativa; o default esta em suporte estendido, nao corresponde a tarifa do orçamento (F-049).
+- P-051 - ANTES DE CODIFICAR: sincronizar dev com main e retomar alteracoes humanas via PR conforme D-019. Main esta 19 commits a frente, dev sem exclusivos; nenhum merge/checkout/push feito nesta auditoria. Definir politica para commits automaticos GitOps antes de impor protecao de main.
+- P-040 - ABERTA: Redis ainda tem PREENCHER; conferir endpoint e ARNs apos apply. As cinco imagens JA possuem hashes no overlay (F-047).
+- P-041/P-042 - ABERTAS: ensaio completo e gravacao no EKS depois das correcoes.
+- P-006/P-043 - ABERTAS: video ate 20 minutos e relatorio PDF/TXT com links, participantes, desafios e print de estimativa AWS. Prazo 2026-09-15 conforme D-006.
+- D-015 mantida: excecao 2 RDS + pod aprovada segundo registro anterior do usuario. Nao pedir reaprovacao; vincular comprovacao do professor ao relatorio, caso disponivel.
+
+## Achados novos
+
+- F-042: ignore-unfixed permite ignorar criticas sem correcao; PDF p.4 nao preve a excecao.
+- F-043: dependência do CRD ArgoCD no plan nao e resolvida por depends_on no mesmo apply.
+- F-044: caminho AWS nao executa os schemas dos dois RDS; Compose executa, por isso seu sucesso nao prova os schemas AWS.
+- F-045: runbook usa flag/user e regra user_ids; API exige flag_name/user_id e implementa PERCENTAGE.
+- F-046: Terraform pode restaurar SERVICE_API_KEY provisoria sobre a chave valida criada no seed.
+- F-047: endpoint Redis incompleto confirmado no YAML renderizado; tags das imagens ja preenchidas.
+- F-048: guias, resumos e scripts permanecem incompatíveis com a implementacao consolidada; detalhes no parecer.
+- F-049: Kubernetes default 1.31 em suporte estendido; tarifa control plane US$ 0,60/h segundo AWS em 2026-09-09, contra US$ 0,10/h usado no orçamento.
+
+## Registros anteriores preservados
+
+CONFLITO DOCUMENTAL: o plano abaixo conserva tarefas abertas e encerradas simultaneamente e resumos desatualizados. Nao usa-lo isoladamente como estado atual. A auditoria acima acrescenta evidencias sem apagar o historico dos outros agentes.
+
+
 TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform, `gitops/` (sem ESO, ver D-018) e os 5 workflows de CI. Proxima acao: P-038, aplicar a camada base com o NAT desligado - e o que destrava a primeira execucao real do pipeline (P-044).
 
 Ultima atualizacao: 2026-09-09 (segunda sessao), Claude.

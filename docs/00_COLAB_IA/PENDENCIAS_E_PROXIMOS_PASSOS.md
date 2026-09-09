@@ -88,6 +88,13 @@ executam mas nada e publicado no ECR nem no GitOps.
 
 ## Encerradas ou substituidas
 
+- P-034: concluida em 2026-09-09. Runbook em
+  `docs/00_COLAB_IA/RUNBOOK-SESSAO.md`, com as 5 fases (pre-voo, subir,
+  seed, gravar, derrubar), o roteiro do video mapeado item a item, uma
+  tabela de armadilhas conhecidas e a conferencia final de custo.
+  Inclui o passo que mais doi se for esquecido: ligar o NAT antes do
+  cluster e DESLIGAR depois, porque a camada base nunca e destruida.
+
 - P-029: concluida em 2026-09-09. ArgoCD escrito em `terraform/k8s/argocd.tf`:
   chart oficial via provider helm com versao fixa 7.7.11, Application
   apontando para `gitops/overlays/prod` na branch `main`, com prune e
@@ -154,6 +161,18 @@ executam mas nada e publicado no ECR nem no GitOps.
 - P-025: encerrada em 2026-08-27. O usuario aprovou o plano do Terraform, com duas alteracoes: ambiente unico chamado `prod` (D-011) e remocao do Ingress (D-012).
 
 ## Achados
+
+- F-037: duvida legitima levantada pelo usuario em 2026-09-09 -
+  "nao iriamos usar Kustomize em vez de Helm?". Nao ha contradicao, e a
+  distincao vale ficar registrada. D-008 e R-06 tratam de como os
+  MANIFESTOS DAS APLICACOES sao estruturados, e ali e Kustomize: e a
+  pasta gitops/ que o ArgoCD sincroniza (O-22). O Helm aparece em outro
+  lugar - na INSTALACAO do proprio ArgoCD, que e infraestrutura e nao
+  aplicacao. O enunciado nomeia Helm justamente ali: "Instale o ArgoCD
+  no seu cluster EKS (pode usar Helm ou Terraform com provider
+  helm/kubectl)". Instalar o ArgoCD por Kustomize seria possivel, mas
+  exigiria remendar o install.yaml oficial com patches para desligar o
+  Dex e ajustar replicas - mais fragil que passar values no chart.
 
 - F-036: auditoria de 2026-09-09 encontrou quatro falhas bloqueantes que
   o checklist nao mostrava, porque item marcado como escrito nao e o

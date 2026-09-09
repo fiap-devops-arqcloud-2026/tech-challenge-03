@@ -42,3 +42,5 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 - Log: `docs/00_COLAB_IA/LOG_DE_TRABALHO.md`
 - Organizacao: `docs/00_COLAB_IA/ORGANIZACAO_DE_PASTAS.md`
 - Bootstrap do backend S3: `terraform/BOOTSTRAP-BACKEND-S3.md`
+- Runbook da sessao (subir, semear, gravar, derrubar): `docs/00_COLAB_IA/RUNBOOK-SESSAO.md`
+- Contrato de Secrets entre Terraform e GitOps: `gitops/SECRETS-CONTRATO.md`

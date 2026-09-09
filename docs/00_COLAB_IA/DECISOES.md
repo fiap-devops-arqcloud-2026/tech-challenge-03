@@ -1,5 +1,22 @@
 # DECISOES
 
+## D-019 - Fluxo de trabalho do usuario: dev -> PR -> main
+
+TL;DR: alteracoes humanas devem partir de dev e ser promovidas por PR; sincronizar dev com main antes de retomar. Ultima atualizacao: 2026-09-09 13:31 -03:00, Codex.
+
+Contexto: nesta sessao o usuario informou o costume de trabalhar na dev, abrir PR quando validado e integrar na main. Auditoria confirmou PR #3, mas encontrou commits posteriores diretamente na main e dev 19 commits atras. Fonte: conversa de 2026-09-09 e [parecer](03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
+
+Decisao: registrar essa preferencia como diretriz de trabalho. Branch dev nao implica criar outro ambiente AWS. Atualizacoes automaticas de tag pelo CI precisam de politica explicita, compativel com eventual protecao de main.
+
+Por que: mantem revisao, rastreabilidade e integracao verificavel sem mudar a arquitetura.
+
+Alternativas: branches curtas por tarefa convergindo para dev quando houver trabalho simultaneo; commits humanos diretos em main, que nao seguem a preferencia declarada.
+
+Status: preferencia do usuario registrada; sincronizacao e regras remotas NAO executadas nesta auditoria (P-051). Nao se presume aprovacao para mudar plano, visibilidade ou politica do repositorio.
+
+## Registros anteriores preservados
+
+
 TL;DR: decisoes cobrem guias e documentacao, condicoes de entrega (grupo, 2026-09-15), estrutura de implementacao (monorepo, Kustomize, tags), o desenho tecnico da Fase 3 e a separacao do Terraform em duas camadas com estados independentes.
 
 Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.

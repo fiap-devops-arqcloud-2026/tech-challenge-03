@@ -14,7 +14,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ### 1.1 Infraestrutura como Codigo (Terraform)
 
-- [ ] O-01 Projeto Terraform substituindo a criacao manual da Fase 2.
+- [x] O-01 Projeto Terraform substituindo a criacao manual da Fase 2. Tres camadas com estado independente e 7 modulos proprios. A camada base foi APLICADA na AWS em 2026-09-07 (33 recursos). Unica excecao consciente: o bucket S3 do estado, que precisa existir antes do primeiro apply - documentado em `terraform/BOOTSTRAP-BACKEND-S3.md`.
 - [x] O-02 Networking: VPC, subnets publicas, subnets privadas, Internet Gateway e Route Tables. Aplicado na AWS em 2026-09-07 (P-038).
 - [x] O-03 Cluster EKS provisionado por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
 - [x] O-04 Node Groups do EKS provisionados por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
@@ -75,29 +75,29 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ## 3. NAO OBRIGATORIO - Opcional / recomendado pelo proprio enunciado
 
-- [ ] R-01 Organizar o Terraform em modulos ("preferencialmente usando modulos").
-- [ ] R-02 Criar os 5 repositorios ECR via Terraform ("opcional via Terraform, mas recomendado").
-- [ ] R-03 Flag `use_lockfile` no backend S3 para lock de estado ("opcionalmente").
+- [x] R-01 Organizar o Terraform em modulos ("preferencialmente usando modulos"). FEITO: 7 modulos proprios em `terraform/modules/` mais o modulo de VPC da comunidade.
+- [x] R-02 Criar os 5 repositorios ECR via Terraform ("opcional via Terraform, mas recomendado"). FEITO: `module.ecr` cria os 5 repositorios com lifecycle e scan on push.
+- [x] R-03 Flag `use_lockfile` no backend S3 para lock de estado ("opcionalmente"). FEITO: `use_lockfile = true` nas tres camadas.
 - [ ] R-04 Testes unitarios no job de build ("se houver" - condicional, nao exigido).
-- [ ] R-05 Criar roles e policies IAM via Terraform - liberado e "recomendado para um portfolio profissional" porque o projeto usa conta pessoal (Opcao B). Nao se aplica a restricao da LabRole do AWS Academy.
+- [x] R-05 Criar roles e policies IAM via Terraform - liberado e "recomendado para um portfolio profissional" porque o projeto usa conta pessoal (Opcao B). Nao se aplica a restricao da LabRole do AWS Academy. FEITO: roles do control plane, dos nos, do EBS CSI, do CI e as duas IRSA, todas por Terraform.
 - [ ] R-06 Usar Helm Charts em vez de YAMLs puros na area GitOps (o enunciado aceita os dois). **Nao adotado**: D-008 escolheu Kustomize, sobre a base de `infra/k8s/` da Fase 2 (D-014).
-- [ ] R-07 Repositorio GitOps separado em vez de pasta no monorepo (o enunciado aceita os dois). **Nao adotado**: D-007 escolheu monorepo com a pasta `gitops/`.
+- [x] R-07 Repositorio GitOps separado em vez de pasta no monorepo (o enunciado aceita os dois). **Nao adotado**: D-007 escolheu monorepo com a pasta `gitops/`. FEITO: pasta `gitops/` no monorepo, opcao que o enunciado aceita.
 - [ ] R-08 SonarCloud gratuito como SAST (alternativa a `gosec`/`bandit`).
-- [ ] R-09 GitHub Actions como ferramenta de CI (o enunciado diz "ex.:" e "ou ferramenta similar").
+- [x] R-09 GitHub Actions como ferramenta de CI (o enunciado diz "ex.:" e "ou ferramenta similar"). FEITO: GitHub Actions, 9 workflows.
 
 ## 4. NAO OBRIGATORIO - Sugestoes derivadas dos modulos de aula (fora do enunciado)
 
 Estes itens nao valem nota por si so, mas apareceram nas aulas da Fase 3 e reforcam O-16, O-33 e a nota de seguranca.
 
-- [ ] S-01 Autenticacao do CI na AWS por OIDC em vez de chaves de acesso estaticas.
-- [ ] S-02 Segredos de banco em AWS Secrets Manager / SSM Parameter Store, atacando diretamente a dor descrita no enunciado ("credenciais em arquivos de texto sem seguranca").
+- [x] S-01 Autenticacao do CI na AWS por OIDC em vez de chaves de acesso estaticas. FEITO: provedor OIDC do GitHub em `module.iam_ci`. Nenhuma chave estatica nos secrets do repositorio.
+- [x] S-02 Segredos de banco em AWS Secrets Manager / SSM Parameter Store, atacando diretamente a dor descrita no enunciado ("credenciais em arquivos de texto sem seguranca"). FEITO: senhas geradas com `random_password` e gravadas no Secrets Manager.
 - [ ] S-03 Scan de IaC (Checkov, tfsec ou Trivy `config`) sobre o proprio Terraform.
 - [ ] S-04 CSPM com Prowler para postura da conta AWS.
-- [ ] S-05 Criptografia em repouso com KMS em RDS, DynamoDB, SQS e bucket de estado.
-- [ ] S-06 Menor privilegio nas roles IAM e IRSA para os pods.
+- [x] S-05 Criptografia em repouso com KMS em RDS, DynamoDB, SQS e bucket de estado. FEITO: criptografia em repouso em RDS, ElastiCache, DynamoDB, ECR, volumes EBS e no bucket de estado.
+- [x] S-06 Menor privilegio nas roles IAM e IRSA para os pods. FEITO: modulo `irsa` dedicado. evaluation so publica na fila; analytics so consome e grava. RDS e Redis liberam pelo security group do cluster, nao pelo CIDR.
 - [ ] S-07 Auditoria com CloudTrail e logs do EKS.
-- [ ] S-08 `terraform fmt`/`validate` e `plan` automatizados em PR de infraestrutura.
-- [ ] S-09 Estrategia de destroy/agendamento para conter custo da conta pessoal (EKS + 3 RDS + Redis nao sao baratos).
+- [x] S-08 `terraform fmt`/`validate` e `plan` automatizados em PR de infraestrutura. FEITO: workflow `terraform-check.yml` roda fmt e validate nas tres camadas a cada PR e push. Verde na main em 2026-09-09.
+- [x] S-09 Estrategia de destroy/agendamento para conter custo da conta pessoal (EKS + 3 RDS + Redis nao sao baratos). FEITO: camada base permanente separada da camada cara (D-017), mais o runbook com o ciclo de subir e derrubar e a conferencia final de custo.
 
 ---
 

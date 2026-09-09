@@ -26,26 +26,26 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ### 1.2 Pipeline de CI e DevSecOps
 
-- [x] O-10 Workflow de CI para cada um dos 5 microsservicos (`auth`, `flag`, `targeting`, `evaluation`, `analytics`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-11 Gatilho em Pull Request e em push na `main`. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-12 Job Build (compilar/empacotar o codigo). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-13 Job Linter / analise estatica (ex.: `golangci-lint` para Go, `pylint`/`flake8` para Python). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-14 Job SCA - vulnerabilidade em dependencias (ex.: Trivy modo `fs` ou OWASP Dependency Check). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-15 Job SAST - vulnerabilidade no codigo fonte (ex.: SonarCloud gratuito, `gosec`, `bandit`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-16 Regra de bloqueio: vulnerabilidade CRITICA faz o pipeline falhar e nao prosseguir. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-17 Build da imagem Docker. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-18 Scan de vulnerabilidade na imagem (container scan com Trivy). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-19 Login no AWS ECR pelo pipeline. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [x] O-20 Push da imagem para o ECR com tag do commit hash (padrao do enunciado: `v1.0.0-a1b2c3d`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-10 Workflow de CI para cada um dos 5 microsservicos (`auth`, `flag`, `targeting`, `evaluation`, `analytics`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO em 2026-09-09: os 5 pipelines rodaram verdes na main.
+- [x] O-11 Gatilho em Pull Request e em push na `main`. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: disparou em push na main e na dev, com filtro de caminho por servico.
+- [x] O-12 Job Build (compilar/empacotar o codigo). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: job Build e testes verde nos 5.
+- [x] O-13 Job Linter / analise estatica (ex.: `golangci-lint` para Go, `pylint`/`flake8` para Python). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: golangci-lint v2.13.2 e flake8/pylint verdes nos 5.
+- [x] O-14 Job SCA - vulnerabilidade em dependencias (ex.: Trivy modo `fs` ou OWASP Dependency Check). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: Trivy fs barrou o CVE-2026-56854 (CRITICAL) em x/crypto e so liberou apos o upgrade.
+- [x] O-15 Job SAST - vulnerabilidade no codigo fonte (ex.: SonarCloud gratuito, `gosec`, `bandit`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: gosec e bandit verdes nos 5, com 4 achados de SSRF analisados um a um.
+- [x] O-16 Regra de bloqueio: vulnerabilidade CRITICA faz o pipeline falhar e nao prosseguir. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO NA PRATICA: o CVE critico do x/crypto derrubou o pipeline e o job de imagem foi SKIPPED - nao apenas falhou, nao prosseguiu.
+- [x] O-17 Build da imagem Docker. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: as 5 imagens foram construidas.
+- [x] O-18 Scan de vulnerabilidade na imagem (container scan com Trivy). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: scan de imagem verde nos 5.
+- [x] O-19 Login no AWS ECR pelo pipeline. Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: login via OIDC funcionando, sem chave estatica.
+- [x] O-20 Push da imagem para o ECR com tag do commit hash (padrao do enunciado: `v1.0.0-a1b2c3d`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: as 5 imagens no ECR com a tag v1.0.0-122174a, no padrao do enunciado.
 - [x] O-21 Os 5 repositorios ECR precisam existir (criar via Terraform e recomendado, ver R-02). Aplicado na AWS em 2026-09-07 (P-038).
 
 ### 1.3 Entrega Continua (CD) e GitOps
 
 - [x] O-22 Area de GitOps com apenas manifestos Kubernetes / Helm Charts (repo separado OU pasta separada no monorepo). Pasta `gitops/` no monorepo, em Kustomize (D-007, D-008).
 - [x] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`). Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
-- [x] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: 5 commits chore(gitops) feitos pelo proprio pipeline, um por servico.
 - [x] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS. Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
-- [x] O-26 Deploy sem `kubectl apply` direto pelo CI (o enunciado abandona o push direto). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
+- [x] O-26 Deploy sem `kubectl apply` direto pelo CI (o enunciado abandona o push direto). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: nenhum kubectl apply no CI - so commit no Git.
 
 ## 2. OBRIGATORIO - Entregaveis
 

@@ -2,7 +2,7 @@
 
 TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform, `gitops/` (sem ESO, ver D-018) e os 5 workflows de CI. Proxima acao: P-038, aplicar a camada base com o NAT desligado - e o que destrava a primeira execucao real do pipeline (P-044).
 
-Ultima atualizacao: 2026-09-09, Claude.
+Ultima atualizacao: 2026-09-09 (segunda sessao), Claude.
 
 ## Plano em 4 fases ate 2026-09-15
 
@@ -161,6 +161,50 @@ executam mas nada e publicado no ECR nem no GitOps.
 - P-025: encerrada em 2026-08-27. O usuario aprovou o plano do Terraform, com duas alteracoes: ambiente unico chamado `prod` (D-011) e remocao do Ingress (D-012).
 
 ## Achados
+
+- F-040: o merge hibrido `dev -> main` com `-X theirs` foi feito em
+  2026-09-09. Tag de seguranca `backup/main-antes-do-hibrido` criada no
+  remoto antes de tudo. Estrategia: prioridade para a dev em TODO arquivo
+  conflitante (30 arquivos add/add), preservando o historico e os 6
+  commits do colega. Depois foram removidas as estruturas duplicadas
+  (`terraform/environments`, `terraform/bootstrap`, `gitops/apps`,
+  `gitops/infrastructure`) e dois workflows redundantes
+  (`foundation-validation`, `reusable-devsecops`). O `terraform-check`
+  foi ADAPTADO para as tres camadas e fechou o item S-08. Mantidos da
+  main: `docs/fase-3/`, docker-compose, scripts, SECURITY.md.
+
+  CUSTO DESSA ESTRATEGIA, aprendido na pratica: escolher um lado inteiro
+  descarta em silencio o que o outro tinha de exclusivo dentro de arquivo
+  conflitante. Aqui sumiu o suporte a SQS_ENDPOINT e DYNAMODB_ENDPOINT,
+  do qual o teste de integracao depende. So foi percebido porque o
+  `compose-integration` ficou vermelho. Restaurado no commit seguinte.
+
+- F-039: dois defeitos no job de GitOps, expostos so na main, onde os 5
+  pipelines rodam o job de verdade. (1) O bloco `concurrency` com grupo
+  compartilhado NAO enfileira: o GitHub mantem 1 rodando + 1 pendente e
+  CANCELA o pendente anterior a cada novo, entao com 5 servicos houve
+  execucao morta por cancelamento. (2) O `git pull --rebase` conflitava
+  no kustomization.yaml e deixava o repo no meio do rebase, fazendo toda
+  retentativa morrer em "unmerged files". Corrigido trocando a estrategia
+  por um laco que RECALCULA a alteracao sobre o remoto atualizado a cada
+  tentativa - fetch, reset --hard, kustomize edit, commit, push. Sem
+  merge, sem conflito possivel, idempotente.
+
+- F-038: efeito em cadeia da correcao do CVE-2026-56854. Elevar
+  golang.org/x/crypto para v0.55.0 subiu a diretiva `go` dos modulos de
+  1.21 para 1.25.0, o que quebrou tres coisas em sequencia: o Dockerfile
+  (golang:1.22-alpine), o `go-version` fixo do job de SAST (1.23) e o
+  golangci-lint v1.61, que recusa analisar modulo com versao maior que a
+  usada para compila-lo. Licao: upgrade de dependencia por seguranca
+  arrasta a versao do toolchain, e todo lugar que fixa versao de Go
+  precisa ser revisado junto.
+
+- F-041: o CVE-2026-56854 (CRITICAL, golang.org/x/crypto v0.20.0)
+  existia IGUALMENTE na branch main desde sempre, e o CI de la passava
+  verde - porque os passos de Trivy usavam `continue-on-error: true`, que
+  faz o job reportar falha e o pipeline seguir. E a evidencia mais forte
+  do projeto a favor da regra de bloqueio do O-16: a vulnerabilidade
+  estava publicada e invisivel. Material direto para o relatorio (O-38).
 
 - F-037: duvida legitima levantada pelo usuario em 2026-09-09 -
   "nao iriamos usar Kustomize em vez de Helm?". Nao ha contradicao, e a

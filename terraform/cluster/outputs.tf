@@ -28,6 +28,17 @@ output "cluster_endpoint" {
   value       = module.eks.cluster_endpoint
 }
 
+output "cluster_certificate_authority" {
+  description = <<-EOT
+    Certificado da autoridade certificadora do cluster, em base64.
+
+    A camada terraform/k8s/ consome este valor para configurar o
+    provider kubernetes: sem ele o cliente nao confia no endpoint da
+    API e toda chamada falha com erro de TLS.
+  EOT
+  value       = module.eks.cluster_certificate_authority
+}
+
 output "cluster_security_group_id" {
   description = "Security group do cluster. E a origem autorizada nos firewalls do RDS e do Redis."
   value       = module.eks.cluster_security_group_id

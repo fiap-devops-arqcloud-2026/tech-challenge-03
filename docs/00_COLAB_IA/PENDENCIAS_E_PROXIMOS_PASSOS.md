@@ -2,7 +2,7 @@
 
 TL;DR: plano organizado em 4 fases ate 2026-09-15. Principio: fazer primeiro tudo que nao custa nada e deixar o cluster para o fim, em duas sessoes de 3 horas. Prontos e validados: Etapa 1 do Terraform, `gitops/` (sem ESO, ver D-018) e os 5 workflows de CI. Proxima acao: P-038, aplicar a camada base com o NAT desligado - e o que destrava a primeira execucao real do pipeline (P-044).
 
-Ultima atualizacao: 2026-09-08, Claude.
+Ultima atualizacao: 2026-09-09, Claude.
 
 ## Plano em 4 fases ate 2026-09-15
 
@@ -88,6 +88,18 @@ executam mas nada e publicado no ECR nem no GitOps.
 
 ## Encerradas ou substituidas
 
+- P-029: concluida em 2026-09-09. ArgoCD escrito em `terraform/k8s/argocd.tf`:
+  chart oficial via provider helm com versao fixa 7.7.11, Application
+  apontando para `gitops/overlays/prod` na branch `main`, com prune e
+  selfHeal ligados. Fecha O-23 e O-25. NAO aplicado.
+- P-044: concluida em 2026-09-09. Alem dos dois defeitos de configuracao
+  (F-032), os tres achados legitimos foram tratados (F-035). Os quatro
+  jobs de verificacao Python passam localmente nos tres servicos.
+- P-040: parcialmente resolvida. O `storageClassName` e os Secrets foram
+  fechados; restam os placeholders de `overlays/prod/patches/`
+  (REDIS_URL com "PREENCHER" e as tags `v1.0.0-placeholder`), que so
+  podem ser preenchidos depois do primeiro apply da camada cluster.
+
 - P-028: concluida em 2026-09-08. Camada `terraform/cluster/` escrita com
   quatro modulos novos - eks, rds, elasticache e irsa. `validate` e `fmt`
   passam; o `plan` resolve em 35 recursos, 0 a destruir. NAO aplicada.
@@ -142,6 +154,38 @@ executam mas nada e publicado no ECR nem no GitOps.
 - P-025: encerrada em 2026-08-27. O usuario aprovou o plano do Terraform, com duas alteracoes: ambiente unico chamado `prod` (D-011) e remocao do Ingress (D-012).
 
 ## Achados
+
+- F-036: auditoria de 2026-09-09 encontrou quatro falhas bloqueantes que
+  o checklist nao mostrava, porque item marcado como escrito nao e o
+  mesmo que item que funciona:
+  (a) os 5 Secrets referenciados pelos pods nao eram criados por NADA -
+      ao cortar o ESO (D-018) o codigo substituto nunca foi escrito, e
+      todos os servicos ficariam em CreateContainerConfigError;
+  (b) o ArgoCD nao existia como codigo, so como comentario e um rotulo;
+  (c) o volumeClaimTemplates do banco em pod nao declarava
+      storageClassName, reintroduzindo o F-025 da Fase 2;
+  (d) o ECR estava com 0 imagens nos 5 repositorios.
+  (a), (b) e (c) foram corrigidos no mesmo dia. (d) so se resolve quando
+  o pipeline rodar verde na main.
+
+- F-035: tratamento dos achados de lint e SAST, em 2026-09-09.
+  Go (errcheck): 5 chamadas a json.Encoder.Encode sem verificacao de
+  retorno, em auth-service e evaluation-service. CORRIGIDAS no codigo -
+  o erro passa a ser registrado no log, que e o unico tratamento
+  possivel depois de o cabecalho HTTP ja ter sido enviado.
+  Bandit: 2 achados B608 (SQL injection) e 3 B104 (bind em 0.0.0.0).
+  Todos analisados e classificados como FALSO POSITIVO com justificativa
+  escrita no proprio codigo, via `# nosec` pontual - o B608 porque a
+  f-string interpola apenas literais e os dados do usuario vao como
+  parametro no psycopg2; o B104 porque ligar em todas as interfaces
+  dentro de um container e o comportamento correto.
+  Pylint: notas iniciais de 4.84 a 5.66, abaixo do corte de 7.0. Dois
+  achados eram REAIS e foram corrigidos (import json morto no
+  targeting-service; default de os.getenv com tipo int nos tres) mais
+  30 linhas com espaco em branco no fim. O restante era estilo e foi
+  desligado num `.pylintrc` na raiz, com justificativa por regra.
+  Notas finais: flag 8.26, targeting 8.08, analytics 7.59.
+  Nenhuma regra da familia E (erro) foi tocada.
 
 - F-034: em 2026-09-08 descobriu-se que a branch `main` tem uma
   implementacao COMPLETA e PARALELA da Fase 3, feita por outro integrante

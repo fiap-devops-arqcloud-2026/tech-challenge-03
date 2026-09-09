@@ -42,9 +42,9 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 ### 1.3 Entrega Continua (CD) e GitOps
 
 - [x] O-22 Area de GitOps com apenas manifestos Kubernetes / Helm Charts (repo separado OU pasta separada no monorepo). Pasta `gitops/` no monorepo, em Kustomize (D-007, D-008).
-- [ ] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`).
+- [x] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`). Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
 - [x] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
-- [ ] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS.
+- [x] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS. Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
 - [x] O-26 Deploy sem `kubectl apply` direto pelo CI (o enunciado abandona o push direto). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044).
 
 ## 2. OBRIGATORIO - Entregaveis
@@ -60,9 +60,9 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ### 2.2 Codigo fonte no repositorio
 
-- [ ] O-33 Todo o codigo Terraform, bem estruturado e componentizado.
-- [ ] O-34 Arquivos de workflow `.yaml` do GitHub Actions (ou ferramenta similar) com os passos DevSecOps.
-- [~] O-35 Manifestos Kubernetes ajustados para GitOps. Criados em `gitops/` em 2026-08-27 e validados com `kubectl kustomize`; faltam os placeholders de endpoint e ARN, que dependem da Etapa 2.
+- [x] O-33 Todo o codigo Terraform, bem estruturado e componentizado. Tres camadas com estado independente (base permanente, cluster efemero, k8s), 7 modulos proprios e comentario linha a linha. `validate` e `fmt` passam nas tres.
+- [x] O-34 Arquivos de workflow `.yaml` do GitHub Actions (ou ferramenta similar) com os passos DevSecOps. Sete arquivos em `.github/workflows/`: 2 reutilizaveis e 5 chamadores, com build, linter, SAST, SCA, scan de imagem e portao de bloqueio.
+- [x] O-35 Manifestos Kubernetes ajustados para GitOps. Kustomize com base e overlay, 23 recursos renderizados. Pendencias fechadas em 2026-09-09: `storageClassName` explicito no StatefulSet (F-025) e os 5 Secrets agora criados por `terraform/k8s/secrets.tf` (D-018).
 
 ### 2.3 Relatorio de entrega (.PDF ou .txt)
 

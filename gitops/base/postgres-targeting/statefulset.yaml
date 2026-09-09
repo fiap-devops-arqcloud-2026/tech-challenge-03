@@ -142,15 +142,27 @@ spec:
         # ReadWriteOnce: montado por um unico no por vez. E o unico modo
         # que o EBS suporta, e basta para um banco de uma replica.
         accessModes: ["ReadWriteOnce"]
+
+        # NOME EXPLICITO DA STORAGECLASS - nao remover.
+        #
+        # Sem esta linha, o PVC depende de haver alguma StorageClass
+        # marcada como padrao no cluster. O EKS cria a `gp2` mas NAO a
+        # marca como padrao, entao o PVC ficaria em Pending para sempre,
+        # o pod do banco nunca iniciaria e o targeting-service entraria
+        # em CrashLoopBackOff.
+        #
+        # Foi o que travou a Fase 2 (F-025). A classe `gp3` e criada por
+        # terraform/k8s/storageclass.tf; o nome precisa ser identico ao
+        # de var.storage_class_name daquela camada.
+        storageClassName: gp3
         resources:
           requests:
             # 5 GB e folgado para este banco.
             storage: 5Gi
 
-        # ATENCAO - ARMADILHA CONHECIDA (F-025)
-        # Nenhuma storageClassName e declarada aqui, entao o cluster usa a
-        # StorageClass marcada como default. Na Fase 2 nao havia default e
-        # este PVC ficou PENDING, travando o deploy ate alguem descobrir.
-        # Na Fase 3 o addon aws-ebs-csi-driver e uma StorageClass default
-        # sao criados pelo Terraform da Etapa 2 (P-035), justamente para
-        # o problema nao se repetir.
+        # ARMADILHA CONHECIDA (F-025), agora fechada dos dois lados:
+        # o storageClassName acima e explicito, e a classe `gp3` nasce do
+        # Terraform em terraform/k8s/storageclass.tf, ja marcada como
+        # padrao do cluster. Quem provisiona o volume de verdade e o
+        # addon aws-ebs-csi-driver, instalado pelo modulo eks com role
+        # IRSA propria.

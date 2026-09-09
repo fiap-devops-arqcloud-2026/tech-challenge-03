@@ -482,14 +482,18 @@ jobs:
       # E a unica permissao de escrita em todo o pipeline.
       contents: write
 
-    # Impede que dois servicos comitem no mesmo arquivo ao mesmo tempo.
-    concurrency:
-      # Nome do grupo, fixo de proposito: os 5 servicos compartilham o
-      # mesmo grupo e por isso entram em fila em vez de disputar.
-      group: gitops-tag-update
-      # false = a execucao em andamento NAO e cancelada. Cancelar aqui
-      # perderia a atualizacao de tag de um dos servicos.
-      cancel-in-progress: false
+    # SEM bloco `concurrency` aqui, e a ausencia e deliberada.
+    #
+    # A primeira versao usava um grupo compartilhado pelos 5 servicos,
+    # esperando que eles entrassem em FILA. Nao e o que o GitHub faz: por
+    # grupo ele mantem no maximo UM rodando e UM pendente, e CANCELA o
+    # pendente anterior sempre que chega mais um. Com 5 servicos em
+    # paralelo isso derruba execucoes por CANCELAMENTO, nao por erro -
+    # observado na main em 2026-09-09, com o analytics-service cancelado.
+    #
+    # A disputa pelo mesmo arquivo e resolvida no proprio passo de envio,
+    # mais abaixo, por um laco que RECALCULA a alteracao sobre o estado
+    # mais recente do remoto a cada tentativa.
 
     # Passos deste job, executados de cima para baixo.
     steps:
@@ -519,71 +523,82 @@ jobs:
           # Confirma no log qual versao ficou instalada.
           kustomize version
 
-      # O comando de uma linha so. Reescreve APENAS o campo newTag do
-      # servico correspondente no bloco images: do kustomization.yaml.
-      - name: Atualizar a tag da imagem
-        # "kustomize edit" precisa rodar na pasta do kustomization.yaml.
-        working-directory: gitops/overlays/prod
-        # Variaveis de ambiente visiveis apenas neste passo.
-        env:
-          # Pega a tag publicada pelo job image via needs.
-          IMAGE_TAG: ${{ needs.image.outputs.image_tag }}
-        # Bloco de shell. O pipe indica varias linhas de comando.
-        run: |
-          # Sintaxe: <nome-logico>=<registro>/<repo>:<tag>.
-          # O nome logico da esquerda e o mesmo do campo "image:" nos
-          # Deployments da base - e assim que o Kustomize casa os dois.
-          kustomize edit set image \
-            "${{ inputs.service }}=${ECR_REGISTRY}/${{ inputs.service }}:${IMAGE_TAG}"
-          # Imprime o diff no log. E ESTA saida que aparece no video
-          # como evidencia do O-30: uma unica linha alterada.
-          echo "--- diff gerado ---"
-          git --no-pager diff
-
-      # Registra a alteracao no Git e empurra para a main.
-      - name: Comitar e enviar
-        # Variaveis de ambiente visiveis apenas neste passo.
+      # ----------------------------------------------------------
+      # ATUALIZAR A TAG E ENVIAR (O-24)
+      # ----------------------------------------------------------
+      # POR QUE UM LACO QUE REFAZ TUDO A CADA TENTATIVA
+      #
+      # Os 5 pipelines rodam em paralelo e escrevem no MESMO arquivo. A
+      # primeira versao deste passo calculava a alteracao uma vez e
+      # tentava `git pull --rebase` em caso de rejeicao. Isso falhou na
+      # main em 2026-09-09: o rebase conflita (mesma linha, arquivos
+      # diferentes na origem), o repositorio fica no meio do rebase, e
+      # TODA tentativa seguinte morre em "unmerged files" sem nem tentar.
+      #
+      # Aqui a logica e outra: a cada tentativa o runner joga fora o que
+      # tinha, busca o estado atual do remoto e REAPLICA apenas a nossa
+      # linha. Nao existe conflito possivel, porque nunca se tenta
+      # mesclar dois estados - so se reescreve um campo sobre a versao
+      # mais recente. E idempotente e nao depende de ordem.
+      - name: Atualizar a tag e enviar
         env:
           # Tag publicada pelo job image, recebida via needs.
           IMAGE_TAG: ${{ needs.image.outputs.image_tag }}
-        # Bloco de shell. O pipe indica varias linhas de comando.
         run: |
-          # Identidade do autor do commit. Usa a conta de bot do
-          # proprio GitHub Actions, deixando claro no historico que a
-          # alteracao foi automatica e nao de uma pessoa.
+          # Identidade do autor. A conta de bot do proprio GitHub Actions
+          # deixa claro no historico que a alteracao foi automatica.
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Se a tag ja estiver correta (reexecucao do mesmo commit),
-          # nao ha o que comitar. "git commit" vazio falharia e
-          # deixaria o pipeline vermelho sem motivo.
-          if git diff --quiet; then
-            echo "Nada mudou: a tag ja estava atualizada. Encerrando."
-            exit 0
-          fi
+          # 5 tentativas. Com 5 servicos concorrendo, a pior fila
+          # possivel tem 5 posicoes.
+          for tentativa in 1 2 3 4 5; do
+            echo "--- tentativa ${tentativa} ---"
 
-          # Adiciona apenas o arquivo alterado, nunca "git add .".
-          git add gitops/overlays/prod/kustomization.yaml
+            # 1. Pega o estado mais recente da main e descarta qualquer
+            #    coisa local. E o reset que elimina a chance de conflito.
+            git fetch origin main
+            git reset --hard origin/main
 
-          # [skip ci] impede que este commit dispare os pipelines de
-          # novo. Os workflows ja filtram por services/**, entao e
-          # cinto e suspensorio - mas custa nada e evita loop infinito.
-          git commit -m "chore(gitops): ${{ inputs.service }} para ${IMAGE_TAG} [skip ci]"
+            # 2. Reaplica SO a nossa linha, sobre esse estado novo.
+            (
+              cd gitops/overlays/prod
+              kustomize edit set image                 "${{ inputs.service }}=${ECR_REGISTRY}/${{ inputs.service }}:${IMAGE_TAG}"
+            )
 
-          # Ate 3 tentativas de enviar. Cenario real: dois servicos
-          # terminam juntos e o segundo tenta empurrar sobre um commit
-          # que acabou de chegar. O rebase resolve; a repeticao cobre
-          # a corrida entre o rebase e o push.
-          for tentativa in 1 2 3; do
-            if git pull --rebase origin main && git push origin HEAD:main; then
+            # 3. Se nada mudou, outro pipeline ja gravou esta mesma tag
+            #    (ou e reexecucao do mesmo commit). Nao ha o que fazer.
+            if git diff --quiet; then
+              echo "A tag ja esta correta no repositorio. Nada a enviar."
+              exit 0
+            fi
+
+            # Mostra o diff no log. E ESTA saida que aparece no video
+            # como evidencia do O-30: uma unica linha alterada.
+            echo "--- diff gerado ---"
+            git --no-pager diff
+
+            # 4. Comita. O [skip ci] impede que este commit dispare os
+            #    pipelines de novo - cinto e suspensorio, ja que os
+            #    workflows tambem filtram por services/**.
+            git add gitops/overlays/prod/kustomization.yaml
+            git commit -m "chore(gitops): ${{ inputs.service }} para ${IMAGE_TAG} [skip ci]"
+
+            # 5. Tenta enviar. Se outro servico chegou primeiro, o push
+            #    e rejeitado e a proxima volta recomeca do estado novo.
+            if git push origin HEAD:main; then
               echo "Commit enviado com sucesso."
               exit 0
             fi
-            echo "Tentativa ${tentativa} falhou, repetindo em 5s..."
-            sleep 5
+
+            # Espera crescente: 3s, 6s, 9s... evita que os 5 servicos
+            # tentem de novo exatamente no mesmo instante.
+            espera=$((tentativa * 3))
+            echo "Push rejeitado (outro servico chegou antes). Nova tentativa em ${espera}s."
+            sleep "${espera}"
           done
 
           # Esgotadas as tentativas, falha explicitamente. Melhor o
           # pipeline vermelho do que a tag em silencio desatualizada.
-          echo "Nao foi possivel enviar o commit apos 3 tentativas."
+          echo "Nao foi possivel enviar o commit apos 5 tentativas."
           exit 1

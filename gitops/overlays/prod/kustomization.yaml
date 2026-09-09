@@ -69,7 +69,7 @@ images:
   newTag: v1.0.0-122174a
 - name: evaluation-service
   newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/evaluation-service
-  newTag: v1.0.0-placeholder
+  newTag: v1.0.0-122174a
 - name: flag-service
   newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/flag-service
   newTag: v1.0.0-122174a

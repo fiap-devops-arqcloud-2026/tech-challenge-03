@@ -41,8 +41,14 @@ if SQS_ENABLED:
         sys.exit(1)
     try:
         session = boto3.Session(region_name=AWS_REGION)
-        sqs_client = session.client("sqs")
-        dynamodb_client = session.client("dynamodb")
+        # endpoint_url alternativo, para teste local.
+        #
+        # Em producao as variaveis nao existem, o "or None" faz o boto3
+        # receber None e usar o endpoint real da AWS. No compose de
+        # integracao elas apontam para simuladores locais, o que permite
+        # exercitar o fluxo completo sem tocar na conta.
+        sqs_client = session.client("sqs", endpoint_url=os.getenv("SQS_ENDPOINT") or None)
+        dynamodb_client = session.client("dynamodb", endpoint_url=os.getenv("DYNAMODB_ENDPOINT") or None)
         log.info(f"Clientes Boto3 inicializados na região {AWS_REGION}.")
     except NoCredentialsError:
         log.critical("Credenciais da AWS não encontradas. Verifique seu ambiente.")

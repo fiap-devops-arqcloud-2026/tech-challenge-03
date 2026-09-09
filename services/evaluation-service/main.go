@@ -81,7 +81,18 @@ func main() {
 		if err != nil {
 			log.Fatalf("Não foi possível criar sessão AWS: %v", err)
 		}
-		sqsSvc = sqs.New(sess)
+		// Endpoint alternativo da SQS, para teste local.
+		//
+		// Em producao a variavel nao existe e o SDK usa o endpoint real
+		// da AWS. No docker-compose de integracao ela aponta para um
+		// simulador local, e e isso que permite exercitar o fluxo dos 5
+		// servicos sem tocar na conta - ver docker-compose.integration.yaml
+		// e o workflow compose-integration.yml.
+		sqsConfig := aws.NewConfig()
+		if endpoint := os.Getenv("SQS_ENDPOINT"); endpoint != "" {
+			sqsConfig.WithEndpoint(endpoint)
+		}
+		sqsSvc = sqs.New(sess, sqsConfig)
 		log.Println("Cliente SQS inicializado com sucesso.")
 	}
 

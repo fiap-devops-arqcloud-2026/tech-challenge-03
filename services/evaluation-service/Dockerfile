@@ -3,7 +3,11 @@
 # Objetivo: compilar o binário Go dentro de um ambiente com toolchain do Go.
 # O resultado (binário) será copiado para uma imagem final bem menor.
 # -------------------------
-FROM golang:1.22-alpine AS builder
+# Go 1.25: a diretiva `go` do go.mod foi elevada para 1.25.0 quando
+# golang.org/x/crypto subiu para v0.55.0, corrigindo o CVE-2026-56854
+# (CRITICAL) que o Trivy barrou. Com uma imagem base anterior, o build
+# falha com "go.mod requires go >= 1.25.0".
+FROM golang:1.25-alpine AS builder
 
 # Instala:
 # - ca-certificates: para permitir downloads/HTTPS (ex.: go mod download via https)

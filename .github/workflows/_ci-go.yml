@@ -199,11 +199,13 @@ jobs:
         with:
           # ATENCAO: aqui a versao e FIXA, e nao lida do go.mod como nos
           # outros jobs. Motivo: o passo seguinte compila o gosec a partir
-          # do fonte, e o gosec atual exige Go mais novo que o 1.21 que os
-          # servicos declaram. Isso NAO afeta a analise - o gosec le o
-          # codigo dos servicos independentemente da versao de Go usada
-          # para compilar a propria ferramenta.
-          go-version: "1.23"
+          # do fonte, e o gosec atual exige um toolchain recente.
+          #
+          # Precisa ser >= a diretiva `go` dos servicos, hoje 1.25.0 - ela
+          # subiu sozinha quando golang.org/x/crypto foi para v0.55.0 para
+          # corrigir o CVE-2026-56854. Com uma versao menor, o gosec falha
+          # antes de analisar, com "go.mod requires go >= 1.25.0".
+          go-version: "1.25"
 
       # gosec e o SAST para Go citado pelo enunciado. Procura padroes
       # perigosos no nosso codigo: SQL montado por concatenacao,

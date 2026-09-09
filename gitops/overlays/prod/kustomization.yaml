@@ -19,9 +19,9 @@ kind: Kustomization
 # ArgoCD vai sincronizar.
 namespace: togglemaster
 
-resources:
   # Traz tudo de gitops/base.
-  - ../../base
+resources:
+- ../../base
 
   # NAO ha secretstore.yaml aqui (P-037). O External Secrets Operator foi
   # cortado: os Secrets do Kubernetes passaram a ser criados pelo Terraform
@@ -33,12 +33,12 @@ resources:
 # ------------------------------------------------------------
 # Alteram recursos que ja vieram da base, sem duplicar o arquivo inteiro.
 # ------------------------------------------------------------
-patches:
   # Anota as ServiceAccounts com o ARN da role IAM (IRSA).
-  - path: patches/irsa.yaml
 
   # Acrescenta aos ConfigMaps as chaves que dependem de endpoint da AWS.
-  - path: patches/endpoints.yaml
+patches:
+- path: patches/irsa.yaml
+- path: patches/endpoints.yaml
 
 # ------------------------------------------------------------
 # IMAGENS - o ponto de integracao com o pipeline de CI
@@ -56,26 +56,23 @@ patches:
 # ATENCAO: as tags abaixo sao PLACEHOLDER. Elas mudam sozinhas no
 # primeiro build de cada servico e nao devem ser editadas a mao.
 # ------------------------------------------------------------
+
+
+
+
 images:
-  - name: auth-service
-    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/auth-service
-    newTag: v1.0.0-placeholder
-
-  - name: flag-service
-    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/flag-service
-    newTag: v1.0.0-placeholder
-
-  - name: targeting-service
-    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/targeting-service
-    newTag: v1.0.0-placeholder
-
-  - name: evaluation-service
-    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/evaluation-service
-    newTag: v1.0.0-placeholder
-
-  - name: analytics-service
-    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/analytics-service
-    newTag: v1.0.0-placeholder
-
-  # A imagem do PostgreSQL nao entra aqui: vem pronta do Docker Hub com
-  # tag fixa e nao passa pelo nosso pipeline.
+- name: analytics-service
+  newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/analytics-service
+  newTag: v1.0.0-placeholder
+- name: auth-service
+  newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/auth-service
+  newTag: v1.0.0-placeholder
+- name: evaluation-service
+  newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/evaluation-service
+  newTag: v1.0.0-placeholder
+- name: flag-service
+  newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/flag-service
+  newTag: v1.0.0-22bb199
+- name: targeting-service
+  newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/targeting-service
+  newTag: v1.0.0-placeholder

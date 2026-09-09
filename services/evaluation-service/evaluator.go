@@ -150,7 +150,12 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
-	defer resp.Body.Close()
+	// errcheck: o retorno de Close precisa ser tratado. Neste caso o erro
+	// NAO e acionavel - o corpo ja foi lido e a resposta ja foi
+	// processada, entao nao ha o que fazer com a falha. O "_ =" declara
+	// explicitamente que o descarte e intencional, em vez de deixar o
+	// retorno silenciosamente ignorado.
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName}
@@ -204,7 +209,12 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
-	defer resp.Body.Close()
+	// errcheck: o retorno de Close precisa ser tratado. Neste caso o erro
+	// NAO e acionavel - o corpo ja foi lido e a resposta ja foi
+	// processada, entao nao ha o que fazer com a falha. O "_ =" declara
+	// explicitamente que o descarte e intencional, em vez de deixar o
+	// retorno silenciosamente ignorado.
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName} // Não é um erro fatal

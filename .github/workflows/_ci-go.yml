@@ -159,17 +159,30 @@ jobs:
       # E a ferramenta citada nominalmente pelo enunciado para Go.
       - name: Rodar golangci-lint
         # Action oficial do golangci-lint, com versao fixada.
-        uses: golangci/golangci-lint-action@v6
+        #
+        # A v9 da action e necessaria para rodar a linha 2.x da
+        # ferramenta; a v6 antiga so trabalha com a linha 1.x.
+        uses: golangci/golangci-lint-action@v9
         # Parametros passados para a action declarada acima.
         with:
           # Versao fixa da ferramenta. Deixar em aberto faz o pipeline
           # comecar a falhar sozinho quando sai release com regra nova.
-          version: v1.61
+          #
+          # v2.13.2, e nao v1.61: a v1.61 foi compilada com Go 1.23 e
+          # RECUSA analisar um modulo que declara uma versao maior, com o
+          # erro "the Go language version used to build golangci-lint is
+          # lower than the targeted Go version". Nossos go.mod passaram a
+          # declarar 1.25.0 depois do upgrade de x/crypto que corrigiu o
+          # CVE-2026-56854 - ou seja, foi efeito em cadeia daquela
+          # correcao de seguranca.
+          version: v2.13.2
           # Pasta do modulo Go a analisar.
           working-directory: services/${{ inputs.service }}
-          # 5 minutos de teto. O padrao e 1 minuto e estoura em
-          # projeto com muitas dependencias.
-          args: --timeout=5m
+          #
+          # Sem "args" de proposito. O --timeout foi removido da linha de
+          # comando na v2 e passou a viver em configuracao. Como os dois
+          # modulos sao pequenos e o job levava ~20s, o padrao de 1 minuto
+          # sobra - nao vale acrescentar um arquivo de config so por isso.
 
   # ==========================================================
   # JOB 3 - SAST: vulnerabilidade no CODIGO FONTE (O-15)

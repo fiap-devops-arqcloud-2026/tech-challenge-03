@@ -1,0 +1,43 @@
+# ============================================================
+# PATCH - anotacao IRSA nas ServiceAccounts
+# ============================================================
+# A base cria as ServiceAccounts sem anotacao. Este patch injeta o ARN
+# da role IAM que cada pod deve assumir.
+#
+# POR QUE FICA NO OVERLAY: o ARN so existe depois do `terraform apply`
+# da Etapa 2 e contem o numero da conta. E dado de ambiente, nao de
+# aplicacao.
+#
+# ------------------------------------------------------------
+# PREENCHER APOS O APPLY DA ETAPA 2
+# ------------------------------------------------------------
+# Os ARNs abaixo estao no formato final e sao previsiveis, porque o
+# Terraform nomeia as roles deterministicamente. Ainda assim, confira
+# com:
+#   terraform -chdir=terraform output irsa_role_arns
+# ============================================================
+
+# Documento 1: ServiceAccount do evaluation-service.
+# Tres separadores YAML (---) permitem varios objetos no mesmo arquivo.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  # O Kustomize casa o patch com o recurso da base por kind + name.
+  name: evaluation-service
+  annotations:
+    # Anotacao lida pelo EKS. Ao ver isto, ele injeta no pod um token de
+    # identidade e as variaveis que o SDK da AWS usa para assumir a role.
+    # Permissao desta role: apenas sqs:SendMessage na fila do projeto.
+    eks.amazonaws.com/role-arn: arn:aws:iam::891376952395:role/togglemaster-evaluation-irsa
+
+---
+# Documento 2: ServiceAccount do analytics-service.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: analytics-service
+  annotations:
+    # Permissoes desta role: ReceiveMessage e DeleteMessage na fila, mais
+    # PutItem na tabela DynamoDB. Nao pode publicar na fila - separacao
+    # de responsabilidades entre produtor e consumidor (S-06).
+    eks.amazonaws.com/role-arn: arn:aws:iam::891376952395:role/togglemaster-analytics-irsa

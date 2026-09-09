@@ -1,0 +1,24 @@
+# ============================================================
+# CONFIGMAP - auth-service
+# ============================================================
+# ConfigMap guarda configuracao NAO sensivel em texto puro. Tudo que
+# nao e senha, token ou credencial pode ficar aqui e ser lido por
+# qualquer pessoa com acesso ao cluster ou ao repositorio.
+#
+# O que e sensivel vai para o Secret criado pelo ExternalSecret.
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  # Nome referenciado pelo envFrom do deployment.yaml.
+  name: auth-service-config
+  labels:
+    app: auth-service
+
+# Pares chave/valor. Cada um vira uma variavel de ambiente no container.
+data:
+  # Porta em que o processo Go escuta. Precisa coincidir com o
+  # containerPort do deployment e com o targetPort do service.
+  PORT: "8001"

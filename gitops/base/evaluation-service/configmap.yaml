@@ -1,0 +1,32 @@
+# ============================================================
+# CONFIGMAP - evaluation-service
+# ============================================================
+# ATENCAO: duas chaves deste ConfigMap (REDIS_URL e AWS_SQS_URL) so
+# existem depois do `terraform apply`, porque incluem endpoints gerados
+# pela AWS. Elas NAO ficam aqui: sao acrescentadas pelo patch em
+# overlays/prod/patches/endpoints.yaml.
+#
+# Aqui ficam apenas os valores que nao dependem da infraestrutura.
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: evaluation-service-config
+  labels:
+    app: evaluation-service
+
+data:
+  # Porta do processo Go dentro do container.
+  PORT: "8004"
+
+  # Enderecos internos dos servicos que o evaluation consulta quando a
+  # resposta nao esta em cache. Sao DNS do cluster e nao mudam entre
+  # ambientes, por isso ficam na base.
+  FLAG_SERVICE_URL: "http://flag-service:8002"
+  TARGETING_SERVICE_URL: "http://targeting-service:8003"
+
+  # Regiao usada pelo SDK da AWS para falar com a SQS. Fixa no projeto
+  # (F-012), por isso pode ficar na base.
+  AWS_REGION: "us-east-2"

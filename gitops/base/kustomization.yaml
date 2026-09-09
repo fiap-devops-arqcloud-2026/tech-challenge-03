@@ -1,0 +1,84 @@
+# ============================================================
+# KUSTOMIZATION - base
+# ============================================================
+# Este arquivo e o indice da base: lista todos os manifestos e aplica
+# ajustes que valem para o conjunto inteiro.
+#
+# A base descreve o que NAO muda entre ambientes. O que depende da
+# infraestrutura (URLs geradas pela AWS, ARNs de role, tags de imagem)
+# fica em overlays/prod/.
+#
+# Para ver o resultado renderizado, sem aplicar nada:
+#   kubectl kustomize gitops/base
+# ============================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Coloca TODOS os recursos abaixo no namespace togglemaster. Por isso
+# nenhum manifesto individual declara `namespace:` - se declarasse e
+# divergisse daqui, o Kustomize sobrescreveria e a leitura ficaria
+# enganosa.
+namespace: togglemaster
+
+# Rotulos adicionados a todos os recursos e propagados para os pods.
+# Facilitam inventario: kubectl get all -l app.kubernetes.io/part-of=togglemaster
+labels:
+  - includeSelectors: false
+    pairs:
+      app.kubernetes.io/part-of: togglemaster
+      app.kubernetes.io/managed-by: argocd
+
+# Lista de arquivos que compoem a base. A ordem aqui nao define ordem de
+# aplicacao: o Kubernetes reconcilia por estado, nao por sequencia.
+resources:
+  # Precisa existir antes de tudo. O ArgoCD entende essa dependencia.
+  - namespace.yaml
+
+  # --- auth-service: autenticacao, banco em RDS ---
+  - auth-service/deployment.yaml
+  - auth-service/service.yaml
+  - auth-service/configmap.yaml
+
+  # --- flag-service: CRUD das flags, banco em RDS ---
+  - flag-service/deployment.yaml
+  - flag-service/service.yaml
+  - flag-service/configmap.yaml
+
+  # --- targeting-service: regras de segmentacao, banco em POD ---
+  - targeting-service/deployment.yaml
+  - targeting-service/service.yaml
+  - targeting-service/configmap.yaml
+
+  # --- evaluation-service: hot path, com HPA e IRSA para a SQS ---
+  - evaluation-service/serviceaccount.yaml
+  - evaluation-service/deployment.yaml
+  - evaluation-service/service.yaml
+  - evaluation-service/configmap.yaml
+  - evaluation-service/hpa.yaml
+
+  # --- analytics-service: worker, com HPA e IRSA. Sem nenhum segredo ---
+  - analytics-service/serviceaccount.yaml
+  - analytics-service/deployment.yaml
+  - analytics-service/service.yaml
+  - analytics-service/configmap.yaml
+  - analytics-service/hpa.yaml
+
+  # --- postgres-targeting: o 3o banco, em pod por causa de F-023 ---
+  - postgres-targeting/statefulset.yaml
+  - postgres-targeting/service.yaml
+  - postgres-targeting/configmap.yaml
+
+# NAO ENTRAM AQUI, de proposito:
+#   - ingress.yaml da Fase 2: nao ha Ingress nem Load Balancer (D-012).
+#     O enunciado da Fase 3 nao menciona acesso externo em nenhum ponto
+#     (F-018), e remover economiza ~US$ 16-20/mes.
+#   - os secret.yaml da Fase 2: nenhum Secret e versionado aqui (D-013).
+#     Os Secrets do Kubernetes sao criados pelo Terraform da camada
+#     cluster, que gera as senhas com random_password, grava no AWS
+#     Secrets Manager e aplica o Secret no cluster pelo provider
+#     kubernetes. Nada de senha entra no Git.
+#
+#     O CONTRATO de nomes e chaves esta em gitops/SECRETS-CONTRATO.md.
+#     Se o Terraform criar um Secret com nome ou chave diferente, o pod
+#     sobe com CreateContainerConfigError. Ler antes de mexer.

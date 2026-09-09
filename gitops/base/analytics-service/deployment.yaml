@@ -1,0 +1,80 @@
+# ============================================================
+# DEPLOYMENT - analytics-service (Python)
+# ============================================================
+# Worker de backend, sem API publica alem de /health. Fica em laco
+# consumindo a fila SQS e gravando cada evento no DynamoDB.
+#
+# ESTE E O SERVICO QUE MAIS MUDA EM RELACAO A FASE 2: ele passa a ter
+# ZERO segredos. Nao ha ExternalSecret nesta pasta, e isso e proposital -
+# depois do IRSA, tudo que ele precisa e configuracao publica.
+#
+# Explicacao completa dos campos em base/auth-service/deployment.yaml.
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: analytics-service
+  labels:
+    app: analytics-service
+
+spec:
+  # Piso de 1; o HPA sobe para 2 se a fila gerar carga de CPU.
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: analytics-service
+
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+
+    spec:
+      # Da ao pod a identidade IAM com permissao de ler/apagar da SQS e
+      # gravar no DynamoDB. Sem esta linha, todas as chamadas falham.
+      serviceAccountName: analytics-service
+
+      containers:
+        - name: analytics-service
+
+          # Nome logico; o overlay injeta registro e tag.
+          image: analytics-service
+
+          ports:
+            # O worker sobe um servidor minimo so para o /health responder
+            # as probes. Nao ha Service apontando trafego real para ca.
+            - containerPort: 8005
+              name: http
+
+          # TODAS as variaveis vem do ConfigMap. Nao ha bloco `env:` com
+          # secretKeyRef porque nao sobrou nenhum segredo neste servico.
+          envFrom:
+            - configMapRef:
+                name: analytics-service-config
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8005
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

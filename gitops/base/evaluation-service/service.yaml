@@ -1,0 +1,29 @@
+# ============================================================
+# SERVICE - evaluation-service
+# ============================================================
+# Alcancavel internamente por http://evaluation-service:8004
+#
+# Na Fase 2 este era o servico exposto pelo Ingress na rota /evaluate.
+# Na Fase 3 nao ha Ingress (D-012): para testar no video, use
+#   kubectl port-forward -n togglemaster svc/evaluation-service 8004:8004
+# ============================================================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: evaluation-service
+  labels:
+    app: evaluation-service
+
+spec:
+  type: ClusterIP
+
+  selector:
+    app: evaluation-service
+
+  ports:
+    - name: http
+      port: 8004
+      targetPort: 8004
+      protocol: TCP

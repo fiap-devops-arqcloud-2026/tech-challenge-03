@@ -1,0 +1,27 @@
+# ============================================================
+# NAMESPACE - separador logico do cluster
+# ============================================================
+# Um Namespace funciona como uma "pasta" dentro do cluster: agrupa
+# todos os recursos do ToggleMaster e os isola de outras coisas que
+# rodem no mesmo EKS (o proprio ArgoCD, por exemplo, mora em outro).
+# ============================================================
+
+# Versao da API do Kubernetes para este tipo de objeto. Namespace e um
+# recurso do nucleo, por isso "v1" e nao "apps/v1".
+apiVersion: v1
+
+# Que tipo de objeto este arquivo descreve.
+kind: Namespace
+
+# Dados de identificacao do objeto.
+metadata:
+  # Nome do namespace. Todos os outros manifestos serao colocados aqui
+  # pelo campo `namespace:` do kustomization.yaml da base.
+  # Mantido igual ao da Fase 2 para nao divergir (F-019).
+  name: togglemaster
+
+  # Labels sao rotulos usados para busca e agrupamento.
+  labels:
+    # Label padrao do Kubernetes que marca a que aplicacao o recurso pertence.
+    # Facilita comandos como: kubectl get all -l app.kubernetes.io/part-of=togglemaster
+    app.kubernetes.io/part-of: togglemaster

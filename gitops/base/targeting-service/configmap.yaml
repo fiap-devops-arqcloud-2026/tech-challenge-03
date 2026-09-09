@@ -1,0 +1,18 @@
+# ============================================================
+# CONFIGMAP - targeting-service
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: targeting-service-config
+  labels:
+    app: targeting-service
+
+data:
+  # Porta do Gunicorn dentro do container.
+  PORT: "8003"
+
+  # Este servico tambem e protegido e valida as chaves no auth-service.
+  AUTH_SERVICE_URL: "http://auth-service:8001"

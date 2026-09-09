@@ -18,7 +18,12 @@ type EvaluationResponse struct {
 func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	// errcheck: o retorno de Encode precisa ser verificado. Aqui o
+	// cabecalho ja foi enviado, entao nao da para trocar o status HTTP -
+	// o que resta e registrar a falha no log para nao perder o sinal.
+	if err := json.NewEncoder(w).Encode(map[string]string{"status": "ok"}); err != nil {
+		log.Printf("falha ao escrever resposta de health: %v", err)
+	}
 }
 
 // evaluationHandler atende ao GET /evaluate?user_id=...&flag_name=... — o
@@ -56,9 +61,14 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 4. Retornar a resposta
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(EvaluationResponse{
+	// errcheck: o retorno de Encode precisa ser verificado. Aqui o
+	// cabecalho ja foi enviado, entao nao da para trocar o status HTTP -
+	// o que resta e registrar a falha no log para nao perder o sinal.
+	if err := json.NewEncoder(w).Encode(EvaluationResponse{
 		FlagName: flagName,
 		UserID:   userID,
 		Result:   result,
-	})
+	}); err != nil {
+		log.Printf("falha ao escrever resposta de avaliacao: %v", err)
+	}
 }

@@ -1,0 +1,47 @@
+# ============================================================
+# HPA - evaluation-service
+# ============================================================
+# HorizontalPodAutoscaler aumenta e diminui o NUMERO DE PODS conforme a
+# carga. Nao confundir com o auto scaling do node group, que aumenta o
+# numero de MAQUINAS.
+#
+# PRE-REQUISITO: o Metrics Server precisa estar instalado no cluster,
+# senao o HPA fica com "unknown" na coluna de metricas e nunca escala.
+# ============================================================
+
+# autoscaling/v2 e a versao que suporta metricas customizadas e o formato
+# `metrics:` usado abaixo. A v1 antiga so aceitava CPU num campo simples.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+
+metadata:
+  name: evaluation-service-hpa
+  labels:
+    app: evaluation-service
+
+spec:
+  # Qual workload sera escalado.
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    # Precisa bater EXATAMENTE com o metadata.name do deployment.yaml.
+    name: evaluation-service
+
+  # Piso: nunca menos de 1 pod, mesmo sem trafego.
+  minReplicas: 1
+
+  # Teto: 2 pods. Suficiente para demonstrar escalabilidade no video sem
+  # consumir no extra - relevante com o orcamento apertado (F-026).
+  maxReplicas: 2
+
+  # Em que o HPA se baseia para decidir.
+  metrics:
+    - type: Resource
+      resource:
+        # Metrica observada: uso de CPU.
+        name: cpu
+        target:
+          # Utilization compara com o `requests.cpu` do pod (100m aqui).
+          type: Utilization
+          # Passou de 70% dos 100m requisitados, cria mais um pod.
+          averageUtilization: 70

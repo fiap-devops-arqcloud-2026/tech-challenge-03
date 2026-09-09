@@ -1,0 +1,36 @@
+# ============================================================
+# SERVICE - auth-service
+# ============================================================
+# Pods sao descartaveis e trocam de IP a cada reinicio. O Service da
+# um nome DNS estavel e distribui o trafego entre os pods vivos.
+#
+# Aqui, outros pods alcancam este servico por http://auth-service:8001
+# ============================================================
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  # O nome do Service E o hostname DNS dentro do namespace.
+  name: auth-service
+  labels:
+    app: auth-service
+
+spec:
+  # ClusterIP: visivel apenas dentro do cluster, sem IP publico.
+  # Nao ha Ingress nem Load Balancer no projeto (D-012); no video o
+  # acesso e feito por kubectl port-forward.
+  type: ClusterIP
+
+  # Encaminha para os pods que tiverem este label. E a "cola" entre
+  # Service e Deployment - se divergir, o Service fica sem destino.
+  selector:
+    app: auth-service
+
+  ports:
+    - name: http
+      # Porta em que o Service atende (a que outros pods chamam).
+      port: 8001
+      # Porta do container para onde o trafego e entregue.
+      targetPort: 8001
+      protocol: TCP

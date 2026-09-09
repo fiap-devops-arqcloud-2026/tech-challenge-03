@@ -1,0 +1,82 @@
+# ============================================================
+# DEPLOYMENT - targeting-service (Python)
+# ============================================================
+# Regras de segmentacao (ex.: "50% dos usuarios", "usuarios do pais X").
+#
+# PARTICULARIDADE DESTE SERVICO: o banco dele NAO fica no RDS. Por causa
+# do limite de 2 instancias RDS do plano gratuito (F-023), o targeting_db
+# roda como StatefulSet PostgreSQL dentro do proprio cluster - solucao
+# herdada da Fase 2 e aprovada pelo professor tambem para a Fase 3 (D-015).
+# Ver base/postgres-targeting/.
+#
+# Explicacao completa dos campos em base/auth-service/deployment.yaml.
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: targeting-service
+  labels:
+    app: targeting-service
+
+spec:
+  # Sem HPA: so evaluation e analytics escalam.
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: targeting-service
+
+  template:
+    metadata:
+      labels:
+        app: targeting-service
+
+    spec:
+      containers:
+        - name: targeting-service
+
+          # Nome logico; o overlay injeta registro e tag.
+          image: targeting-service
+
+          ports:
+            - containerPort: 8003
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: targeting-service-config
+
+          env:
+            # Diferente de auth e flag, esta URL aponta para o Service
+            # interno postgres-targeting:5432, nao para um endpoint do RDS.
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: targeting-service-secret
+                  key: DATABASE_URL
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

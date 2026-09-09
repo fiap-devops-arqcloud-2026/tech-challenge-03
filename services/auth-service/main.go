@@ -43,7 +43,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("Não foi possível conectar ao banco de dados: %v", err)
 	}
-	defer db.Close()
+	// errcheck: o retorno de Close precisa ser verificado. Aqui o defer
+	// roda no encerramento do processo; falhar ao fechar a conexao nao
+	// muda mais nada, mas registrar ajuda a diagnosticar encerramento
+	// sujo (ex.: transacao aberta) nos logs do pod.
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("falha ao fechar a conexao com o banco: %v", err)
+		}
+	}()
 
 	app := &App{
 		DB:        db,

@@ -1,15 +1,14 @@
-import json
-import logging
 import os
 import sys
 import threading
-import time
+import json
 import uuid
-
+import time
+import logging
 import boto3
-from botocore.exceptions import ClientError, NoCredentialsError
-from dotenv import load_dotenv
+from botocore.exceptions import NoCredentialsError, ClientError
 from flask import Flask, jsonify
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 log = logging.getLogger(__name__)
@@ -42,8 +41,8 @@ if SQS_ENABLED:
         sys.exit(1)
     try:
         session = boto3.Session(region_name=AWS_REGION)
-        sqs_client = session.client("sqs", endpoint_url=os.getenv("SQS_ENDPOINT") or None)
-        dynamodb_client = session.client("dynamodb", endpoint_url=os.getenv("DYNAMODB_ENDPOINT") or None)
+        sqs_client = session.client("sqs")
+        dynamodb_client = session.client("dynamodb")
         log.info(f"Clientes Boto3 inicializados na região {AWS_REGION}.")
     except NoCredentialsError:
         log.critical("Credenciais da AWS não encontradas. Verifique seu ambiente.")
@@ -144,5 +143,14 @@ def start_worker():
 start_worker()
 
 if __name__ == '__main__':
+    # O default de os.getenv precisa ser str ou None: a funcao devolve
+    # sempre uma string quando a variavel existe, e misturar os tipos
+    # confunde quem le. O int() externo continua fazendo a conversao.
     port = int(os.getenv("PORT", "8005"))
+    # nosec B104 - o bandit alerta sobre ligar em todas as interfaces.
+    # Aqui e o comportamento CORRETO e necessario: o processo roda dentro
+    # de um container, e ligar apenas em 127.0.0.1 o tornaria inalcancavel
+    # pelo kubelet e pelo Service do Kubernetes. Quem restringe o acesso
+    # nao e o bind, e o Service ClusterIP (sem Ingress, ver D-012) somado
+    # aos security groups da VPC.
     app.run(host='0.0.0.0', port=port, debug=False)  # nosec B104

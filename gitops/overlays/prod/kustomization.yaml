@@ -1,0 +1,81 @@
+# ============================================================
+# KUSTOMIZATION - overlay prod
+# ============================================================
+# Ambiente unico do projeto (D-011). Este overlay pega a base e injeta
+# tudo que so existe depois do `terraform apply`: URLs geradas pela AWS,
+# ARNs de role IRSA e as tags de imagem publicadas pelo CI.
+#
+# E ESTE o arquivo que o pipeline altera no passo final (O-24), no bloco
+# `images:` la embaixo.
+#
+# Para conferir o resultado antes de aplicar:
+#   kubectl kustomize gitops/overlays/prod
+# ============================================================
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Redundante com a base, mas explicito: deixa claro em que namespace o
+# ArgoCD vai sincronizar.
+namespace: togglemaster
+
+resources:
+  # Traz tudo de gitops/base.
+  - ../../base
+
+  # NAO ha secretstore.yaml aqui (P-037). O External Secrets Operator foi
+  # cortado: os Secrets do Kubernetes passaram a ser criados pelo Terraform
+  # da camada cluster, pelo provider kubernetes. Menos uma peca em runtime
+  # no caminho critico da gravacao. Contrato em gitops/SECRETS-CONTRATO.md.
+
+# ------------------------------------------------------------
+# PATCHES
+# ------------------------------------------------------------
+# Alteram recursos que ja vieram da base, sem duplicar o arquivo inteiro.
+# ------------------------------------------------------------
+patches:
+  # Anota as ServiceAccounts com o ARN da role IAM (IRSA).
+  - path: patches/irsa.yaml
+
+  # Acrescenta aos ConfigMaps as chaves que dependem de endpoint da AWS.
+  - path: patches/endpoints.yaml
+
+# ------------------------------------------------------------
+# IMAGENS - o ponto de integracao com o pipeline de CI
+# ------------------------------------------------------------
+# Na base, cada Deployment referencia apenas um nome logico
+# (ex.: `image: auth-service`). Aqui esse nome ganha o registro real e a
+# tag do commit.
+#
+# O passo final do CI roda, dentro desta pasta:
+#   kustomize edit set image auth-service=<url-do-ecr>:v1.0.0-<sha>
+# e comita a alteracao. O ArgoCD detecta o commit e sincroniza (O-25).
+#
+# Uma linha alterada, diff legivel, sem sed em YAML.
+#
+# ATENCAO: as tags abaixo sao PLACEHOLDER. Elas mudam sozinhas no
+# primeiro build de cada servico e nao devem ser editadas a mao.
+# ------------------------------------------------------------
+images:
+  - name: auth-service
+    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/auth-service
+    newTag: v1.0.0-placeholder
+
+  - name: flag-service
+    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/flag-service
+    newTag: v1.0.0-placeholder
+
+  - name: targeting-service
+    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/targeting-service
+    newTag: v1.0.0-placeholder
+
+  - name: evaluation-service
+    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/evaluation-service
+    newTag: v1.0.0-placeholder
+
+  - name: analytics-service
+    newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/analytics-service
+    newTag: v1.0.0-placeholder
+
+  # A imagem do PostgreSQL nao entra aqui: vem pronta do Docker Hub com
+  # tag fixa e nao passa pelo nosso pipeline.

@@ -1,21 +1,20 @@
-import logging
 import os
 import sys
-from functools import wraps
-
 import psycopg2
 import requests
-from dotenv import load_dotenv
-from flask import Flask, jsonify, request
-from psycopg2.extras import Json, RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 from psycopg2.pool import SimpleConnectionPool
+from flask import Flask, request, jsonify
+from dotenv import load_dotenv
+from functools import wraps
+import logging
 
 # Configura o logging
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 # Carrega .env para desenvolvimento local
-load_dotenv() 
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -43,15 +42,15 @@ def require_auth(f):
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             return jsonify({"error": "Authorization header obrigatório"}), 401
-        
+
         try:
             validate_url = f"{AUTH_SERVICE_URL}/validate"
             response = requests.get(validate_url, headers={"Authorization": auth_header}, timeout=3)
-            
+
             if response.status_code != 200:
                 log.warning(f"Falha na validação da chave (status: {response.status_code})")
                 return jsonify({"error": "Chave de API inválida"}), 401
-        
+
         except requests.exceptions.Timeout:
             log.error("Timeout ao conectar com o auth-service")
             return jsonify({"error": "Serviço de autenticação indisponível (timeout)"}), 504 # Gateway Timeout
@@ -76,11 +75,11 @@ def create_rule():
     data = request.get_json()
     if not data or 'flag_name' not in data or 'rules' not in data:
         return jsonify({"error": "'flag_name' e 'rules' (JSON) são obrigatórios"}), 400
-    
+
     flag_name = data['flag_name']
     rules_obj = data['rules'] # O objeto JSON
     is_enabled = data.get('is_enabled', True)
-    
+
     conn = None
     cur = None
     try:
@@ -138,31 +137,48 @@ def update_rule(flag_name):
 
     fields = []
     values = []
-    
+
     if 'rules' in data:
         fields.append("rules = %s")
         values.append(Json(data['rules'])) # Serializa o JSON
     if 'is_enabled' in data:
         fields.append("is_enabled = %s")
         values.append(data['is_enabled'])
-    
+
     if not fields:
         return jsonify({"error": "Pelo menos um campo ('rules', 'is_enabled') é obrigatório"}), 400
-    
+
     values.append(flag_name) # Adiciona o 'flag_name' para a cláusula WHERE
-    
+
+    # nosec B608 - o bandit alerta sobre montagem de query por string.
+    # Analisado em 2026-09-09 e classificado como FALSO POSITIVO:
+    #
+    #   A f-string interpola apenas `fields`, que contem exclusivamente
+    #   literais escritos acima neste mesmo arquivo - "description = %%s"
+    #   e "is_enabled = %%s". Nenhum dado vindo do usuario entra na
+    #   STRING da query.
+    #
+    #   Os valores enviados pelo cliente vao para a lista `values` e sao
+    #   passados como PARAMETROS em cur.execute(query, tuple(values)).
+    #   Quem monta o SQL final e o driver psycopg2, que faz o escape.
+    #
+    #   O bandit sinaliza qualquer f-string em query sem rastrear se as
+    #   partes interpoladas sao constantes - por isso o alerta aqui.
+    #
+    # Se um dia alguem passar a montar `fields` a partir de entrada do
+    # usuario, esta supressao deixa de valer e o alerta volta a ser real.
     query = f"UPDATE targeting_rules SET {', '.join(fields)} WHERE flag_name = %s RETURNING *"  # nosec B608
-    
+
     conn = None
     cur = None
     try:
         conn = pool.getconn()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute(query, tuple(values))
-        
+
         if cur.rowcount == 0:
             return jsonify({"error": "Regra não encontrada"}), 404
-            
+
         updated_rule = cur.fetchone()
         conn.commit()
         log.info(f"Regra para '{flag_name}' atualizada com sucesso.")
@@ -185,10 +201,10 @@ def delete_rule(flag_name):
         conn = pool.getconn()
         cur = conn.cursor()
         cur.execute("DELETE FROM targeting_rules WHERE flag_name = %s", (flag_name,))
-        
+
         if cur.rowcount == 0:
             return jsonify({"error": "Regra não encontrada"}), 404
-            
+
         conn.commit()
         log.info(f"Regra para '{flag_name}' deletada com sucesso.")
         return "", 204 # 204 No Content
@@ -201,5 +217,14 @@ def delete_rule(flag_name):
         if conn: pool.putconn(conn)
 
 if __name__ == '__main__':
+    # O default de os.getenv precisa ser str ou None: a funcao devolve
+    # sempre uma string quando a variavel existe, e misturar os tipos
+    # confunde quem le. O int() externo continua fazendo a conversao.
     port = int(os.getenv("PORT", "8003"))
+    # nosec B104 - o bandit alerta sobre ligar em todas as interfaces.
+    # Aqui e o comportamento CORRETO e necessario: o processo roda dentro
+    # de um container, e ligar apenas em 127.0.0.1 o tornaria inalcancavel
+    # pelo kubelet e pelo Service do Kubernetes. Quem restringe o acesso
+    # nao e o bind, e o Service ClusterIP (sem Ingress, ver D-012) somado
+    # aos security groups da VPC.
     app.run(host='0.0.0.0', port=port, debug=False)  # nosec B104

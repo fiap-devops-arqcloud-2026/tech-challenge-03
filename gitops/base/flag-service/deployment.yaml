@@ -1,0 +1,83 @@
+# ============================================================
+# DEPLOYMENT - flag-service (Python)
+# ============================================================
+# CRUD das definicoes de feature flags. Protegido: exige header
+# Authorization e depende do auth-service.
+#
+# A explicacao completa de cada campo esta em
+# base/auth-service/deployment.yaml. Aqui os comentarios destacam o
+# que e especifico deste servico.
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: flag-service
+  labels:
+    app: flag-service
+
+spec:
+  # Sem HPA neste servico: o enunciado da Fase 2 so exigia auto-escala em
+  # evaluation e analytics, e isso foi mantido.
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: flag-service
+
+  template:
+    metadata:
+      labels:
+        app: flag-service
+
+    spec:
+      containers:
+        - name: flag-service
+
+          # Nome logico; registro e tag vem do bloco `images:` do overlay.
+          image: flag-service
+
+          ports:
+            - containerPort: 8002
+              name: http
+
+          # PORT e AUTH_SERVICE_URL vem daqui.
+          envFrom:
+            - configMapRef:
+                name: flag-service-config
+
+          env:
+            # Conexao com o RDS `flags_db`. Valor injetado pelo ESO.
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flag-service-secret
+                  key: DATABASE_URL
+
+          resources:
+            requests:
+              # 100m contra os 50m do auth: Python consome mais CPU que Go
+              # na inicializacao do interpretador.
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            # 15s contra 10s do auth: Gunicorn demora mais para subir.
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

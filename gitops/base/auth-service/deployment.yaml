@@ -1,0 +1,114 @@
+# ============================================================
+# DEPLOYMENT - auth-service (Go)
+# ============================================================
+# O Deployment mantem o numero desejado de pods rodando. Se um pod
+# morrer ou o no falhar, ele cria outro automaticamente.
+#
+# Derivado de infra/k8s/auth-service/deployment.yaml da Fase 2 (D-014).
+# Duas mudancas em relacao ao original:
+#   1. a imagem perdeu registro e tag, que agora sao do Kustomize (O-24);
+#   2. o namespace saiu daqui e foi para o kustomization.yaml da base.
+# ============================================================
+
+# apps/v1 e o grupo de APIs para workloads (Deployment, StatefulSet...).
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  # Nome do Deployment dentro do namespace.
+  name: auth-service
+  labels:
+    # Rotulo usado pelo selector abaixo e pelo Service para achar os pods.
+    app: auth-service
+
+spec:
+  # Quantas copias do pod devem existir. 1 e a entrega minima definida na
+  # Fase 2: o enunciado nao exige replicas extras, e cada pod a mais
+  # consome no - recurso escasso com o orcamento atual (F-026).
+  replicas: 1
+
+  # Diz ao Deployment QUAIS pods ele controla. Precisa casar com os
+  # labels do template abaixo, senao o Deployment nao encontra seus pods.
+  selector:
+    matchLabels:
+      app: auth-service
+
+  # Template: o molde usado para criar cada pod.
+  template:
+    metadata:
+      labels:
+        # Precisa ser identico ao matchLabels acima.
+        app: auth-service
+
+    spec:
+      containers:
+        - name: auth-service
+
+          # ATENCAO: nome logico, sem registro e sem tag, de proposito.
+          # Quem substitui isto pela URL real do ECR e pela tag do commit
+          # e o bloco `images:` do overlay. E isso que permite ao CI rodar
+          #   kustomize edit set image auth-service=<url>:v1.0.0-<sha>
+          # alterando UM campo de UM arquivo, com diff limpo (O-24).
+          image: auth-service
+
+          ports:
+            # Porta que o processo escuta dentro do container. Precisa
+            # bater com o EXPOSE do Dockerfile e com o targetPort do Service.
+            - containerPort: 8001
+              name: http
+
+          # Injeta TODAS as chaves do ConfigMap como variaveis de ambiente.
+          envFrom:
+            - configMapRef:
+                name: auth-service-config
+
+          # Variaveis sensiveis entram uma a uma, vindas do Secret.
+          # O Secret nao esta versionado: ele e criado em tempo de execucao
+          # pelo External Secrets Operator a partir do AWS Secrets Manager
+          # (D-013). Ver externalsecret.yaml nesta mesma pasta.
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  # Nome do Secret que o ExternalSecret vai criar.
+                  name: auth-service-secret
+                  # Chave especifica dentro dele.
+                  key: DATABASE_URL
+
+            - name: MASTER_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: auth-service-secret
+                  key: MASTER_KEY
+
+          resources:
+            # requests = minimo garantido. O agendador usa este numero para
+            # decidir em qual no o pod cabe.
+            requests:
+              cpu: "50m"      # 50 milicores = 5% de 1 vCPU
+              memory: "64Mi"
+            # limits = teto. Estourar memoria mata o pod (OOMKilled);
+            # estourar CPU apenas desacelera (throttling).
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+
+          # readinessProbe: o pod so recebe trafego quando esta verificacao
+          # passa. Evita mandar requisicao para um pod ainda subindo.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10  # espera antes da primeira checagem
+            periodSeconds: 10        # intervalo entre checagens
+            failureThreshold: 3      # falhas seguidas ate tirar do trafego
+
+          # livenessProbe: se falhar, o Kubernetes REINICIA o pod. Serve
+          # para travamentos que nao se resolvem sozinhos.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30  # mais folga: reiniciar e mais agressivo
+            periodSeconds: 30
+            failureThreshold: 3

@@ -1,0 +1,46 @@
+# ============================================================
+# PATCH - endereços gerados pela AWS
+# ============================================================
+# Acrescenta aos ConfigMaps da base as chaves que so existem depois do
+# `terraform apply`, porque contem endpoint ou numero de conta.
+#
+# O Kustomize funde estes blocos `data` com os da base: as chaves que ja
+# existiam la continuam, e estas sao somadas.
+#
+# ------------------------------------------------------------
+# PREENCHER APOS O APPLY DAS ETAPAS 1 E 2
+# ------------------------------------------------------------
+#   terraform -chdir=terraform output sqs_queue_url
+#   terraform -chdir=terraform output redis_endpoint     # Etapa 2
+# ============================================================
+
+# Documento 1: ConfigMap do evaluation-service.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  # Casado com o recurso da base por kind + name.
+  name: evaluation-service-config
+data:
+  # Endereco do ElastiCache. Sai do output do Terraform da Etapa 2.
+  # O evaluation consulta este cache antes de chamar flag e targeting;
+  # e o que mantem o hot path rapido.
+  # PLACEHOLDER ate a Etapa 2 existir.
+  REDIS_URL: "redis://togglemaster-redis.PREENCHER.use2.cache.amazonaws.com:6379"
+
+  # URL da fila SQS. Sai de `terraform output sqs_queue_url` (Etapa 1,
+  # ja aplicavel). Contem o numero da conta, por isso nao fica na base.
+  #
+  # Observe que isto esta num ConfigMap e nao num Secret: na Fase 2 a URL
+  # vivia dentro do Secret junto com as chaves da AWS. URL de fila nao e
+  # segredo - sem credencial, conhecer o endereco nao da acesso a nada.
+  AWS_SQS_URL: "https://sqs.us-east-2.amazonaws.com/891376952395/togglemaster-events"
+
+---
+# Documento 2: ConfigMap do analytics-service.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: analytics-service-config
+data:
+  # Mesma fila, lado consumidor. O evaluation publica, o analytics le.
+  AWS_SQS_URL: "https://sqs.us-east-2.amazonaws.com/891376952395/togglemaster-events"

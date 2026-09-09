@@ -1,0 +1,97 @@
+# ============================================================
+# DEPLOYMENT - evaluation-service (Go)
+# ============================================================
+# O "caminho quente" (hot path) do ToggleMaster: e o unico endpoint que
+# clientes finais chamam. Consulta o Redis, chama flag e targeting
+# quando precisa, e publica o evento na fila SQS.
+#
+# DUAS MUDANCAS IMPORTANTES EM RELACAO A FASE 2:
+#   1. As variaveis AWS_ACCESS_KEY_ID e AWS_SECRET_ACCESS_KEY foram
+#      REMOVIDAS. O acesso a SQS agora e por IRSA (ver serviceaccount.yaml).
+#   2. A imagem virou nome logico, gerenciado pelo Kustomize.
+#
+# Explicacao completa dos campos em base/auth-service/deployment.yaml.
+# ============================================================
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: evaluation-service
+  labels:
+    app: evaluation-service
+
+spec:
+  # 1 replica como piso. O HPA (hpa.yaml) sobe para 2 sob carga de CPU.
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: evaluation-service
+
+  template:
+    metadata:
+      labels:
+        app: evaluation-service
+
+    spec:
+      # AQUI E ONDE O POD GANHA IDENTIDADE NA AWS. Sem esta linha, o pod
+      # usaria a ServiceAccount "default", que nao tem role associada, e
+      # toda chamada a SQS falharia com AccessDenied.
+      serviceAccountName: evaluation-service
+
+      containers:
+        - name: evaluation-service
+
+          # Nome logico; o overlay injeta registro e tag.
+          image: evaluation-service
+
+          ports:
+            - containerPort: 8004
+              name: http
+
+          # Traz PORT, REDIS_URL, AWS_REGION e as URLs de flag e targeting.
+          envFrom:
+            - configMapRef:
+                name: evaluation-service-config
+
+          env:
+            # Chave usada para o evaluation se autenticar nos outros
+            # servicos internos. Continua sendo segredo de aplicacao, entao
+            # continua vindo do Secrets Manager via ESO.
+            - name: SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: evaluation-service-secret
+                  key: SERVICE_API_KEY
+
+            # OBSERVE O QUE NAO ESTA AQUI: nao ha AWS_ACCESS_KEY_ID nem
+            # AWS_SECRET_ACCESS_KEY. O SDK da AWS detecta sozinho o token
+            # injetado pelo EKS por causa da ServiceAccount acima.
+            # A URL da fila e publica e vem do ConfigMap, nao do Secret.
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              # Teto de CPU mais alto que os demais: e o hot path, e o HPA
+              # so escala quando a CPU realmente sobe.
+              cpu: "500m"
+              memory: "128Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3

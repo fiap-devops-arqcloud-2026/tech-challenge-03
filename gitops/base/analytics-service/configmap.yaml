@@ -1,0 +1,29 @@
+# ============================================================
+# CONFIGMAP - analytics-service
+# ============================================================
+# Depois do IRSA, este ConfigMap carrega TUDO que o servico precisa.
+# Nao ha Secret nenhum associado a ele.
+#
+# A chave AWS_SQS_URL nao esta aqui: ela inclui o numero da conta e so
+# existe apos o `terraform apply`. E acrescentada pelo patch em
+# overlays/prod/patches/endpoints.yaml.
+# ============================================================
+
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: analytics-service-config
+  labels:
+    app: analytics-service
+
+data:
+  # Porta do servidor de health check.
+  PORT: "8005"
+
+  # Regiao que o boto3 usa para falar com SQS e DynamoDB. Fixa (F-012).
+  AWS_REGION: "us-east-2"
+
+  # Nome literal da tabela, exigido pelo enunciado (F-009). Nao muda
+  # entre ambientes, entao pode ficar na base.
+  AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"

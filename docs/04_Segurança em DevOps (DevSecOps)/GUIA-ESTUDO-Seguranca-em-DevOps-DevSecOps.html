@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Segurança em DevOps (DevSecOps) - Guia para Leigos</title>
+  <style>
+    :root{
+      --bg:#eef2f8; --surface:#ffffff; --surface-2:#e7eef7; --panel:#f5f8fc;
+      --ink:#132339; --ink-soft:#4c5f79; --ink-faint:#7787a0;
+      --line:#d3ddea; --line-soft:#e2e9f2;
+      --accent:#2f6ae0; --accent-ink:#1c4aa8; --accent-wash:#e7eefb;
+      --brass:#b26a10; --brass-wash:#f6ecdd;
+      --ok:#2c8159; --warn:#a9741a; --no:#7a869a;
+      --serif:Georgia,"Iowan Old Style","Palatino Linotype","Times New Roman",serif;
+      --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+      --mono:"Cascadia Code",Consolas,"SFMono-Regular",ui-monospace,monospace;
+    }
+    @media (prefers-color-scheme:dark){:root{
+      --bg:#0c1725; --surface:#152539; --surface-2:#101f31; --panel:#132234;
+      --ink:#e6edf6; --ink-soft:#a4b6cc; --ink-faint:#7488a2;
+      --line:#26394f; --line-soft:#1d2d40;
+      --accent:#6c9cf1; --accent-ink:#9cbdf8; --accent-wash:#16273f;
+      --brass:#e0a552; --brass-wash:#241c11; --ok:#59bf8c; --warn:#e0a552; --no:#7f8aa0;
+    }}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+    .wrap{max-width:900px;margin:0 auto;padding:clamp(20px,4vw,52px) clamp(16px,4vw,32px)}
+    .masthead{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+    .eyebrow{font-family:var(--mono);font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 12px}
+    .masthead h1{font-family:var(--serif);font-weight:700;font-size:clamp(1.9rem,5.6vw,3rem);line-height:1.05;margin:0;text-wrap:balance}
+    .masthead .sub{font-size:clamp(1rem,2.4vw,1.18rem);color:var(--ink-soft);margin:.5em 0 0;max-width:62ch}
+    .meta{font-family:var(--mono);font-size:.74rem;color:var(--ink-faint);margin-top:16px;display:flex;flex-wrap:wrap;gap:6px 18px}
+    h2{font-family:var(--serif);font-weight:700;font-size:clamp(1.4rem,3.4vw,1.9rem);margin:52px 0 6px;text-wrap:balance}
+    .section-rule{height:3px;width:56px;background:var(--accent);border-radius:2px;margin:14px 0 24px}
+    p{max-width:68ch}
+    .lead{color:var(--ink-soft);margin:0 0 22px;max-width:66ch}
+    strong{color:var(--ink)}
+    a{color:var(--accent-ink);text-underline-offset:3px}
+    .intro{display:grid;gap:16px;grid-template-columns:1fr 1fr}
+    @media(max-width:620px){.intro{grid-template-columns:1fr}}
+    .intro .box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+    .intro .box h3{margin:0 0 8px;font-size:1.05rem;font-family:var(--sans);font-weight:700}
+    .intro .box p{margin:0;font-size:.96rem;color:var(--ink-soft);max-width:none}
+    .intro .box.hi{border-color:var(--brass);background:var(--brass-wash)}
+    .glossary{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:clamp(16px,3vw,26px);display:grid;grid-template-columns:1fr 1fr;gap:2px 26px}
+    @media(max-width:640px){.glossary{grid-template-columns:1fr}}
+    .term{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+    .term .k{font-family:var(--mono);font-weight:700;color:var(--accent-ink);font-size:.92rem}
+    .term .full{font-style:italic;color:var(--ink-faint);font-size:.86rem;margin-left:6px}
+    .term .d{display:block;color:var(--ink-soft);font-size:.94rem;margin-top:2px}
+    .lessons{display:flex;flex-direction:column;gap:18px}
+    .lesson{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:clamp(18px,3vw,26px);transition:border-color .18s ease}
+    .lesson:hover{border-color:var(--accent)}
+    .lesson-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:16px}
+    .num{font-family:var(--serif);font-size:2.1rem;font-weight:700;line-height:1;color:var(--accent);min-width:1.6em;font-variant-numeric:tabular-nums}
+    .lesson-head h3{margin:2px 0 8px;font-size:clamp(1.12rem,2.6vw,1.3rem);font-family:var(--sans);font-weight:700;line-height:1.25}
+    .badge{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:20px;border:1px solid currentColor}
+    .badge.ok{color:var(--ok)}
+    .badge.warn{color:var(--warn)}
+    .badge.no{color:var(--no)}
+    .facets{margin:0;display:grid;gap:14px}
+    .facets > div{display:grid;grid-template-columns:150px 1fr;gap:4px 18px;align-items:baseline}
+    @media(max-width:600px){.facets > div{grid-template-columns:1fr}}
+    .facets dt{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);margin:0}
+    .facets dd{margin:0;color:var(--ink-soft);font-size:.97rem}
+    .facets dd.proj{color:var(--ink)}
+    .facets .use{color:var(--brass)}
+    code{font-family:var(--mono);font-size:.86em;background:var(--accent-wash);color:var(--accent-ink);padding:1px 6px;border-radius:5px}
+    .flow{margin:0;padding:0;list-style:none;counter-reset:flow;display:grid;gap:12px}
+    .flow li{counter-increment:flow;display:grid;grid-template-columns:38px 1fr;gap:13px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+    .flow li::before{content:counter(flow);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent-wash);color:var(--accent-ink);font-family:var(--mono);font-size:.78rem;font-weight:700}
+    .flow strong{display:block;margin-bottom:2px}
+    .flow span{color:var(--ink-soft);font-size:.95rem}
+    .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+    table{border-collapse:collapse;width:100%;min-width:700px;font-size:.92rem}
+    th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line-soft)}
+    thead th{background:var(--surface-2);font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+    tbody tr:last-child td{border-bottom:none}
+    td .s{font-family:var(--mono);font-size:.78rem;font-weight:700}
+    td .s.ok{color:var(--ok)}
+    td .s.warn{color:var(--warn)}
+    td .s.no{color:var(--no)}
+    td .num2{font-family:var(--serif);font-weight:700;color:var(--accent)}
+    .note{margin-top:20px;padding:16px 18px;border-left:4px solid var(--brass);background:var(--brass-wash);color:var(--ink-soft)}
+    .note strong{display:block;margin-bottom:3px}
+    .sources{display:grid;grid-template-columns:1fr 1fr;gap:8px 22px;margin:0;padding:0;list-style:none}
+    .sources li{border-bottom:1px solid var(--line-soft);padding:8px 0;font-size:.92rem}
+    @media(max-width:640px){.sources{grid-template-columns:1fr}}
+    footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:.86rem}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="masthead">
+      <p class="eyebrow">Módulo 4 · DevOps e Arquitetura Cloud · FIAP</p>
+      <h1>Segurança em DevOps (DevSecOps)</h1>
+      <p class="sub">Da proteção do primeiro commit até métricas, auditoria e gestão centralizada de vulnerabilidades - em 7 aulas, com ferramentas explicadas e aplicação no ToggleMaster.</p>
+      <div class="meta">
+        <span>Guia de estudo</span>
+        <span>7 aulas</span>
+        <span>+ glossário de segurança</span>
+        <span>+ pipeline DevSecOps</span>
+        <span>Atualizado em 2026-07-18</span>
+      </div>
+    </header>
+
+    <section aria-label="Visão geral">
+      <div class="intro">
+        <div class="box">
+          <h3>O que é DevSecOps?</h3>
+          <p>É colocar <strong>segurança dentro da linha de montagem</strong> do software. Cada mudança é inspecionada desde o computador do desenvolvedor até a aplicação em execução. Um risco grave interrompe a entrega antes de chegar ao usuário.</p>
+        </div>
+        <div class="box hi">
+          <h3>Por que combina com o nosso projeto</h3>
+          <p>O ToggleMaster terá código, dependências, imagens Docker, Terraform, credenciais AWS e aplicações no EKS. Cada camada pode introduzir riscos diferentes. O pipeline será nosso <strong>controle de qualidade automático</strong>, com evidências do que foi verificado.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Glossário - o significado das siglas</h2>
+      <div class="section-rule"></div>
+      <p class="lead">Os principais conceitos e ferramentas das sete aulas, traduzidos para uma linguagem direta.</p>
+      <div class="glossary">
+        <div class="term"><span class="k">DevSecOps</span><span class="d">Desenvolvimento, segurança e operações trabalhando juntos durante toda a entrega.</span></div>
+        <div class="term"><span class="k">SDLC</span><span class="full">Software Development Lifecycle</span><span class="d">Ciclo de vida do software, do planejamento até a operação.</span></div>
+        <div class="term"><span class="k">Secure SDLC</span><span class="d">SDLC que inclui segurança em todas as fases.</span></div>
+        <div class="term"><span class="k">Shift Left</span><span class="d">Levar verificações de segurança para o início do desenvolvimento.</span></div>
+        <div class="term"><span class="k">Shift Right</span><span class="d">Validar segurança também na aplicação implantada e em execução.</span></div>
+        <div class="term"><span class="k">CI/CD</span><span class="d">Esteira automatizada de integração, entrega e implantação de software.</span></div>
+        <div class="term"><span class="k">Git</span><span class="d">Sistema que registra o histórico de alterações do código.</span></div>
+        <div class="term"><span class="k">GitHub Actions</span><span class="d">Serviço que executa os pipelines ligados ao repositório GitHub.</span></div>
+        <div class="term"><span class="k">PR</span><span class="full">Pull Request</span><span class="d">Pedido de revisão antes de incorporar uma mudança ao código principal.</span></div>
+        <div class="term"><span class="k">Supply chain</span><span class="full">cadeia de suprimentos</span><span class="d">Tudo que participa da criação do software: código, dependências, ferramentas e artefatos.</span></div>
+        <div class="term"><span class="k">Artifact</span><span class="full">artefato</span><span class="d">Resultado produzido pela esteira, como imagem, pacote, relatório ou SBOM.</span></div>
+        <div class="term"><span class="k">Threat modeling</span><span class="full">modelagem de ameaças</span><span class="d">Analisar antecipadamente ativos, fluxos e possíveis ataques.</span></div>
+        <div class="term"><span class="k">Trust boundary</span><span class="full">fronteira de confiança</span><span class="d">Ponto onde dados ou comandos atravessam áreas com níveis de confiança diferentes.</span></div>
+        <div class="term"><span class="k">STRIDE</span><span class="d">Método para classificar seis tipos de ameaça.</span></div>
+        <div class="term"><span class="k">Spoofing</span><span class="d">Fingir ser outra pessoa ou sistema.</span></div>
+        <div class="term"><span class="k">Tampering</span><span class="d">Alterar código, dados ou artefatos sem autorização.</span></div>
+        <div class="term"><span class="k">Repudiation</span><span class="d">Negar uma ação porque não existe prova confiável de autoria.</span></div>
+        <div class="term"><span class="k">Information Disclosure</span><span class="d">Exposição indevida de informações.</span></div>
+        <div class="term"><span class="k">DoS</span><span class="full">Denial of Service</span><span class="d">Ataque que tenta tornar um serviço indisponível.</span></div>
+        <div class="term"><span class="k">Elevation of Privilege</span><span class="d">Conseguir permissões maiores do que as autorizadas.</span></div>
+        <div class="term"><span class="k">Zero Trust</span><span class="d">Nada recebe confiança automática; cada acesso deve ser verificado.</span></div>
+        <div class="term"><span class="k">PoLP</span><span class="full">Principle of Least Privilege</span><span class="d">Conceder somente as permissões estritamente necessárias.</span></div>
+        <div class="term"><span class="k">OIDC</span><span class="full">OpenID Connect</span><span class="d">Permite ao pipeline obter credenciais temporárias sem guardar chaves AWS fixas.</span></div>
+        <div class="term"><span class="k">IAM</span><span class="full">Identity and Access Management</span><span class="d">Serviço AWS que controla identidades, papéis e permissões.</span></div>
+        <div class="term"><span class="k">Runner</span><span class="d">Máquina que executa os jobs do pipeline.</span></div>
+        <div class="term"><span class="k">SaaS Runner</span><span class="full">Software as a Service</span><span class="d">Runner temporário mantido pelo provedor, como o GitHub.</span></div>
+        <div class="term"><span class="k">Self-hosted Runner</span><span class="d">Runner mantido pela própria equipe, exigindo atualização, isolamento e proteção.</span></div>
+        <div class="term"><span class="k">SRE</span><span class="full">Site Reliability Engineering</span><span class="d">Disciplina voltada à confiabilidade e operação de sistemas.</span></div>
+        <div class="term"><span class="k">Secret</span><span class="d">Senha, token, chave ou credencial que precisa ser protegida.</span></div>
+        <div class="term"><span class="k">Secret Sprawl</span><span class="d">Espalhamento descontrolado de segredos em código, arquivos, logs e históricos.</span></div>
+        <div class="term"><span class="k">API key</span><span class="full">chave de API</span><span class="d">Credencial usada por um sistema para acessar outro.</span></div>
+        <div class="term"><span class="k">Gitleaks</span><span class="d">Ferramenta que procura segredos em arquivos e histórico Git.</span></div>
+        <div class="term"><span class="k">Pre-commit hook</span><span class="d">Script executado localmente antes de concluir um commit.</span></div>
+        <div class="term"><span class="k">Secret scanning</span><span class="d">Varredura automática para detectar credenciais expostas.</span></div>
+        <div class="term"><span class="k">Branch Protection</span><span class="d">Regras que controlam o que precisa passar antes do merge.</span></div>
+        <div class="term"><span class="k">Signed commit</span><span class="d">Commit com assinatura criptográfica que ajuda a provar sua autoria.</span></div>
+        <div class="term"><span class="k">Build secret</span><span class="d">Segredo necessário apenas durante a construção do software.</span></div>
+        <div class="term"><span class="k">Runtime secret</span><span class="d">Segredo acessado pela aplicação enquanto ela está funcionando.</span></div>
+        <div class="term"><span class="k">AWS Secrets Manager</span><span class="d">Serviço AWS para armazenar, acessar e rotacionar segredos.</span></div>
+        <div class="term"><span class="k">Rotation</span><span class="full">rotação</span><span class="d">Troca periódica de uma credencial para reduzir sua vida útil.</span></div>
+        <div class="term"><span class="k">Staging label</span><span class="d">Rótulo que identifica versões atuais e anteriores de um segredo.</span></div>
+        <div class="term"><span class="k">SAST</span><span class="full">Static Application Security Testing</span><span class="d">Analisa o código sem executar a aplicação.</span></div>
+        <div class="term"><span class="k">White-box</span><span class="d">Teste com visibilidade da estrutura interna do código.</span></div>
+        <div class="term"><span class="k">Horusec</span><span class="d">Ferramenta que reúne análises de segurança, incluindo SAST.</span></div>
+        <div class="term"><span class="k">SCA</span><span class="full">Software Composition Analysis</span><span class="d">Analisa bibliotecas e dependências de terceiros.</span></div>
+        <div class="term"><span class="k">Dependency</span><span class="full">dependência</span><span class="d">Biblioteca ou pacote usado pelo projeto.</span></div>
+        <div class="term"><span class="k">Transitive dependency</span><span class="d">Dependência indireta trazida por outra biblioteca.</span></div>
+        <div class="term"><span class="k">CVE</span><span class="full">Common Vulnerabilities and Exposures</span><span class="d">Identificador padronizado de uma vulnerabilidade conhecida.</span></div>
+        <div class="term"><span class="k">Trivy</span><span class="d">Scanner que analisa dependências, imagens de containers e configurações.</span></div>
+        <div class="term"><span class="k">SBOM</span><span class="full">Software Bill of Materials</span><span class="d">Lista de ingredientes do software: componentes, versões e dependências.</span></div>
+        <div class="term"><span class="k">CycloneDX</span><span class="d">Formato padronizado de SBOM voltado à segurança.</span></div>
+        <div class="term"><span class="k">SPDX</span><span class="full">Software Package Data Exchange</span><span class="d">Formato padronizado para componentes e licenças de software.</span></div>
+        <div class="term"><span class="k">VEX</span><span class="full">Vulnerability Exploitability eXchange</span><span class="d">Informa se uma vulnerabilidade realmente afeta determinado produto.</span></div>
+        <div class="term"><span class="k">False positive</span><span class="full">falso positivo</span><span class="d">Alerta que parece vulnerabilidade, mas não representa risco real naquele contexto.</span></div>
+        <div class="term"><span class="k">MITRE ATT&CK</span><span class="d">Base de conhecimento sobre técnicas e comportamentos usados por atacantes.</span></div>
+        <div class="term"><span class="k">NIST</span><span class="full">National Institute of Standards and Technology</span><span class="d">Instituição que publica padrões e guias de segurança.</span></div>
+        <div class="term"><span class="k">SSDF</span><span class="full">Secure Software Development Framework</span><span class="d">Práticas do NIST para desenvolvimento seguro.</span></div>
+        <div class="term"><span class="k">OPA</span><span class="full">Open Policy Agent</span><span class="d">Motor que avalia políticas escritas como código.</span></div>
+        <div class="term"><span class="k">Policy as Code</span><span class="d">Regras de segurança versionadas e aplicadas automaticamente.</span></div>
+        <div class="term"><span class="k">OWASP</span><span class="full">Open Worldwide Application Security Project</span><span class="d">Organização que reúne ferramentas e referências de segurança de aplicações.</span></div>
+        <div class="term"><span class="k">Hardening</span><span class="full">endurecimento</span><span class="d">Reduzir permissões, componentes e superfícies desnecessárias.</span></div>
+        <div class="term"><span class="k">Multi-stage build</span><span class="d">Dockerfile com uma etapa para construir e outra menor para executar.</span></div>
+        <div class="term"><span class="k">Distroless</span><span class="d">Imagem minimalista que contém apenas o necessário para executar a aplicação.</span></div>
+        <div class="term"><span class="k">CIS Benchmark</span><span class="d">Conjunto de recomendações de segurança publicado pelo Center for Internet Security.</span></div>
+        <div class="term"><span class="k">Root / UID 0</span><span class="full">User Identifier</span><span class="d">Usuário com poder administrativo dentro de sistemas Linux e containers.</span></div>
+        <div class="term"><span class="k">Imutabilidade</span><span class="d">Substituir um artefato por outro validado em vez de modificá-lo em produção.</span></div>
+        <div class="term"><span class="k">Configuration drift</span><span class="d">Diferença criada quando o ambiente é alterado fora do processo versionado.</span></div>
+        <div class="term"><span class="k">Quality gate</span><span class="d">Regra que bloqueia a próxima etapa quando uma condição de qualidade falha.</span></div>
+        <div class="term"><span class="k">Checkov</span><span class="d">Scanner que procura configurações inseguras em IaC.</span></div>
+        <div class="term"><span class="k">IaC</span><span class="full">Infrastructure as Code</span><span class="d">Infraestrutura declarada em arquivos versionados.</span></div>
+        <div class="term"><span class="k">Terraform</span><span class="d">Ferramenta de IaC usada para criar e alterar a infraestrutura AWS.</span></div>
+        <div class="term"><span class="k">PSS</span><span class="full">Pod Security Standards</span><span class="d">Padrões Kubernetes para limitar comportamentos perigosos dos pods.</span></div>
+        <div class="term"><span class="k">ECR</span><span class="full">Elastic Container Registry</span><span class="d">Registro de imagens de containers da AWS.</span></div>
+        <div class="term"><span class="k">EKS</span><span class="full">Elastic Kubernetes Service</span><span class="d">Kubernetes gerenciado da AWS.</span></div>
+        <div class="term"><span class="k">DAST</span><span class="full">Dynamic Application Security Testing</span><span class="d">Testa a aplicação funcionando e simula ataques externos.</span></div>
+        <div class="term"><span class="k">Black-box</span><span class="d">Teste sem acesso ao código ou à estrutura interna da aplicação.</span></div>
+        <div class="term"><span class="k">Pentest</span><span class="full">teste de invasão</span><span class="d">Simulação controlada de ataques para encontrar falhas exploráveis.</span></div>
+        <div class="term"><span class="k">OWASP ZAP</span><span class="full">Zed Attack Proxy</span><span class="d">Ferramenta DAST que inspeciona e ataca uma aplicação de teste.</span></div>
+        <div class="term"><span class="k">Passive scan</span><span class="d">Observa o tráfego sem enviar ataques à aplicação.</span></div>
+        <div class="term"><span class="k">Active scan</span><span class="d">Envia cargas de ataque e deve rodar somente em ambiente autorizado e isolado.</span></div>
+        <div class="term"><span class="k">Proxy</span><span class="d">Intermediário que recebe e encaminha o tráfego para poder analisá-lo.</span></div>
+        <div class="term"><span class="k">Headless</span><span class="d">Execução automatizada sem interface gráfica.</span></div>
+        <div class="term"><span class="k">E2E</span><span class="full">End-to-End</span><span class="d">Teste que percorre um fluxo completo como um usuário real.</span></div>
+        <div class="term"><span class="k">SQLi</span><span class="full">Structured Query Language Injection</span><span class="d">Injeção de comandos em consultas ao banco.</span></div>
+        <div class="term"><span class="k">XSS</span><span class="full">Cross-Site Scripting</span><span class="d">Injeção de script que pode ser executado no navegador de outra pessoa.</span></div>
+        <div class="term"><span class="k">Fix & Verify</span><span class="d">Corrigir a falha e repetir o teste para comprovar a correção.</span></div>
+        <div class="term"><span class="k">DefectDojo</span><span class="d">Plataforma OWASP que centraliza e acompanha vulnerabilidades.</span></div>
+        <div class="term"><span class="k">API</span><span class="full">Application Programming Interface</span><span class="d">Interface usada por sistemas para trocar dados e comandos.</span></div>
+        <div class="term"><span class="k">Deduplicação</span><span class="d">Unir alertas repetidos que representam a mesma vulnerabilidade.</span></div>
+        <div class="term"><span class="k">Finding</span><span class="full">achado</span><span class="d">Problema identificado por uma ferramenta de segurança.</span></div>
+        <div class="term"><span class="k">CVSS</span><span class="full">Common Vulnerability Scoring System</span><span class="d">Pontuação da severidade técnica de uma vulnerabilidade.</span></div>
+        <div class="term"><span class="k">EPSS</span><span class="full">Exploit Prediction Scoring System</span><span class="d">Estima a probabilidade de uma vulnerabilidade ser explorada.</span></div>
+        <div class="term"><span class="k">RBVM</span><span class="full">Risk-Based Vulnerability Management</span><span class="d">Prioriza correções pelo risco real, não apenas pela severidade.</span></div>
+        <div class="term"><span class="k">SLA</span><span class="full">Service Level Agreement</span><span class="d">Prazo ou compromisso definido para tratar um problema.</span></div>
+        <div class="term"><span class="k">MTTR</span><span class="full">Mean Time to Remediation</span><span class="d">Tempo médio necessário para corrigir vulnerabilidades.</span></div>
+        <div class="term"><span class="k">Webhook</span><span class="d">Notificação automática enviada de um sistema para outro quando algo acontece.</span></div>
+        <div class="term"><span class="k">Observabilidade</span><span class="d">Entender o sistema a partir de métricas, logs e traces.</span></div>
+        <div class="term"><span class="k">Telemetry</span><span class="full">telemetria</span><span class="d">Dados emitidos pelo sistema para monitoramento e análise.</span></div>
+        <div class="term"><span class="k">Grafana</span><span class="d">Plataforma para dashboards e correlação de dados operacionais.</span></div>
+        <div class="term"><span class="k">CloudWatch</span><span class="d">Serviço AWS de métricas, logs e alertas.</span></div>
+        <div class="term"><span class="k">CloudTrail</span><span class="d">Serviço AWS que registra ações realizadas na conta.</span></div>
+        <div class="term"><span class="k">AWS</span><span class="full">Amazon Web Services</span><span class="d">Plataforma de nuvem usada no Tech Challenge.</span></div>
+        <div class="term"><span class="k">WAF</span><span class="full">Web Application Firewall</span><span class="d">Filtra requisições web maliciosas.</span></div>
+        <div class="term"><span class="k">Loki</span><span class="d">Sistema de agregação de logs integrado ao ecossistema Grafana.</span></div>
+        <div class="term"><span class="k">LogQL</span><span class="d">Linguagem usada para consultar logs no Loki.</span></div>
+        <div class="term"><span class="k">Non-repudiation</span><span class="full">não repúdio</span><span class="d">Capacidade de provar quem realizou determinada ação.</span></div>
+        <div class="term"><span class="k">LGPD</span><span class="full">Lei Geral de Proteção de Dados</span><span class="d">Lei brasileira sobre tratamento e proteção de dados pessoais.</span></div>
+        <div class="term"><span class="k">SLSA</span><span class="full">Supply-chain Levels for Software Artifacts</span><span class="d">Framework para aumentar a integridade da cadeia de construção do software.</span></div>
+        <div class="term"><span class="k">Maturity model</span><span class="full">modelo de maturidade</span><span class="d">Mapa de níveis usado para planejar a evolução das práticas.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>As 7 aulas, uma a uma</h2>
+      <div class="section-rule"></div>
+      <p class="lead">Cada ficha apresenta a ideia principal, as ferramentas, um caso de uso e a conexão com o Tech Challenge.</p>
+
+      <div class="lessons">
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">01</span>
+            <div>
+              <h3>Do Git ao Pipeline Seguro e Modelagem de Ameaças</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Antes de instalar alarmes, precisamos desenhar a fábrica, identificar suas entradas e descobrir onde alguém poderia enganar, alterar ou roubar algo.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>Secure SDLC, Shift Left, STRIDE, threat modeling, trust boundary, OIDC, Zero Trust, IAM, least privilege, SaaS runner e self-hosted runner.</dd></div>
+            <div><dt>Para que serve</dt><dd>Antecipar riscos do pipeline e impedir que uma credencial vazada conceda acesso amplo e duradouro à AWS.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Trocar Access Keys permanentes do GitHub Actions por uma role AWS assumida temporariamente via OIDC.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">A conta AWS pessoal permite criar roles específicas por Terraform. Cada pipeline receberá apenas as permissões necessárias para sua função.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">02</span>
+            <div>
+              <h3>Segurança no Git e Gestão de Segredos</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Uma senha enviada ao Git pode continuar no histórico mesmo depois de apagar o arquivo. A defesa precisa impedir que ela seja commitada e também conferir novamente no servidor.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>Secret Sprawl, Gitleaks, pre-commit hook, secret scanning, Branch Protection Rules, signed commits, build secret, runtime secret, Secrets Manager e rotação.</dd></div>
+            <div><dt>Para que serve</dt><dd>Evitar credenciais no código, obrigar verificações antes do merge e entregar segredos às aplicações somente quando necessários.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Gitleaks bloqueia uma chave AWS no computador e o pipeline repete a varredura como segunda barreira.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Nenhuma senha de banco, token ou chave AWS será versionada. Segredos de runtime devem vir de serviço protegido e poderão ser rotacionados.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">03</span>
+            <div>
+              <h3>SAST, SCA e Segurança da Cadeia de Suprimentos</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>SAST inspeciona o que nossa equipe escreveu; SCA confere os ingredientes de terceiros. A SBOM registra a lista completa desses ingredientes.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>MITRE ATT&CK, SAST, white-box, Horusec, SCA, dependência transitiva, CVE, Trivy, SBOM, CycloneDX, SPDX, VEX, NIST SSDF, OPA e Policy as Code.</dd></div>
+            <div><dt>Para que serve</dt><dd>Encontrar falhas no código e vulnerabilidades ou licenças problemáticas em bibliotecas antes da entrega.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Trivy encontra uma CVE crítica em uma dependência indireta, bloqueia a pipeline e gera uma SBOM em CycloneDX.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Cada microsserviço passará por SAST e SCA. Achados críticos interrompem a esteira; a SBOM pode ser guardada como evidência.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">04</span>
+            <div>
+              <h3>Segurança de Containers e Infraestrutura como Código</h3>
+              <span class="badge ok">Essencial no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>O pacote final também precisa ser pequeno, imutável e sem poder administrativo. A planta Terraform deve ser verificada antes de construir recursos inseguros.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>OWASP, CVE, PoLP, non-root, UID 0, hardening, multi-stage build, distroless, CIS Benchmark, imutabilidade, Trivy, Checkov, IaC, PSS, ECR e EKS.</dd></div>
+            <div><dt>Para que serve</dt><dd>Reduzir a superfície de ataque, bloquear imagens vulneráveis e evitar configurações como bucket público ou permissões excessivas.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">A imagem roda como usuário não-root; Trivy reprova vulnerabilidade crítica; Checkov bloqueia um recurso AWS público.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Somente imagens aprovadas chegam ao ECR. O Terraform também passa por scanner antes do plan/apply, e workloads do EKS seguem controles de pod.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">05</span>
+            <div>
+              <h3>DAST e Validação em Runtime</h3>
+              <span class="badge ok">Muito útil no projeto</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Depois das inspeções internas, uma ferramenta se comporta como atacante e testa a aplicação funcionando em um ambiente autorizado.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>DAST, Shift Right, black-box, pentest, OWASP ZAP, baseline, passive scan, active scan, proxy, headless, E2E, SQLi, XSS e Fix & Verify.</dd></div>
+            <div><dt>Para que serve</dt><dd>Encontrar falhas de configuração, autenticação e runtime que não aparecem apenas lendo o código.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">O ZAP executa um baseline contra staging. Um active scan mais agressivo roda somente em ambiente isolado e autorizado.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Podemos testar endpoints expostos em staging após o deploy. A pipeline registra o achado, recebe a correção e repete o teste.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">06</span>
+            <div>
+              <h3>Gestão Centralizada de Vulnerabilidades</h3>
+              <span class="badge warn">Diferencial da entrega</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Quando várias ferramentas geram alertas, precisamos de uma central que una duplicados, organize responsáveis e priorize o que tem maior chance de causar dano.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>DefectDojo, Product, Engagement, Test, Finding, API V2, deduplicação, CVSS, EPSS, RBVM, falso positivo, SLA, webhook e MTTR.</dd></div>
+            <div><dt>Para que serve</dt><dd>Centralizar relatórios, acompanhar o ciclo de correção e priorizar risco técnico junto com probabilidade de exploração.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Relatórios do Horusec, Trivy e ZAP entram automaticamente no DefectDojo e viram uma visão consolidada.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Não é requisito mínimo, mas cria uma demonstração forte de maturidade e evita que os relatórios dos cinco serviços fiquem dispersos.</dd></div>
+          </dl>
+        </article>
+
+        <article class="lesson">
+          <div class="lesson-head">
+            <span class="num">07</span>
+            <div>
+              <h3>Métricas, Maturidade, Observabilidade e Conformidade</h3>
+              <span class="badge warn">Diferencial e evidência</span>
+            </div>
+          </div>
+          <dl class="facets">
+            <div><dt>Em miúdos</dt><dd>Uma equipe madura não diz apenas “está seguro”: ela mostra logs, métricas e histórico capazes de provar o que aconteceu e quem realizou cada ação.</dd></div>
+            <div><dt>Siglas e termos</dt><dd>Observabilidade, telemetria, métricas, logs, traces, Grafana, CloudWatch, CloudTrail, WAF, Loki, LogQL, non-repudiation, LGPD, SLSA e modelo de maturidade.</dd></div>
+            <div><dt>Para que serve</dt><dd>Detectar comportamento anormal, investigar incidentes, demonstrar conformidade e planejar a evolução do DevSecOps.</dd></div>
+            <div><dt>Caso de uso</dt><dd class="use">Correlacionar um workflow do GitHub Actions com a chamada registrada no CloudTrail que alterou um recurso AWS.</dd></div>
+            <div><dt>No ToggleMaster</dt><dd class="proj">Logs do pipeline e da AWS servirão como evidência no relatório e vídeo. Dashboards e métricas de segurança são um diferencial.</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Pipeline DevSecOps do Tech Challenge</h2>
+      <div class="section-rule"></div>
+      <p class="lead">Exemplo de como as sete aulas se conectam em uma entrega segura do ToggleMaster.</p>
+      <ol class="flow">
+        <li><div><strong>Proteger o repositório</strong><span>Branch Protection exige revisão e status checks; Gitleaks bloqueia segredos antes do merge.</span></div></li>
+        <li><div><strong>Autenticar sem chaves permanentes</strong><span>GitHub Actions assume uma role AWS temporária via OIDC e menor privilégio.</span></div></li>
+        <li><div><strong>Analisar o código</strong><span>Horusec ou ferramenta equivalente executa SAST para encontrar falhas no código proprietário.</span></div></li>
+        <li><div><strong>Analisar dependências</strong><span>Trivy executa SCA, identifica CVEs e gera a SBOM do microsserviço.</span></div></li>
+        <li><div><strong>Construir container endurecido</strong><span>Dockerfile multi-stage, imagem mínima e usuário não-root reduzem a superfície de ataque.</span></div></li>
+        <li><div><strong>Escanear a imagem</strong><span>Trivy verifica o artefato final. Vulnerabilidade crítica bloqueia o envio ao ECR.</span></div></li>
+        <li><div><strong>Validar a infraestrutura</strong><span>Checkov analisa Terraform e bloqueia configurações inseguras antes do apply.</span></div></li>
+        <li><div><strong>Implantar em staging</strong><span>A versão aprovada é entregue pelo fluxo GitOps e executada em ambiente de teste.</span></div></li>
+        <li><div><strong>Testar em runtime</strong><span>OWASP ZAP executa DAST contra endpoints autorizados e registra o ciclo Fix & Verify.</span></div></li>
+        <li><div><strong>Centralizar e comprovar</strong><span>Relatórios podem ser enviados ao DefectDojo; logs do GitHub e CloudTrail preservam a trilha de auditoria.</span></div></li>
+      </ol>
+      <div class="note">
+        <strong>Regra principal da esteira</strong>
+        Encontrar não basta. O pipeline precisa falhar quando a política definida for violada, especialmente diante de segredos expostos, vulnerabilidades críticas ou configurações de nuvem inseguras.
+      </div>
+    </section>
+
+    <section>
+      <h2>Resumo rápido</h2>
+      <div class="section-rule"></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Aula</th><th>Controle principal</th><th>No ToggleMaster</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="num2">01</span></td><td>Pipeline seguro</td><td>STRIDE + OIDC</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">02</span></td><td>Git e segredos</td><td>Gitleaks + Secrets Manager</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">03</span></td><td>Código e dependências</td><td>SAST + SCA + SBOM</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">04</span></td><td>Containers e IaC</td><td>Trivy + Checkov</td><td><span class="s ok">ESSENCIAL</span></td></tr>
+            <tr><td><span class="num2">05</span></td><td>Runtime</td><td>DAST com ZAP</td><td><span class="s ok">MUITO ÚTIL</span></td></tr>
+            <tr><td><span class="num2">06</span></td><td>Gestão de vulnerabilidades</td><td>DefectDojo + risco</td><td><span class="s warn">DIFERENCIAL</span></td></tr>
+            <tr><td><span class="num2">07</span></td><td>Auditoria e maturidade</td><td>Logs + métricas + SLSA</td><td><span class="s warn">DIFERENCIAL</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>Materiais consultados</h2>
+      <div class="section-rule"></div>
+      <ul class="sources">
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%201.pdf">Aula 1 - Pipeline Seguro e Ameaças</a></li>
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%202.pdf">Aula 2 - Git e Gestão de Segredos</a></li>
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%203.pdf">Aula 3 - SAST, SCA e SBOM</a></li>
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%204.pdf">Aula 4 - Containers e IaC</a></li>
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%205.pdf">Aula 5 - DAST e Runtime</a></li>
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%206.pdf">Aula 6 - Gestão de Vulnerabilidades</a></li>
+        <li><a href="POSTECH%20-%20Seguranc%CC%A7a%20em%20DevOps%20%28DevSecOps%29%20-%20Aula%207.pdf">Aula 7 - Métricas e Maturidade</a></li>
+      </ul>
+    </section>
+
+    <footer>
+      Guia de estudo do módulo <strong>Segurança em DevOps (DevSecOps)</strong> (FIAP · Tech Challenge Fase 3), organizado a partir das sete aulas e conectado ao projeto <strong>ToggleMaster</strong>. Linguagem simplificada para leigos. Fontes consultadas em 2026-07-18.
+    </footer>
+  </main>
+</body>
+</html>

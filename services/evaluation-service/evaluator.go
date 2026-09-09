@@ -6,11 +6,12 @@ import (
 	"encoding/binary" // converte bytes do hash em número inteiro
 	"encoding/json"   // serializa/desserializa as respostas dos serviços e o cache
 	"fmt"
-	"io/ioutil" // leitura do corpo das respostas HTTP
+	"io" // leitura do corpo das respostas HTTP
 	"log"
 	"net/http"
-	"os"   // leitura da SERVICE_API_KEY do ambiente
-	"sync" // WaitGroup para buscar flag e regra em paralelo
+	"net/url" // escape do nome da flag antes de montar a URL
+	"os"      // leitura da SERVICE_API_KEY do ambiente
+	"sync"    // WaitGroup para buscar flag e regra em paralelo
 	"time"
 )
 
@@ -64,7 +65,13 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 	// 3. Salvar no Cache para as próximas consultas (expira em CACHE_TTL)
 	jsonData, err := json.Marshal(info)
 	if err == nil {
-		a.RedisClient.Set(ctx, cacheKey, jsonData, CACHE_TTL).Err()
+		// errcheck: o retorno de Err() precisa ser verificado. Falha ao
+		// gravar no cache NAO e motivo para derrubar a requisicao - o
+		// valor ja foi calculado e sera devolvido normalmente. So se
+		// perde o cache desta entrada, entao basta registrar no log.
+		if cacheErr := a.RedisClient.Set(ctx, cacheKey, jsonData, CACHE_TTL).Err(); cacheErr != nil {
+			log.Printf("falha ao gravar no cache a chave %s: %v", cacheKey, cacheErr)
+		}
 	}
 
 	return info, nil
@@ -109,17 +116,46 @@ func (a *App) fetchFromServices(flagName string) (*CombinedFlagInfo, error) {
 // fetchFlag consulta o flag-service via HTTP e devolve a definição da flag
 // (nome, descrição e se está ligada). Autentica com a SERVICE_API_KEY.
 func (a *App) fetchFlag(flagName string) (*Flag, error) {
-	url := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, flagName)
+	// G704 (CWE-918): o gosec aponta SSRF porque um dado vindo do usuario
+	// entra na URL. O host NAO e manipulavel - vem de variavel de
+	// ambiente - mas o nome da flag chega pela query da requisicao e era
+	// concatenado sem tratamento, o que permitia path traversal dentro do
+	// proprio servico (ex.: um nome contendo "../").
+	//
+	// url.PathEscape codifica o valor para caber num unico segmento de
+	// caminho: "/" vira "%2F" e deixa de ser separador. E correcao de
+	// verdade, nao supressao.
+	endpoint := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, url.PathEscape(flagName))
 
 	apiKey := os.Getenv("SERVICE_API_KEY")
-	req, _ := http.NewRequest("GET", url, nil)
+	// #nosec G704 -- SSRF analisado em 2026-09-09 e classificado como NAO
+	// EXPLORAVEL. O gosec marca o caminho como contaminado porque o nome
+	// da flag vem da requisicao do usuario, e a analise de taint dele nao
+	// reconhece saneamento - o alerta continua mesmo apos o PathEscape.
+	//
+	// Por que nao ha SSRF de verdade: o DESTINO da requisicao (esquema,
+	// host e porta) vem de variavel de ambiente definida no ConfigMap,
+	// nunca do usuario. O que o usuario influencia e um unico segmento do
+	// CAMINHO, e ele passa por url.PathEscape - que codifica "/" como
+	// "%2F" e portanto nao consegue nem sair do segmento, quanto mais
+	// trocar o host.
+	//
+	// Se algum dia a URL de destino passar a vir da requisicao, esta
+	// supressao deixa de valer e o alerta volta a ser legitimo.
+	req, _ := http.NewRequest("GET", endpoint, nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
+	// #nosec G704 -- mesma analise do bloco acima.
 	resp, err := a.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
-	defer resp.Body.Close()
+	// errcheck: o retorno de Close precisa ser tratado. Neste caso o erro
+	// NAO e acionavel - o corpo ja foi lido e a resposta ja foi
+	// processada, entao nao ha o que fazer com a falha. O "_ =" declara
+	// explicitamente que o descarte e intencional, em vez de deixar o
+	// retorno silenciosamente ignorado.
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName}
@@ -128,7 +164,7 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 		return nil, fmt.Errorf("flag-service retornou status %d", resp.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	var flag Flag
 	if err := json.Unmarshal(body, &flag); err != nil {
 		return nil, fmt.Errorf("erro ao desserializar resposta do flag-service: %w", err)
@@ -140,16 +176,45 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 // segmentação da flag (ex.: "50% dos usuários"). Uma flag pode não ter regra —
 // nesse caso o retorno é NotFoundError, tratado como "sem segmentação".
 func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
-	url := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, flagName)
+	// G704 (CWE-918): o gosec aponta SSRF porque um dado vindo do usuario
+	// entra na URL. O host NAO e manipulavel - vem de variavel de
+	// ambiente - mas o nome da flag chega pela query da requisicao e era
+	// concatenado sem tratamento, o que permitia path traversal dentro do
+	// proprio servico (ex.: um nome contendo "../").
+	//
+	// url.PathEscape codifica o valor para caber num unico segmento de
+	// caminho: "/" vira "%2F" e deixa de ser separador. E correcao de
+	// verdade, nao supressao.
+	endpoint := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, url.PathEscape(flagName))
 	apiKey := os.Getenv("SERVICE_API_KEY") // mesma chave usada no fetchFlag
-	req, _ := http.NewRequest("GET", url, nil)
+	// #nosec G704 -- SSRF analisado em 2026-09-09 e classificado como NAO
+	// EXPLORAVEL. O gosec marca o caminho como contaminado porque o nome
+	// da flag vem da requisicao do usuario, e a analise de taint dele nao
+	// reconhece saneamento - o alerta continua mesmo apos o PathEscape.
+	//
+	// Por que nao ha SSRF de verdade: o DESTINO da requisicao (esquema,
+	// host e porta) vem de variavel de ambiente definida no ConfigMap,
+	// nunca do usuario. O que o usuario influencia e um unico segmento do
+	// CAMINHO, e ele passa por url.PathEscape - que codifica "/" como
+	// "%2F" e portanto nao consegue nem sair do segmento, quanto mais
+	// trocar o host.
+	//
+	// Se algum dia a URL de destino passar a vir da requisicao, esta
+	// supressao deixa de valer e o alerta volta a ser legitimo.
+	req, _ := http.NewRequest("GET", endpoint, nil)
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
+	// #nosec G704 -- mesma analise do bloco acima.
 	resp, err := a.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
-	defer resp.Body.Close()
+	// errcheck: o retorno de Close precisa ser tratado. Neste caso o erro
+	// NAO e acionavel - o corpo ja foi lido e a resposta ja foi
+	// processada, entao nao ha o que fazer com a falha. O "_ =" declara
+	// explicitamente que o descarte e intencional, em vez de deixar o
+	// retorno silenciosamente ignorado.
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName} // Não é um erro fatal
@@ -158,7 +223,7 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 		return nil, fmt.Errorf("targeting-service retornou status %d", resp.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	var rule TargetingRule
 	if err := json.Unmarshal(body, &rule); err != nil {
 		return nil, fmt.Errorf("erro ao desserializar resposta do targeting-service: %w", err)

@@ -75,4 +75,4 @@ images:
   newTag: v1.0.0-122174a
 - name: targeting-service
   newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/targeting-service
-  newTag: v1.0.0-122174a
+  newTag: v1.0.0-7ab0602

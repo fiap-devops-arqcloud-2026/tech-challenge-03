@@ -60,11 +60,40 @@ fi
 # ------------------------------------------------------------
 # 4. Python - sintaxe dos tres servicos
 # ------------------------------------------------------------
-python -m compileall -q services/analytics-service services/flag-service services/targeting-service
+# O nome do interpretador muda conforme o ambiente: no Linux do CI e
+# `python3`, no Windows com o launcher oficial e `py`, e em alguns
+# ambientes e so `python`. Sem esta deteccao o script morria no Git Bash
+# do Windows, porque o alias `python` da Microsoft Store nao executa nada
+# e ainda retorna sucesso aparente.
+python_bin=""
+for candidato in python3 python py; do
+  # -c "" so pergunta "voce roda?"; nao imprime nada e sai com 0.
+  if command -v "$candidato" >/dev/null 2>&1 && "$candidato" -c "" >/dev/null 2>&1; then
+    python_bin="$candidato"
+    break
+  fi
+done
+
+if [[ -n "$python_bin" ]]; then
+  echo "[python] compilando os 3 servicos com ${python_bin}"
+  # compileall so compila para bytecode: nao executa o codigo, mas
+  # quebra em erro de sintaxe. E o teste mais barato que existe.
+  "$python_bin" -m compileall -q services/analytics-service services/flag-service services/targeting-service
+else
+  echo "[AVISO] Python nao encontrado; a checagem de sintaxe sera feita no CI."
+fi
 
 # ------------------------------------------------------------
 # 5. Go - build e testes dos dois servicos
 # ------------------------------------------------------------
+# No Windows o instalador do Go coloca o binario em "C:\Program Files\Go\bin",
+# mas essa pasta so entra no PATH de terminais abertos DEPOIS da instalacao.
+# Como o Git Bash costuma ja estar aberto, o `go` some sem motivo aparente.
+# Esta linha acrescenta o caminho padrao ao PATH so para esta execucao.
+if [[ -x "/c/Program Files/Go/bin/go.exe" ]]; then
+  PATH="$PATH:/c/Program Files/Go/bin"
+fi
+
 if command -v go >/dev/null 2>&1; then
   for service in services/auth-service services/evaluation-service; do
     echo "[go] ${service}"

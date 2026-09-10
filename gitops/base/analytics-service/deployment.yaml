@@ -5,7 +5,7 @@
 # consumindo a fila SQS e gravando cada evento no DynamoDB.
 #
 # ESTE E O SERVICO QUE MAIS MUDA EM RELACAO A FASE 2: ele passa a ter
-# ZERO segredos. Nao ha ExternalSecret nesta pasta, e isso e proposital -
+# ZERO segredos. Nao ha Secret nenhum para este servico, e isso e proposital -
 # depois do IRSA, tudo que ele precisa e configuracao publica.
 #
 # Explicacao completa dos campos em base/auth-service/deployment.yaml.

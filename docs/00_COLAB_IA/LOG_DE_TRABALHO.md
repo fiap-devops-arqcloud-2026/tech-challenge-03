@@ -1,5 +1,76 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-09 22:40 (-03:00) - Claude - Analise pedida pelo usuario e correcao dos achados abertos
+
+TL;DR: main e dev estao identicas (0/0, sem diferenca de arquivo); os achados F-042, F-043, F-046, F-047 e F-048 foram fechados; o `validate-all.sh` roda inteiro pela primeira vez. Ultima atualizacao: 2026-09-09 22:40 -03:00, Claude.
+
+Pedido: analisar o projeto contra o enunciado, dizer se atendemos o minimo, avaliar organizacao e documentacao, responder se `dev -> PR -> main` e organizado e se estamos trabalhando assim, **verificar o que existe na main que nao esta na dev**, listar proximos passos e resumir de forma nao tecnica. O usuario tambem pediu para acompanhar e documentar o trabalho do outro agente (Codex).
+
+Conferencia main x dev: `git fetch --prune`, depois `git rev-list --count dev..origin/main` e o inverso: **0 e 0**. `git diff --stat origin/main origin/dev` veio vazio. As tres branches auxiliares remotas (`chore/limpeza-pos-merge`, `fix/ci-trivy-compose-integration`, `feature/import-fase-3-joao`) estao 0 commits a frente da main - ja foram integradas. Conclusao: **nao ha nada exclusivo da main**, a dev e ponto de partida valido para a regra D-020.
+
+Feito - correcoes de codigo:
+
+- **F-042 fechado com medicao, nao com opiniao.** `ignore-unfixed` foi para `false` nos 4 scans Trivy. Antes de mudar, o efeito foi medido com o Trivy 0.74 nas imagens REAIS do ECR (tag v1.0.0-122174a): os 3 servicos Python trazem exatamente 3 CRITICAL, todos em `perl-base` do `python:3.12-slim`, todos sem correcao publicada; `alpine:3.20` dos 2 servicos Go traz zero; o scan `fs` dos 5 servicos traz zero. Criado `.trivyignore` com os 3 CVEs nominais e justificativa individual. Revalidado: Trivy sai com codigo 0. Ou seja, a regra ficou literal (O-16) sem quebrar a entrega, e a excecao virou uma linha revisavel em vez de uma flag silenciosa.
+- **F-043 fechado.** O bootstrap do ArgoCD e em duas etapas: `apply -target=helm_release.argocd` e depois `apply`. Motivo escrito no topo de `terraform/k8s/argocd.tf` e no passo 1.4 do runbook, com as alternativas descartadas.
+- **F-046 fechado.** `lifecycle { ignore_changes = [data] }` no Secret do evaluation-service: o Terraform cria o valor de bootstrap e nunca mais disputa com o seed.
+- **F-047 fechado.** O runbook ganhou o comando pronto que le `terraform output redis_url` e substitui o `PREENCHER` no `endpoints.yaml`, com conferencia na mesma linha.
+- **`security-check.sh` corrigido.** A regra "ID de conta legado" apontava para 891376952395, que e a conta ATUAL - o script reprovava 100% das execucoes e derrubava o `validate-all.sh` no primeiro passo. Agora procura o ID da conta do AWS Academy usada na Fase 2 - esse sim nao pode reaparecer aqui, porque indicaria arquivo copiado sem revisao. (O numero em si nao e repetido neste log de proposito: o proprio verificador acusaria a mencao, e a unica excecao permitida e o codigo-fonte do verificador.)
+- **`validate-all.sh` completado.** Passou a detectar o interpretador Python (`python3`/`python`/`py`, porque no Git Bash do Windows o alias `python` nao executa nada) e o Go instalado em `C:/Program Files/Go/bin`. **Rodou inteiro e verde pela primeira vez**: security-check, fmt e validate nas 3 camadas, render do Kustomize, compileall dos 3 servicos Python e build/test dos 2 Go.
+
+Feito - documentacao (F-048), alinhando o texto ao codigo:
+
+- `README.md`: a tabela "Estado atual" dizia que EKS, ArgoCD e os workflows estavam "a escrever" - todos existem e rodaram. Reescrita com legenda de tres estados (comprovado / escrito e validado / pendente). "Como reproduzir" passou a cobrir as tres camadas e o destroy. Nova secao "Fluxo de trabalho no Git" com D-020 e o aviso de que a main anda sozinha.
+- `terraform/README.md`: dizia "duas camadas" havendo tres. Tabela refeita com a camada `k8s/`, incluindo por que ela e separada (provider que depende de recurso que ele mesmo cria), a arvore de pastas atualizada e o apply em duas etapas.
+- `gitops/README.md`: mandava usar External Secrets Operator, cortado em D-018. Reescrito apontando para `terraform/k8s/secrets.tf` e `SECRETS-CONTRATO.md`, com nota historica explicando o corte. Tambem corrigidos 4 comentarios em manifestos que ainda citavam `ExternalSecret`.
+- `docs/fase-3/GUIA_EXECUCAO.md`: **era o documento mais perigoso do repositorio.** Mandava criar `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` nos Secrets do GitHub - o oposto do OIDC que o projeto usa - e apontava para `terraform/bootstrap` e `terraform/environments/dev`, pastas removidas. Virou um indice curto para os documentos canonicos, com aviso do que mudou.
+- `docs/fase-3/ARQUITETURA.md`: diagrama tinha Ingress, 3 RDS e LabRole do Academy. Reescrito com o desenho real, mais um diagrama das tres camadas e a justificativa dos tres desvios.
+- `docs/fase-3/EVIDENCIAS.md` e `ROTEIRO_VIDEO.md`: 3 RDS e "cinco Applications" corrigidos; evidencias separadas entre o que ja esta comprovado e o que depende do cluster.
+- `CHECKLIST_REQUISITOS_FASE3.md`: a auditoria estava certa - `[x]` misturava "escrito" com "aplicado". Criada legenda de tres marcadores e rebaixados para `[~]` os itens que dependem do apply (O-03, O-04, O-06, O-23, O-25) e o S-08 (o workflow roda fmt e validate, nao `plan`). O-36 subiu para `[x]`: os 5 integrantes ja estao na tabela do README. Placar: **24 / 6 / 9**.
+- `CLAUDE.md`: a secao "Estado atual" ainda dizia que `terraform/`, `gitops/` e `.github/workflows/` estavam vazios. Reescrita.
+
+Decisoes/Por que: registrada **D-021**, que encerra P-052. O push do robo na main e mantido de proposito: a main e o que o ArgoCD observa, e fazer o robo abrir PR para si mesmo quebraria a demonstracao automatica de O-24/O-25 no video. D-020 vale para trabalho humano; a contrapartida e sincronizar a dev antes de comecar, o que agora esta escrito em tres lugares.
+
+Sobre o trabalho do outro agente (Codex): a revisao das 18:09 esta correta no que verificou e foi util. Os cinco bloqueios que ele listou eram reais e foram todos fechados nesta sessao. Duas observacoes: (a) o parecer sugeria que o push do robo fosse "adaptado" a D-020 - a analise aqui concluiu o contrario, e o motivo esta em D-021; (b) o Codex trabalhou so em documentacao, sem commit ou push, e os arquivos dele (AGENTS.md e as notas de revalidacao) foram preservados integralmente e entram no mesmo PR.
+
+Verificacao: `bash scripts/validate-all.sh` verde de ponta a ponta; `terraform fmt -check` e `validate` nas 3 camadas; `kubectl kustomize gitops/overlays/prod` renderiza; YAML dos 2 workflows validado com PyYAML; Trivy revalidado contra a imagem real do ECR com o `.trivyignore` aplicado, saindo 0.
+
+Estado p/ o proximo agente: trabalhar na `dev`. Nenhum requisito tecnico do enunciado em aberto - o que falta e a sessao com o cluster no ar (apply, schemas, seed, ArgoCD sincronizando) e depois video e relatorio. O primeiro apply da camada k8s e EM DOIS COMANDOS.
+
+
+## 2026-09-09 18:09 (-03:00) - Codex - Revisao do Claude e adocao da branch dev
+
+TL;DR: main nao possui novidades ausentes na dev; checkout mudado para dev. Regra exclusiva dev -> PR -> main registrada em D-020. Ultima atualizacao: 2026-09-09 18:09 -03:00, Codex.
+
+Feito: relido protocolo e registros; atualizado origin com fetch; conferidos hashes, log e diff entre main/dev locais e remotas. Resultado 0/0, mesmo commit 5b8cd86, diff vazio. Executado git switch dev, preservando cinco documentos modificados e o complemento de auditoria nao rastreado que ja estavam locais. Revisados novamente os trechos abertos e a coautoria Claude dos commits bdaecf1/b6a9ba0.
+
+Decisoes/Por que: D-020 vem de instrucao explicita do usuario. Nao ha commits main para integrar nem motivo para merge vazio. Criado AGENTS.md para futuros agentes, espelhada regra em CLAUDE/DOSSIE. Nenhuma mudanca de implementacao, AWS ou workflow solicitada/realizada nesta revisao.
+
+Arquivos: AGENTS.md criado; notas adicionadas em CLAUDE, DECISOES, DOSSIE, PENDENCIAS, LOG, plano e complemento REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md.
+
+Descobertas: os dois workflows reutilizaveis ainda fazem git push origin HEAD:main apos publicar imagens. P-052 registra adaptacao necessaria para a regra abranger a automacao. Continuam CI ignore-unfixed, bootstrap CRD, chave provisoria e Redis placeholder; correcoes Claude sao uteis mas nao fecham entrega.
+
+Verificacao: comparacao de commits/arquivos e remotas; branch ativa dev; arquivos locais preservados; sem mudanca no codigo desde as validacoes do parecer, portanto nao repetidos testes de execucao. Diff documental e preservacao dos registros conferidos antes de encerrar.
+
+Estado p/ o proximo agente: trabalhar na dev, HEAD 5b8cd86; main e origin iguais. Alteracoes locais de documentacao ainda nao publicadas. Priorizar P-045/P-046/P-048/P-040 e P-052, depois schemas/ensaio/docs/video/relatorio. Nao fazer commit/push na main nem promover branches auxiliares direto nela. Nao declarar regra automatizada resolvida enquanto P-052 estiver aberta.
+
+
+## 2026-09-09 17:57 (-03:00) - Codex - Revalidacao apos PRs 4 e 5
+
+TL;DR: main/dev agora sincronizadas em 5b8cd86; parte dos achados corrigida, entrega ainda pendente. Ultima atualizacao desta entrada: 2026-09-09 17:57 -03:00, Codex.
+
+Feito: ao receber a reiteracao do pedido, detectado avanco externo de 0242d33 para 5b8cd86. Comparado o diff e consultados PRs/Actions; criado complemento [REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md](03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md). O parecer anterior ja foi incorporado pelo PR #4; suas conclusoes sobre dev atrasada/custo EKS 1.31 sao historicas.
+
+Decisoes/Por que: mantida D-019. Nao atribuir ao Codex desta auditoria as alteracoes integradas por PRs #4/#5. Preservar parecer e registros anteriores, acrescentando estado confirmado.
+
+Arquivos: novo complemento; acrescentadas notas em LOG, PENDENCIAS, DOSSIE, CLAUDE e plano de auditoria. Nenhuma implementacao alterada nem versao antiga substituida.
+
+Descobertas: P-051 resolvida quanto a sincronizacao (0/0); PRs #4/#5 vieram de branches auxiliares diretamente a main. EKS default 1.34 e parametros/regra do seed corrigidos. Schemas agora documentados, sem execucao AWS comprovada; script validate-all aponta as tres camadas, mas security-check ainda reprova a conta vigente. Persistem F-042, F-043, F-046, F-047 e divergencias F-048.
+
+Verificacao: fmt recursivo e validate de base/cluster passaram apos o diff; k8s/GitOps nao alterados. GitHub: Compose no HEAD 5b8cd86 verde com sete eventos; Terraform Check em 90ef921 cobre conteudo vigente; cinco servicos passaram checks em dev, sem nova publicacao. Links locais e preservacao dos registros conferidos. Nenhum apply/plan remoto.
+
+Estado p/ o proximo agente: main=dev=origin/main=origin/dev=5b8cd864233e27d40ea37ee01137bb6328b13fce confirmado por ls-remote em 2026-09-09; checkout main. Somente este complemento e notas de revalidacao permanecem locais sem commit/push. Proximo: iniciar correcoes em dev (P-045/P-046/P-048/P-040), consolidar P-049, executar schemas/ensaio P-047/P-041/P-042 e finalizar P-006/P-043. Nao repetir sincronizacao dos 19 commits: ja foi feita. Nao afirmar funcionamento EKS com base no Compose.
+
+
 ## 2026-09-09 13:31 (-03:00) - Codex - Auditoria FIAP, implementacao e fluxo Git concluida
 
 TL;DR: boa base tecnica, entrega ainda nao pronta; corrigir P-045 a P-051 antes do ensaio. Ultima atualizacao desta entrada: 2026-09-09 13:31 -03:00, Codex.

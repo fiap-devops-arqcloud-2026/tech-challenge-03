@@ -1,0 +1,73 @@
+# ============================================================
+# EXCECOES DO TRIVY - uma linha por CVE, com justificativa
+# ============================================================
+# Este arquivo e a contrapartida da decisao registrada nos workflows:
+# `ignore-unfixed` esta em FALSE nos quatro scans (F-042), porque o
+# enunciado da Fase 3 exige que vulnerabilidade CRITICA faca o pipeline
+# falhar e nao prosseguir (O-16), sem prever excecao para "ainda nao tem
+# correcao".
+#
+# Ficar so com a regra dura, porem, travaria a entrega por algo que nao
+# temos como consertar. Entao a excecao existe - mas nominal, datada e
+# justificada, uma por CVE. A diferenca pratica em relacao a flag
+# antiga:
+#
+#   ignore-unfixed: true  -> esconde uma CLASSE INTEIRA de achados, para
+#                            sempre, em silencio, inclusive os que
+#                            aparecerem amanha.
+#   .trivyignore          -> esconde EXATAMENTE estes CVEs, aparece no
+#                            diff de qualquer PR e precisa ser revisto.
+#
+# Qualquer CRITICAL fora desta lista continua derrubando o pipeline.
+#
+# COMO REVALIDAR (rodar antes da entrega e sempre que trocar a imagem base):
+#   trivy image --severity CRITICAL --ignore-unfixed=false python:3.12-slim
+# Se um destes CVEs ganhar versao corrigida, a correcao e subir a imagem
+# base e APAGAR a linha daqui - nao mante-la por inercia.
+# ============================================================
+
+# ------------------------------------------------------------
+# perl-base 5.40.1-6, vindo do Debian 13 dentro de `python:3.12-slim`
+# ------------------------------------------------------------
+# Afeta apenas os 3 servicos Python (flag, targeting e analytics). Os 2
+# servicos Go usam `alpine:3.20`, que foi medida em 2026-09-09 com ZERO
+# CRITICAL - por isso nao ha excecao nenhuma para eles.
+#
+# Contexto comum aos tres CVEs abaixo:
+#
+#   1. NAO HA PARA ONDE ATUALIZAR. O Debian marcou os tres como
+#      "affected" ou "fix_deferred", sem versao corrigida publicada.
+#      Nao existe `apt upgrade` que resolva.
+#   2. NAO DA PARA REMOVER O PACOTE. `perl-base` e marcado Essential no
+#      Debian; desinstalar quebra o proprio dpkg e a imagem para de
+#      funcionar.
+#   3. NENHUM DOS TRES SERVICOS EXECUTA PERL. O processo do container e
+#      gunicorn servindo Flask. O perl esta no sistema de arquivos, nao
+#      no caminho de execucao, e nenhuma entrada de usuario chega ate
+#      ele. Sem execucao, nao ha superficie de ataque explorada por uma
+#      requisicao HTTP.
+#
+# Alternativa avaliada e descartada: trocar a base para
+# `python:3.12-alpine`, que nao traz perl. A troca de glibc por musl
+# obrigaria a recompilar `psycopg2-binary` (que so publica wheel
+# manylinux) dentro do build. E uma mudanca de risco alto a 6 dias da
+# entrega para resolver um risco teorico - a conta nao fecha.
+#
+# Medido em 2026-09-09 nas imagens REAIS publicadas no ECR, tag
+# v1.0.0-122174a: exatamente estes 3 CVEs, nos 3 servicos Python.
+# Revisar em: 2026-10-15.
+
+# Processamento incorreto de expressoes regulares muito grandes.
+# Exige que a aplicacao compile um regex vindo do atacante em perl.
+# Nossos servicos nao chamam perl em nenhum ponto.
+CVE-2026-13221
+
+# perl-archive-tar: travessia de caminho por symlink em pacote .tar.
+# Exige extrair um tar malicioso usando o Archive::Tar do perl.
+# Nenhum dos servicos extrai arquivos, e muito menos com perl.
+CVE-2026-8376
+
+# Estouro de heap ao compilar expressao regular em build de 32 bits.
+# As imagens sao construidas e executadas em linux/amd64 (64 bits),
+# entao a condicao descrita no CVE nao ocorre nestas imagens.
+CVE-2026-42496

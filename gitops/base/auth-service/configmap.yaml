@@ -5,7 +5,8 @@
 # nao e senha, token ou credencial pode ficar aqui e ser lido por
 # qualquer pessoa com acesso ao cluster ou ao repositorio.
 #
-# O que e sensivel vai para o Secret criado pelo ExternalSecret.
+# O que e sensivel vai para o Secret criado por terraform/k8s/secrets.tf
+# (D-018). Ver gitops/SECRETS-CONTRATO.md.
 # ============================================================
 
 apiVersion: v1

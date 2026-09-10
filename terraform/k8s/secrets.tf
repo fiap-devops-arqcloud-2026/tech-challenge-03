@@ -224,4 +224,33 @@ resource "kubernetes_secret_v1" "evaluation" {
   }
 
   type = "Opaque"
+
+  # ------------------------------------------------------------
+  # QUEM MANDA NESTE VALOR DEPOIS DE CRIADO (F-046)
+  # ------------------------------------------------------------
+  # Este e o unico Secret do projeto com DOIS donos, e sem esta regra
+  # eles brigam:
+  #
+  #   - o Terraform cria o Secret com um valor aleatorio, so para o pod
+  #     conseguir subir com a variavel preenchida;
+  #   - o seed (runbook, passo 2.2) descobre a chave REAL - a que o
+  #     auth-service devolveu em POST /admin/keys - e sobrescreve o
+  #     Secret com ela.
+  #
+  # A partir dai, o valor no cluster e o certo e o valor no estado do
+  # Terraform e o provisorio. Num proximo `terraform apply`, o Terraform
+  # veria "alguem mudou meu recurso" e restauraria o valor provisorio -
+  # derrubando a autenticacao entre os servicos no reinicio seguinte do
+  # pod, com um erro (401 no hot path) que nao lembra em nada a causa.
+  #
+  # ignore_changes = [data] resolve dizendo: crie uma vez, e depois nao
+  # olhe mais para o conteudo. E o padrao do Terraform para valor de
+  # bootstrap que passa a ser gerido em tempo de execucao.
+  #
+  # Consequencia aceita: se alguem apagar o Secret na mao, o Terraform
+  # recria com o valor provisorio e o passo 2.2 do runbook precisa ser
+  # refeito. E o comportamento desejado - recriar e diferente de mexer.
+  lifecycle {
+    ignore_changes = [data]
+  }
 }

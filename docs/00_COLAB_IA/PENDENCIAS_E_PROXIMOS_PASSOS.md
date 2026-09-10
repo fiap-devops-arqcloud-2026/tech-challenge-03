@@ -1,5 +1,62 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
+## Estado apos a rodada de correcoes - 2026-09-09 22:40 -03:00, Claude
+
+TL;DR: **nenhum requisito tecnico do enunciado esta em aberto.** O que falta e uma sessao com o cluster no ar e, depois dela, video e relatorio. Placar: 24 comprovados / 6 escritos e validados / 9 nao iniciados, e os 9 sao entregaveis.
+
+### Fechadas nesta rodada
+
+- **P-045 / F-042** - FECHADA. `ignore-unfixed: false` nos 4 scans, com `.trivyignore` nominal e justificado. Efeito medido nas imagens reais do ECR antes de mudar.
+- **P-046 / F-043** - FECHADA. Bootstrap do ArgoCD em duas etapas, documentado em `terraform/k8s/argocd.tf` e no passo 1.4 do runbook.
+- **P-048 / F-046** - FECHADA. `ignore_changes = [data]` no Secret do evaluation-service encerra a disputa com o seed.
+- **P-040 / F-047** - FECHADA. Comando pronto no passo 1.5 do runbook substitui o `PREENCHER` do `REDIS_URL`.
+- **P-049 / F-048** - FECHADA na parte documental. README raiz, `terraform/README.md`, `gitops/README.md`, os quatro documentos de `docs/fase-3/`, o checklist e o `CLAUDE.md` foram alinhados ao codigo. `security-check.sh` corrigido e `validate-all.sh` rodando inteiro.
+- **P-051** - FECHADA. main e dev identicas (0/0, diff vazio), e as tres branches auxiliares remotas ja estao integradas.
+- **P-052** - FECHADA por decisao, sem alterar workflow. Ver **D-021**: o push do robo na main e intencional; D-020 rege trabalho humano.
+
+### Abertas - em ordem de execucao
+
+1. **P-041 - Sessao de ensaio com o cluster** (CAMINHO CRITICO). Primeira vez que a pilha completa sobe. Seguir o runbook: NAT -> `cluster/` -> kubeconfig -> `k8s/` **em dois comandos** -> schemas (passo 1.7) -> seed -> conferir ArgoCD Healthy/Synced -> destroy. Reservar 3h.
+2. **P-047 - Criar os schemas nos RDS.** Etapa documentada (runbook 1.7), nunca executada. Sem ela os servicos sobem, respondem `/health` com 200 e falham no primeiro INSERT. Os comandos sao Bash: rodar no Git Bash ou WSL.
+3. **P-042 - Gravar o video** (O-27 a O-32). Metade nao precisa do cluster: pipeline falhando/passando (O-28/O-29) e atualizacao da tag no GitOps (O-30) rodam so no GitHub Actions. Gravar essa metade ANTES da sessao paga.
+4. **P-006 / P-043 - Relatorio** (O-37, O-38, O-39). Os desvios que precisam estar la: 2 RDS + 1 pod (D-015), sem Ingress (D-012), ESO cortado (D-018) e a excecao do `.trivyignore`. Print de custo pelo AWS Pricing Calculator.
+5. **P-018 - Confirmar os integrantes.** A tabela do README ja tem os 5 do Grupo 203; falta so o usuario confirmar que nao mudou.
+
+### Item opcional barato, se sobrar tempo
+
+- **R-04 - Testes unitarios.** Confirmado em 2026-09-09: nao existe nenhum arquivo de teste nos 5 servicos. Os jobs de build ja estao preparados e passam sem falhar. Um unico teste por servico fecharia o item.
+
+### Nao repetir
+
+- Nao sincronizar "os 19 commits" da dev: ja foi feito, as branches estao iguais.
+- Nao tratar ArgoCD escrito como ArgoCD instalado - o apply ainda nao aconteceu.
+- Nao rodar `terraform -chdir=terraform/k8s apply` direto num cluster novo: sao dois comandos (F-043).
+- Nao concluir que a regra da dev esta imposta pela configuracao do GitHub: protecao de branch nao esta disponivel neste plano/visibilidade. A regra e acordo, nao trava tecnica.
+
+
+## Regra dev e conferencia atual - 2026-09-09 18:09 -03:00, Codex
+
+TL;DR: D-020 determina trabalhar somente na dev e promover por PR dev -> main. Checkout ja esta na dev; comparacao local/remota 0/0 em 5b8cd86. Nao ha conteudo exclusivo da main a integrar.
+
+- P-051: sincronizacao resolvida e branch de trabalho corrigida. Preservados documentos locais ainda sem commit/push.
+- P-052 - ABERTA: adaptar os jobs GitOps em _ci-go.yml:563 e _ci-python.yml:589, que ainda fazem push direto main, ao fluxo D-020. Avaliar promocao de tags via dev -> PR -> main preservando trabalho existente na dev; nao trocar destino do push sem revisar fetch/base/concorrencia. Este ponto nao foi implementado durante a analise.
+- P-045/P-046/P-048/P-040 continuam abertas; P-047 exige execucao dos schemas; P-049 consolidacao dos documentos/scripts; P-041/P-042/P-006/P-043 ensaio, video e relatorio.
+- Fonte de revisao do Claude: commits bdaecf1 e b6a9ba0 tem Co-Authored-By de Claude. Corrigiram EKS/roteiro/caminhos do validate-all, mas nao os bloqueios acima.
+
+
+## Atualizacao apos PRs 4 e 5 - 2026-09-09 17:57 -03:00, Codex
+
+TL;DR: esta nota atualiza o estado dos itens abaixo; registros das 13:31 permanecem historicos. Fonte: [revalidacao](03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md), HEAD 5b8cd86.
+
+- P-051: SINCRONIZACAO RESOLVIDA. Main/dev/remotas iguais, 0/0; manter a disciplina D-019 e definir politica do bot. PRs #4/#5 foram de branches auxiliares para main.
+- P-050: DEFAULT CORRIGIDO para EKS 1.34, em suporte padrao; ainda revisar estimativa/compatibilidade no ensaio.
+- P-047: ETAPA DOCUMENTADA no runbook 1.7; executar e verificar schemas AWS. Comandos psql sao Bash; explicitar shell ou adaptar ao PowerShell.
+- P-048: PARAMETROS/REGRA CORRIGIDOS no roteiro; falta resolver F-046 (Secret/chave) e validar ciclo apply/restart.
+- P-049: PARCIAL. Modulos orfaos removidos e caminhos validate-all corrigidos, mas security-check, guias, README e resumos continuam divergentes.
+- P-045/P-046/P-040: ABERTAS, sem mudanca nos trechos de CI/ArgoCD/Redis.
+- P-041/P-042/P-006/P-043: ABERTAS; nenhuma evidencia nova de ensaio EKS/video/relatorio final.
+
+
 TL;DR da auditoria: implementacao principal existe e CI tem execucoes verdes, mas ainda ha bloqueios antes do ensaio AWS. Seguir P-045 a P-051 e depois P-040/P-041/P-042/P-006/P-043. Nao repetir P-038 nem tratar ArgoCD escrito como instalado.
 
 Ultima atualizacao desta sintese: 2026-09-09 13:31 -03:00, Codex.

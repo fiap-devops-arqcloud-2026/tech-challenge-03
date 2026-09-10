@@ -1,5 +1,41 @@
 # DECISOES
 
+## D-021 - O robo do CI continua comitando na main; a regra da dev vale para gente
+
+TL;DR: D-020 governa o trabalho HUMANO. O commit automatico de tag do pipeline continua indo direto para a `main`, de proposito. Ultima atualizacao: 2026-09-09, Claude.
+
+Contexto: D-020 determinou "so trabalhar na dev, promover por PR". O ultimo job dos dois workflows reutilizaveis (`_ci-go.yml`, `_ci-python.yml`) roda `kustomize edit set image` e faz `git push origin HEAD:main`. Codex registrou isso como pendencia P-052, por parecer contradizer a regra.
+
+Decisao: **manter o push do robo na `main`** e tratar D-020 como regra de trabalho humano. A `dev` deve ser sincronizada com a `main` no inicio de cada sessao.
+
+Por que: a `main` e a branch que o ArgoCD observa - e o que o enunciado chama de estado desejado. O commit de tag nao e "trabalho": e o resultado mecanico de um build que ja passou por PR, revisao e pelos portoes de seguranca. Fazer o robo abrir PR para si mesmo criaria uma fila de PRs automaticos que alguem teria de aprovar durante a gravacao, e quebraria a demonstracao de O-24/O-25 - justamente o item que precisa aparecer no video sincronizando sozinho. O caminho da mudanca continua sendo `dev -> PR -> main`; o robo so escreve DEPOIS que o merge aconteceu.
+
+Alternativas avaliadas:
+- Robo comitando na `dev` e um PR automatico para a `main`: adiciona um passo manual no meio do caminho critico do GitOps, a 6 dias da entrega, e o ArgoCD passaria a ver a tag so depois de intervencao humana. Descartada.
+- Branch dedicada so para as tags (`gitops-bot`) com o ArgoCD observando ela: funcionaria, mas separa em duas branches o que o enunciado trata como uma fonte da verdade, e complica a explicacao no video. Descartada.
+
+Consequencia pratica, que precisa estar visivel: **a `main` anda sozinha.** Foi assim que a `dev` ficou 19 commits atras em 2026-09-08. O antidoto esta escrito no `README.md`, no `AGENTS.md` e no runbook: `git switch dev && git fetch origin && git merge --ff-only origin/main` antes de comecar qualquer coisa.
+
+Status: decidida. Encerra P-052 sem alterar workflow.
+
+
+## D-020 - Trabalho exclusivo na dev e promocao por PR para main
+
+TL;DR: regra explicita do usuario, mais estrita que a preferencia D-019. Ultima atualizacao: 2026-09-09 18:09 -03:00, Codex.
+
+Contexto: em 2026-09-09 o usuario pediu revisar o trabalho do Claude, conferir conteudo exclusivo na main e determinou que, a partir de agora, so se trabalhe na dev, com PR para main seguido de merge.
+
+Decisao: toda alteracao humana parte de dev; main recebe promocao por PR dev -> main e merge. Nao usar branches auxiliares diretamente para main sem nova instrucao. Verificar/sincronizar dev apos cada merge.
+
+Por que: manter uma origem unica de trabalho, revisao e rastreabilidade, reduzindo divergencias e perda de alteracoes. Branch dev nao cria outro ambiente AWS.
+
+Alternativas: PRs de branches auxiliares diretamente para main (usados nos PRs #4/#5, deixam de ser o fluxo combinado); push humano direto main (vedado pela regra).
+
+Estado confirmado: git fetch e comparacoes em 2026-09-09 retornaram 0/0 e diff vazio; main/dev/origin/main/origin/dev apontam a 5b8cd86. Checkout mudado para dev preservando os arquivos locais. AGENTS.md criado para tornar a regra visivel ao proximo agente.
+
+Status: regra definida pelo usuario e adotada no checkout local. Publicacao e merge nao solicitados nesta analise. CI ainda faz pushes GitOps diretos main; adaptar em P-052 antes de declarar cumprimento integral pela automacao. Nao alteramos plano, visibilidade, protecoes ou workflows remotos. Esta decisao substitui as alternativas de fluxo humano em D-019, sem reescrever seu historico.
+
+
 ## D-019 - Fluxo de trabalho do usuario: dev -> PR -> main
 
 TL;DR: alteracoes humanas devem partir de dev e ser promovidas por PR; sincronizar dev com main antes de retomar. Ultima atualizacao: 2026-09-09 13:31 -03:00, Codex.

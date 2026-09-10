@@ -124,6 +124,23 @@ ele recebe admin por `bootstrap_cluster_creator_admin_permissions`.
 
 ### 1.4 Subir Secrets, StorageClass e ArgoCD (5 a 8 min)
 
+**SAO DOIS COMANDOS, NESTA ORDEM. Nao pule o primeiro.**
+
+O cluster nasce sem conhecer o tipo `Application` do ArgoCD — quem o
+ensina e a propria instalacao do ArgoCD. Mas o Terraform valida esse
+tipo ainda no *plan*, ou seja, antes de instalar. Rodar o apply direto
+num cluster novo falha com `no matches for kind "Application"`. O
+`-target` abaixo resolve limitando a primeira rodada a instalacao
+(F-043; a explicacao completa esta no topo de `terraform/k8s/argocd.tf`).
+
+Etapa A — instala o ArgoCD e, com ele, o tipo que falta:
+
+```bash
+terraform -chdir=terraform/k8s apply -target=helm_release.argocd
+```
+
+Etapa B — agora o resto, incluindo a Application que aponta para o Git:
+
 ```bash
 terraform -chdir=terraform/k8s apply
 ```
@@ -149,13 +166,38 @@ terraform -chdir=terraform/cluster output irsa_role_arns
 Compare com o que esta no repositorio e corrija se divergir:
 
 - `gitops/overlays/prod/patches/endpoints.yaml` - o `REDIS_URL` ainda
-  contem a palavra literal **`PREENCHER`**. Trocar pelo valor do output.
+  contem a palavra literal **`PREENCHER`** (F-047). Comando pronto,
+  que le o output e escreve no arquivo sem digitacao manual:
+
+  ```bash
+  REDIS=$(terraform -chdir=terraform/cluster output -raw redis_url) && sed -i "s|redis://togglemaster-redis.*:6379|${REDIS}|" gitops/overlays/prod/patches/endpoints.yaml && grep REDIS_URL gitops/overlays/prod/patches/endpoints.yaml
+  ```
+
+  A ultima parte imprime a linha resultante: confira que sumiu a palavra
+  `PREENCHER` antes de seguir.
+
 - `gitops/overlays/prod/patches/irsa.yaml` - conferir os dois ARNs.
 - `gitops/overlays/prod/kustomization.yaml` - as 5 tags estao em
   `v1.0.0-placeholder`. Elas so ficam corretas depois que o pipeline
   rodar verde na `main` e publicar as imagens.
 
-Comitar e empurrar para a `main`. O ArgoCD so enxerga o que esta no Git.
+**Como levar isso ate a `main`** — o ArgoCD so enxerga o que esta no Git,
+e a regra do projeto e nao commitar direto na `main` (D-020):
+
+```bash
+git switch dev && git add gitops/overlays/prod && git commit -m "chore(gitops): endpoints reais da sessao" && git push origin dev
+```
+
+```bash
+gh pr create --base main --head dev --title "chore(gitops): endpoints reais da sessao" --body "Valores gerados pelo apply desta sessao." && gh pr merge --merge
+```
+
+Depois do merge, traga a `dev` de volta ao mesmo ponto — o job GitOps do
+CI tambem comita na `main`, entao ela anda sozinha:
+
+```bash
+git switch dev && git fetch origin && git merge --ff-only origin/main && git push origin dev
+```
 
 ### 1.6 Conferir o ArgoCD
 

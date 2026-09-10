@@ -1,50 +1,42 @@
-# Guia de execução
+# Guia de execucao
 
-## 1. Configurar GitHub
+> **Reescrito em 2026-09-09.** A versao anterior deste arquivo era do
+> plano inicial da fase e **nenhum dos comandos dela funcionava mais**:
+> apontava para `terraform/bootstrap` e `terraform/environments/dev`
+> (pastas removidas na consolidacao das tres camadas, D-017), mandava
+> instalar o ArgoCD por `kubectl apply` de um manifesto remoto (hoje e
+> Helm via Terraform, O-23) e - o ponto mais grave - mandava guardar
+> `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` nos Secrets do GitHub.
+> **O projeto nao usa chave estatica em lugar nenhum:** o CI autentica
+> por OIDC (S-01). Seguir aquele guia criaria exatamente o risco que a
+> Fase 3 pede para eliminar. O historico do Git preserva a versao
+> original.
 
-Crie os Secrets `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` e, se a sessão exigir, `AWS_SESSION_TOKEN`. Eles ficam apenas no cofre do GitHub. Proteja `main` exigindo PR e aprovação dos checks.
+Este arquivo agora e so um indice. O passo a passo real vive em tres
+documentos, cada um com um proposito diferente — manter um so texto por
+assunto e o que evita que eles voltem a divergir:
 
-## 2. Criar backend do Terraform
+| Voce quer... | Leia |
+|---|---|
+| Entender o projeto e subir a infraestrutura do zero | [`README.md`](../../README.md), secao **Como reproduzir** |
+| Conduzir uma sessao completa: ligar o NAT, subir o cluster, criar as tabelas, semear os dados, gravar e derrubar | [`RUNBOOK-SESSAO.md`](../00_COLAB_IA/RUNBOOK-SESSAO.md) |
+| Entender a divisao em tres camadas do Terraform e o custo de cada uma | [`terraform/README.md`](../../terraform/README.md) |
+| Saber quais Secrets existem e quais valores precisam coincidir | [`gitops/SECRETS-CONTRATO.md`](../../gitops/SECRETS-CONTRATO.md) |
+| Rodar os cinco servicos na sua maquina, sem AWS | [`TESTE_COMPOSE.md`](TESTE_COMPOSE.md) |
 
-```bash
-cd terraform/bootstrap
-cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
-```
+## O minimo para nao errar
 
-Copie o nome do bucket gerado para `terraform/environments/dev/backend.tf`, usando `backend.tf.example` como base.
+Tres pontos que valem repetir aqui, porque sao os que mais custam caro
+quando esquecidos:
 
-## 3. Provisionar a infraestrutura
-
-Preencha `terraform/environments/dev/terraform.tfvars` sem commitá-lo. Informe a ARN da LabRole da AWS Academy.
-
-```bash
-cd terraform/environments/dev
-terraform init -backend-config=backend.tf
-terraform validate
-terraform plan -out=tfplan
-terraform apply tfplan
-```
-
-## 4. Preparar Kubernetes e Argo CD
-
-```bash
-aws eks update-kubeconfig --region us-east-2 --name togglemaster-dev
-kubectl apply -f gitops/infrastructure/namespace.yaml
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl apply -f gitops/infrastructure/argocd/project.yaml
-kubectl apply -f gitops/infrastructure/argocd/applications.yaml
-```
-
-Crie os cinco Secrets Kubernetes diretamente com `kubectl create secret generic`; nunca copie credenciais para o Git. Use os arquivos `secret.example.yaml` somente como lista de campos.
-
-## 5. Entregar aplicações
-
-Abra PR. Cada workflow executa testes, lint, SAST/SCA e Trivy. No merge em `main`, publica a imagem ECR com o SHA do commit e atualiza o manifesto GitOps; o Argo CD sincroniza o cluster.
-
-## 6. Encerrar custos
-
-Depois das evidências, execute `terraform destroy` no ambiente e, por último, remova o backend somente após confirmar que não precisa mais do estado. NAT Gateway, EKS, RDS e Redis geram cobrança enquanto ativos.
+1. **Nenhuma credencial da AWS vai para o GitHub.** A role
+   `togglemaster-github-actions` confia no provedor OIDC do GitHub e so
+   aceita token vindo deste repositorio. Nao ha o que vazar.
+2. **A ordem das camadas nao e negociavel:** `terraform/` primeiro,
+   depois `terraform/cluster/`, depois `terraform/k8s/` — esta ultima em
+   dois comandos, por causa do CRD do ArgoCD (F-043). Cada camada le o
+   estado da anterior; fora de ordem, o `plan` falha.
+3. **O que custa dinheiro e a camada do meio.** Ao terminar, rode
+   `terraform -chdir=terraform/cluster destroy` e **desligue o NAT
+   Gateway** (passo 4.3 do runbook). O NAT sozinho e ~US$ 33/mes se
+   ficar esquecido ligado.

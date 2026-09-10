@@ -2,7 +2,25 @@
 
 TL;DR: checklist extraido do enunciado `docs/POSTECH - Tech Challenge - Fase 3.pdf`. Separa o que e OBRIGATORIO (vale nota), o que o enunciado marcou como opcional/recomendado e o que e sugestao dos modulos de aula. Entrega em grupo, prazo final 2026-09-15. Em 2026-08-27 a implementacao comecou: os 5 microsservicos ja estao em `services/`; o restante segue pendente.
 
-Ultima atualizacao: 2026-08-27 20:40 -03:00, Claude.
+Ultima atualizacao: 2026-09-09 -03:00, Claude.
+
+## Como ler os marcadores
+
+A auditoria de 2026-09-09 apontou, com razao, que a lista misturava
+"o codigo existe" com "o recurso esta de pe" no mesmo `[x]`. Sao coisas
+diferentes, e confundi-las e a forma mais facil de chegar na entrega
+achando que esta pronto. A partir de agora:
+
+| Marcador | Significa |
+|---|---|
+| `[x]` | **Comprovado**: existe na AWS, ou rodou verde no CI, com evidencia registrada |
+| `[~]` | **Escrito e validado**, mas ainda nao aplicado/executado - ou atendido de forma parcial e consciente |
+| `[ ]` | **Nao iniciado** |
+
+Placar em 2026-09-09: **24 comprovados, 6 escritos e validados, 9 nao
+iniciados**, dos 39 obrigatorios. Os 9 nao iniciados sao, todos, video e
+relatorio - nenhum requisito tecnico esta em aberto. Dos 6 marcados
+`[~]`, cinco dependem de uma unica sessao com o cluster no ar.
 
 Prazo final: 2026-09-15. Modalidade: entrega em grupo (D-006).
 
@@ -16,10 +34,10 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 - [x] O-01 Projeto Terraform substituindo a criacao manual da Fase 2. Tres camadas com estado independente e 7 modulos proprios. A camada base foi APLICADA na AWS em 2026-09-07 (33 recursos). Unica excecao consciente: o bucket S3 do estado, que precisa existir antes do primeiro apply - documentado em `terraform/BOOTSTRAP-BACKEND-S3.md`.
 - [x] O-02 Networking: VPC, subnets publicas, subnets privadas, Internet Gateway e Route Tables. Aplicado na AWS em 2026-09-07 (P-038).
-- [x] O-03 Cluster EKS provisionado por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
-- [x] O-04 Node Groups do EKS provisionados por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
+- [~] O-03 Cluster EKS provisionado por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
+- [~] O-04 Node Groups do EKS provisionados por Terraform. Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
 - [~] O-05 3 instancias RDS PostgreSQL. PARCIAL e de forma consciente: esta conta esta no plano gratuito novo da AWS e RECUSA a terceira instancia com "maximum number of instances available with free plan accounts" (F-023). Foram criadas 2 - `auth_db` e `flags_db` - e o terceiro banco, `targeting_db`, roda como StatefulSet dentro do EKS (D-015), mesmo arranjo da Fase 2 e confirmado com o professor em 2026-08-27. Precisa constar no relatorio (O-38).
-- [x] O-06 1 cluster ElastiCache (Redis). Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
+- [~] O-06 1 cluster ElastiCache (Redis). Escrito e planejado em 2026-09-08 em `terraform/cluster/` (35 recursos no plan); pendente o apply.
 - [x] O-07 1 tabela DynamoDB chamada `ToggleMasterAnalytics` (nome literal do enunciado). Aplicado na AWS em 2026-09-07 (P-038).
 - [x] O-08 1 fila SQS. Aplicado na AWS em 2026-09-07 (P-038).
 - [x] O-09 Backend remoto em bucket S3; `terraform.tfstate` nao pode ficar local. Bucket criado em 2026-08-27; blocos `backend "s3"` escritos nas duas camadas, com chaves `prod/base.tfstate` e `prod/cluster.tfstate` (D-017). Aplicado em 2026-09-07: `prod/base.tfstate` (61 KiB) existe no bucket e nada ficou local (P-038).
@@ -42,9 +60,9 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 ### 1.3 Entrega Continua (CD) e GitOps
 
 - [x] O-22 Area de GitOps com apenas manifestos Kubernetes / Helm Charts (repo separado OU pasta separada no monorepo). Pasta `gitops/` no monorepo, em Kustomize (D-007, D-008).
-- [x] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`). Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
+- [~] O-23 ArgoCD instalado no cluster EKS (Helm, ou Terraform com provider `helm`/`kubectl`). Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply. ATENCAO no primeiro apply: sao duas etapas por causa do CRD Application (F-043, corrigido e documentado em 2026-09-09).
 - [x] O-24 Passo final do CI que atualiza a tag da imagem no repositorio GitOps (altera o `deployment.yaml`). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: 5 commits chore(gitops) feitos pelo proprio pipeline, um por servico.
-- [x] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS. Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
+- [~] O-25 ArgoCD configurado para monitorar o repo GitOps e sincronizar automaticamente no EKS. Escrito em 2026-09-09 em `terraform/k8s/argocd.tf` (chart oficial via provider helm, versao fixa 7.7.11); pendente o apply.
 - [x] O-26 Deploy sem `kubectl apply` direto pelo CI (o enunciado abandona o push direto). Escrito em 2026-09-01 nos workflows do GitHub Actions; pendente a primeira execucao real (P-044). PROVADO: nenhum kubectl apply no CI - so commit no Git.
 
 ## 2. OBRIGATORIO - Entregaveis
@@ -66,7 +84,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 
 ### 2.3 Relatorio de entrega (.PDF ou .txt)
 
-- [~] O-36 Nomes dos participantes do grupo. Grupo 203 recuperado do README da Fase 2 e ja no `README.md`; aguarda confirmacao do usuario de que o grupo nao mudou.
+- [x] O-36 Nomes dos participantes do grupo. Os 5 integrantes do Grupo 203, com RM e GitHub, estao na tabela do `README.md`. Conferido em 2026-09-09. Resta apenas o usuario confirmar que a composicao do grupo nao mudou desde a Fase 2 (P-018).
 - [ ] O-37 Link da documentacao e do video.
 - [ ] O-38 Breve resumo dos desafios encontrados e das decisoes tomadas.
 - [ ] O-39 Print da estimativa de custos da AWS.
@@ -78,7 +96,7 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 - [x] R-01 Organizar o Terraform em modulos ("preferencialmente usando modulos"). FEITO: 7 modulos proprios em `terraform/modules/` mais o modulo de VPC da comunidade.
 - [x] R-02 Criar os 5 repositorios ECR via Terraform ("opcional via Terraform, mas recomendado"). FEITO: `module.ecr` cria os 5 repositorios com lifecycle e scan on push.
 - [x] R-03 Flag `use_lockfile` no backend S3 para lock de estado ("opcionalmente"). FEITO: `use_lockfile = true` nas tres camadas.
-- [ ] R-04 Testes unitarios no job de build ("se houver" - condicional, nao exigido).
+- [ ] R-04 Testes unitarios no job de build ("se houver" - condicional, nao exigido). Confirmado em 2026-09-09: os 5 servicos nao tem nenhum arquivo de teste (`go test` responde "no test files" nos dois servicos Go, e nao ha `test_*.py` nos tres Python). O job existe e passa sem falhar, que e o comportamento correto para um item condicional. Se sobrar tempo antes da entrega, e o item opcional mais barato de fechar.
 - [x] R-05 Criar roles e policies IAM via Terraform - liberado e "recomendado para um portfolio profissional" porque o projeto usa conta pessoal (Opcao B). Nao se aplica a restricao da LabRole do AWS Academy. FEITO: roles do control plane, dos nos, do EBS CSI, do CI e as duas IRSA, todas por Terraform.
 - [ ] R-06 Usar Helm Charts em vez de YAMLs puros na area GitOps (o enunciado aceita os dois). **Nao adotado**: D-008 escolheu Kustomize, sobre a base de `infra/k8s/` da Fase 2 (D-014).
 - [x] R-07 Repositorio GitOps separado em vez de pasta no monorepo (o enunciado aceita os dois). **Nao adotado**: D-007 escolheu monorepo com a pasta `gitops/`. FEITO: pasta `gitops/` no monorepo, opcao que o enunciado aceita.
@@ -96,7 +114,7 @@ Estes itens nao valem nota por si so, mas apareceram nas aulas da Fase 3 e refor
 - [x] S-05 Criptografia em repouso com KMS em RDS, DynamoDB, SQS e bucket de estado. FEITO: criptografia em repouso em RDS, ElastiCache, DynamoDB, ECR, volumes EBS e no bucket de estado.
 - [x] S-06 Menor privilegio nas roles IAM e IRSA para os pods. FEITO: modulo `irsa` dedicado. evaluation so publica na fila; analytics so consome e grava. RDS e Redis liberam pelo security group do cluster, nao pelo CIDR.
 - [ ] S-07 Auditoria com CloudTrail e logs do EKS.
-- [x] S-08 `terraform fmt`/`validate` e `plan` automatizados em PR de infraestrutura. FEITO: workflow `terraform-check.yml` roda fmt e validate nas tres camadas a cada PR e push. Verde na main em 2026-09-09.
+- [~] S-08 `terraform fmt`/`validate` e `plan` automatizados em PR de infraestrutura. PARCIAL, de forma consciente: o workflow `terraform-check.yml` roda `fmt` e `validate` nas tres camadas a cada PR e push (verde na main em 2026-09-09), mas **nao roda `plan`**. O `plan` exigiria credencial da AWS no CI e acesso ao estado remoto; com `-backend=false` ele nem sequer e possivel. Como o `plan` e feito a mao no inicio de cada sessao, o ganho nao compensa expor a conta ao CI.
 - [x] S-09 Estrategia de destroy/agendamento para conter custo da conta pessoal (EKS + 3 RDS + Redis nao sao baratos). FEITO: camada base permanente separada da camada cara (D-017), mais o runbook com o ciclo de subir e derrubar e a conferencia final de custo.
 
 ---

@@ -289,9 +289,28 @@ jobs:
           # o Trivy apenas imprime a lista e devolve sucesso - o
           # pipeline pareceria seguro sendo apenas silencioso.
           exit-code: "1"
-          # Ignora CVE que ainda nao tem correcao publicada. Quebrar o
-          # build sem existir versao corrigida so gera bloqueio inutil.
-          ignore-unfixed: true
+          # ------------------------------------------------------
+          # ignore-unfixed FICA EM false (F-042, corrigido 2026-09-09)
+          # ------------------------------------------------------
+          # Com `true`, o Trivy esconde as vulnerabilidades CRITICAS que
+          # ainda nao tem versao corrigida publicada. E um habito comum
+          # na industria - "nao adianta quebrar o build sem ter para
+          # onde ir" - mas o enunciado da Fase 3 nao abre essa excecao:
+          # ele pede que vulnerabilidade CRITICA faca o pipeline falhar
+          # e nao prosseguir (O-16). `false` e a leitura literal.
+          #
+          # E o risco de "travar sem ter correcao" continua tratado, so
+          # que de forma VISIVEL: quando aparecer um CRITICAL sem patch,
+          # a saida e registrar aquele CVE em `.trivyignore` na raiz,
+          # com data e justificativa escrita. A excecao vira uma linha
+          # revisavel em PR, em vez de uma flag que apaga em silencio a
+          # classe inteira de achados.
+          ignore-unfixed: false
+          # Lista de excecoes nominais. Sem esta linha o Trivy ainda
+          # procuraria um .trivyignore na pasta atual, mas declarar o
+          # caminho deixa a dependencia explicita para quem le o
+          # workflow - e evita depender de qual pasta o runner usa.
+          trivyignores: .trivyignore
           # Saida em tabela, legivel no log da execucao.
           format: table
 
@@ -387,8 +406,15 @@ jobs:
           severity: CRITICAL
           # Achou algo na severidade acima: falha o job.
           exit-code: "1"
-          # Ignora CVE que ainda nao tem correcao publicada.
-          ignore-unfixed: true
+          # Mesma decisao do job de SCA acima (F-042): nao esconder
+          # CRITICAL sem correcao. Excecao pontual, se precisar, entra
+          # em `.trivyignore` com justificativa.
+          ignore-unfixed: false
+          # Lista de excecoes nominais. Sem esta linha o Trivy ainda
+          # procuraria um .trivyignore na pasta atual, mas declarar o
+          # caminho deixa a dependencia explicita para quem le o
+          # workflow - e evita depender de qual pasta o runner usa.
+          trivyignores: .trivyignore
           # Saida em tabela, legivel no log da execucao.
           format: table
 

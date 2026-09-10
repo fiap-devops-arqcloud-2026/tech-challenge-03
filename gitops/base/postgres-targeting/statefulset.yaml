@@ -64,7 +64,10 @@ spec:
               name: postgres
 
           env:
-            # Usuario e senha vem do Secret criado pelo ExternalSecret.
+            # Usuario e senha vem do Secret criado por
+            # terraform/k8s/secrets.tf (D-018). A senha PRECISA ser a
+            # mesma usada no DATABASE_URL do targeting-service - as duas
+            # saem do mesmo random_password, justamente por isso.
             # E o MESMO segredo lido pelo targeting-service, para as duas
             # pontas nunca ficarem com senhas diferentes.
             - name: POSTGRES_USER

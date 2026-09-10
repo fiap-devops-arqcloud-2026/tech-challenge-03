@@ -32,6 +32,7 @@
 - [Problemas encontrados e como contornamos](#️-problemas-encontrados-e-como-contornamos)
 - [Controle de custo](#-controle-de-custo)
 - [Como reproduzir](#-como-reproduzir)
+- [Fluxo de trabalho no Git](#-fluxo-de-trabalho-no-git)
 - [Estado atual](#-estado-atual)
 - [Time](#-time)
 
@@ -257,33 +258,96 @@ Recursos que ficam de pé permanentemente por custarem ~US$ 0: ECR, SQS, DynamoD
 # 1. Bucket de estado — uma única vez, fora do Terraform.
 #    Passo a passo completo em terraform/BOOTSTRAP-BACKEND-S3.md
 
-# 2. Infraestrutura
+# 2. Camada BASE — permanente, custo ~US$ 0.
+#    VPC, os 5 repositórios ECR, a fila SQS, a tabela DynamoDB e o OIDC do CI.
 export AWS_PROFILE=togglemaster
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
-terraform init
-terraform plan
-terraform apply
+terraform -chdir=terraform init
+terraform -chdir=terraform apply
 
-# 3. Conferir os manifestos antes de sincronizar
+# 3. Camada CLUSTER — efêmera, custo ~US$ 0,37/h. Sobe no início da
+#    sessão de trabalho e é destruída no fim.
+#    EKS, node group, os 2 RDS, o ElastiCache e as roles de IRSA.
+terraform -chdir=terraform/cluster init
+terraform -chdir=terraform/cluster apply
+
+# 4. Apontar o kubectl para o cluster recém-criado
+aws eks update-kubeconfig --name togglemaster --region us-east-2
+
+# 5. Camada K8S — objetos dentro do cluster: Secrets, StorageClass e ArgoCD.
+#    SÃO DOIS COMANDOS: o primeiro instala o ArgoCD (e com ele o tipo
+#    Application), o segundo cria o restante. Explicação em
+#    terraform/k8s/argocd.tf.
+terraform -chdir=terraform/k8s init
+terraform -chdir=terraform/k8s apply -target=helm_release.argocd
+terraform -chdir=terraform/k8s apply
+
+# 6. Conferir os manifestos antes de sincronizar
 kubectl kustomize gitops/overlays/prod
+
+# 7. Ao terminar — destrói só o que custa, preservando ECR e imagens.
+terraform -chdir=terraform/cluster destroy
 ```
 
-O `terraform/README.md` detalha as etapas do apply e o porquê da divisão.
+O `terraform/README.md` detalha as três camadas e o porquê da divisão.
+O passo a passo completo de uma sessão — incluindo NAT, criação das
+tabelas, seed e desligamento — está em
+[`docs/00_COLAB_IA/RUNBOOK-SESSAO.md`](./docs/00_COLAB_IA/RUNBOOK-SESSAO.md).
+
+---
+
+## 🌿 Fluxo de trabalho no Git
+
+Todo trabalho humano parte da branch **`dev`**. A `main` só recebe
+mudança por **Pull Request** vindo da `dev`, seguido de merge (D-020).
+
+```bash
+git switch dev                      # sempre comece aqui
+git fetch origin                    # a main anda sozinha: o CI comita nela
+git merge --ff-only origin/main     # traga a dev para o mesmo ponto
+# ... trabalho ...
+bash scripts/validate-all.sh        # valide antes de gastar uma volta de CI
+git push origin dev
+gh pr create --base main --head dev # promoção só por PR
+```
+
+> **Por que a `main` anda sozinha:** o último passo do pipeline atualiza
+> a tag da imagem em `gitops/overlays/prod/kustomization.yaml` e comita
+> **na `main`** — é de lá que o ArgoCD lê o estado desejado (O-24). Esse
+> commit é do robô, não humano, e por isso é a única exceção à regra.
+> A consequência prática: sincronize a `dev` antes de começar, sempre.
 
 ---
 
 ## 📌 Estado atual
 
+Atualizado em **2026-09-09**. A tabela distingue três estados diferentes,
+porque "o código existe" e "o recurso está de pé na AWS" não são a mesma
+coisa — e confundir os dois é a forma mais fácil de chegar na entrega
+achando que está pronto:
+
+| Símbolo | Significa |
+|---|---|
+| ✅ | **Aplicado e comprovado** — existe na AWS ou rodou verde no CI, com evidência |
+| 🧪 | **Escrito e validado** — passa em `fmt`/`validate`/`kustomize`, mas o `apply` ainda não foi feito |
+| ⏳ | **Pendente** — ainda não começou |
+
 | Entrega | Situação |
 |---|---|
-| Estado remoto em S3 (O-09) | ✅ bucket criado, `backend.tf` escrito |
-| Rede, ECR, SQS, DynamoDB, OIDC (Etapa 1) | ✅ escrito e validado — ainda não aplicado |
-| Manifestos GitOps (O-22, O-35) | ✅ escritos e validados com `kubectl kustomize` |
-| EKS, RDS, ElastiCache, IRSA (Etapa 2) | ⏳ a escrever |
-| ArgoCD (O-23) | ⏳ a escrever |
-| Workflows de CI (O-10 a O-21) | ⏳ a escrever |
+| Estado remoto em S3 (O-09) | ✅ bucket criado; `prod/base.tfstate` gravado, nada local |
+| Rede, ECR, SQS, DynamoDB, OIDC — camada base | ✅ aplicado em 2026-09-07, 33 recursos |
+| Workflows de CI e DevSecOps (O-10 a O-21) | ✅ 5 pipelines verdes; bloqueio CRÍTICO testado na prática |
+| Imagens no ECR (O-17 a O-20) | ✅ as 5 publicadas com tag `v1.0.0-<commit>` |
+| CI atualizando a tag no GitOps (O-24, O-26) | ✅ 5 commits `chore(gitops)` feitos pelo próprio pipeline |
+| Manifestos GitOps (O-22, O-35) | ✅ escritos e renderizados com `kubectl kustomize` |
+| EKS, node group, RDS, ElastiCache, IRSA — camada cluster | 🧪 escrito e validado; `plan` com 35 recursos; **apply pendente** |
+| Secrets, StorageClass e ArgoCD — camada k8s (O-23, O-25) | 🧪 escrito e validado; **apply pendente** |
+| Sessão de ensaio no cluster (O-27, O-31, O-32) | ⏳ pendente |
 | Vídeo e relatório (O-27 a O-39) | ⏳ pendente |
+
+> **Onde está o risco:** tudo que falta depende de uma única sessão com o
+> cluster no ar. É a primeira vez que a pilha completa sobe, o `apply` de
+> EKS + 2 RDS + ElastiCache leva de 20 a 40 minutos e raramente passa de
+> primeira. Por isso o ensaio está planejado com folga antes da gravação.
 
 Pendências e próximos passos: [`PENDENCIAS_E_PROXIMOS_PASSOS.md`](./docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md).
 

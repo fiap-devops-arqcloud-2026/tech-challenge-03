@@ -1,15 +1,36 @@
-# Checklist de evidências
+# Checklist de evidencias
 
-- [ ] `terraform plan` e `apply` concluídos
-- [ ] VPC, quatro sub-redes e rotas no console AWS
-- [ ] EKS e node group ativos
-- [ ] Três instâncias RDS privadas
-- [ ] Redis, SQS/DLQ, DynamoDB e cinco ECR
-- [ ] PR com os cinco pipelines verdes
-- [ ] Imagens ECR usando SHA, nunca somente `latest`
-- [ ] Argo CD mostrando cinco aplicações `Healthy` e `Synced`
-- [ ] Teste funcional de criação e avaliação de feature flag
-- [ ] Evidência de evento no DynamoDB
-- [ ] Estimativa de custos e prova de `terraform destroy`
+> Atualizado em 2026-09-09 para bater com a arquitetura entregue: sao
+> **2 RDS + 1 banco em pod** (D-015) e **uma Application do ArgoCD**
+> gerenciando os 5 servicos, nao cinco Applications.
+>
+> O acompanhamento item a item do enunciado esta em
+> [`CHECKLIST_REQUISITOS_FASE3.md`](../00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md).
+> Esta lista e mais curta de proposito: e o que precisa aparecer **na
+> tela**, durante a gravacao.
 
-Não inclua senhas, tokens, conteúdo de Secrets, kubeconfig ou valores do state nas capturas.
+## Ja comprovado, sem precisar do cluster
+
+- [x] Os 5 pipelines verdes no GitHub Actions
+- [x] Pipeline **falhando** em vulnerabilidade CRITICAL e o job de imagem ficando `skipped`
+- [x] Imagens no ECR com tag `v1.0.0-<commit>`, nunca so `latest`
+- [x] Commit `chore(gitops)` feito pelo proprio pipeline, atualizando a tag
+- [x] Estado do Terraform no S3, nada local
+- [x] VPC, sub-redes, ECR, SQS + DLQ e DynamoDB no console
+
+## Depende do cluster no ar
+
+- [ ] `terraform apply` das camadas cluster e k8s concluidos
+- [ ] EKS e node group ativos no console
+- [ ] As 2 instancias RDS privadas + o pod `postgres-targeting` rodando
+- [ ] ElastiCache Redis ativo
+- [ ] Argo CD com a Application `togglemaster` em `Healthy` e `Synced`
+- [ ] Interface do Argo CD mostrando os 5 microsservicos
+- [ ] Mudanca de tag no Git sendo sincronizada sozinha pelo Argo CD
+- [ ] Teste funcional: criar uma flag e avalia-la ponta a ponta
+- [ ] Evento gravado na tabela DynamoDB
+
+## Entregaveis finais
+
+- [ ] Video de ate 20 minutos
+- [ ] Relatorio com integrantes, links, desafios/decisoes e print de custo

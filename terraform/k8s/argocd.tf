@@ -191,6 +191,48 @@ resource "helm_release" "argocd" {
 # E criado com kubernetes_manifest porque Application e um recurso
 # customizado (CRD) instalado pelo proprio chart - nao faz parte da API
 # padrao do Kubernetes.
+#
+# ############################################################
+# ATENCAO - O PRIMEIRO APPLY DESTA CAMADA E EM DUAS ETAPAS
+# ############################################################
+# Este e o unico ponto do projeto onde `terraform apply` direto NAO
+# funciona num cluster novo, e o motivo e sutil (F-043):
+#
+# O `kubernetes_manifest` valida o objeto contra o schema do CRD ainda
+# no PLAN, nao no apply. Num cluster recem-criado o CRD `Application`
+# ainda nao existe - quem o instala e o helm_release do bloco 3, que so
+# roda no apply, DEPOIS do plan ter terminado. Resultado: o plan morre
+# com
+#
+#   Failed to determine GroupVersionResource for manifest
+#   no matches for kind "Application" in group "argoproj.io"
+#
+# O `depends_on` NAO resolve isto: ele ordena a criacao, e o problema
+# acontece uma fase antes, na leitura do schema.
+#
+# PROCEDIMENTO CORRETO no primeiro apply de um cluster novo:
+#
+#   # Etapa A - instala o ArgoCD e, com ele, o CRD Application.
+#   # -target limita o plan a este recurso e as dependencias dele,
+#   # entao o kubernetes_manifest abaixo fica de fora e nao e avaliado.
+#   terraform -chdir=terraform/k8s apply -target=helm_release.argocd
+#
+#   # Etapa B - agora o CRD existe e o plan completo funciona.
+#   terraform -chdir=terraform/k8s apply
+#
+# Da segunda sessao em diante, se o cluster nao tiver sido destruido, a
+# etapa A e desnecessaria. Como o cluster DESTE projeto e efemero e
+# nasce do zero a cada sessao (D-017), na pratica as duas etapas sao
+# sempre necessarias - por isso estao no runbook, passo 1.4.
+#
+# Alternativas avaliadas e descartadas:
+#   - provider kubectl da comunidade (gavinbunney), que aplica YAML sem
+#     consultar schema no plan: resolveria, mas acrescenta um provider
+#     de terceiro ao projeto a poucos dias da entrega;
+#   - criar a Application com `kubectl apply -f` fora do Terraform:
+#     funciona, mas tira do IaC justamente o objeto que demonstra o
+#     GitOps (O-25), contrariando "se nao esta no codigo, nao existe".
+# ############################################################
 # ------------------------------------------------------------
 
 resource "kubernetes_manifest" "app_togglemaster" {

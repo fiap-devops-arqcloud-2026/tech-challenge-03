@@ -1,5 +1,17 @@
 # Tech Challenge 03 - Contexto de Colaboracao
 
+## Regra de trabalho vigente - 2026-09-09 18:09 -03:00, Codex
+
+TL;DR: por instrucao explicita do usuario em 2026-09-09, trabalhar SOMENTE na dev; promocao para main por PR dev -> main e merge (D-020). Ler tambem AGENTS.md.
+
+Conferencia atual: main/dev/remotas em 5b8cd86, sem commits ou arquivos exclusivos; checkout ja transferido para dev, com documentos locais preservados. Os pushes automaticos GitOps ainda precisam ser adaptados (P-052); nenhuma mudanca de workflow/publicacao foi feita nesta analise.
+
+
+## Revalidacao vigente - 2026-09-09 17:57 -03:00, Codex
+
+TL;DR: main/dev/origin sincronizadas em 5b8cd86; a nota das 13:31 abaixo e historica. EKS default corrigido para 1.34; parametros do seed corrigidos e schemas documentados. Persistem CI ignore-unfixed, bootstrap ArgoCD, Secret/chave, Redis placeholder e documentacao divergente. Ler [revalidacao](docs/00_COLAB_IA/03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md) e topo atualizado de LOG/PENDENCIAS. Fluxo preferido D-019: dev -> PR -> main.
+
+
 ## Aviso de continuidade - auditoria 2026-09-09
 
 TL;DR: o resumo historico abaixo esta desatualizado. Leia primeiro o topo de docs/00_COLAB_IA/LOG_DE_TRABALHO.md e PENDENCIAS_E_PROXIMOS_PASSOS.md, atualizados pela auditoria. Fonte: [parecer](docs/00_COLAB_IA/03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
@@ -25,22 +37,67 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 - Registros de trabalho ficam em `docs/00_COLAB_IA/`.
 - Guias de estudo ficam dentro da pasta de cada modulo em `docs/`.
 
-## Estado atual
+## Estado atual - 2026-09-09
 
-- Entrega em grupo, prazo final 2026-09-15 (D-006). Integrantes ainda nao informados (P-018).
-- Escopo mapeado em `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`: 39 itens obrigatorios, 9 opcionais do enunciado e 9 sugestoes das aulas. Nenhum item obrigatorio concluido ainda.
-- Monorepo (D-007): codigo em `services/`, infra em `terraform/`, manifestos em `gitops/`, pipelines em `.github/workflows/`.
-- Area GitOps em Kustomize (D-008), com `base/` por servico e `overlays/` por ambiente.
-- Microsservicos em duas stacks: Go (`auth`, `evaluation`) e Python (`flag`, `targeting`, `analytics`).
-- Toda a configuracao dos servicos vem de variaveis de ambiente; nao ha segredo hardcoded (F-011).
-- Conta pessoal AWS, nao AWS Academy; regiao `us-east-2`; IAM pode ser criado via Terraform.
-- `terraform/`, `gitops/` e `.github/workflows/` ainda estao vazios ou inexistentes.
-- Bucket de estado criado em 2026-08-27: `togglemaster-tfstate-891376952395-us-east-2-an` em `us-east-2`. P-019 encerrada.
-- Tags padrao de todo recurso AWS: `project = fiap`, `phase = 3`, em MINUSCULAS (D-009), aplicadas via `default_tags` no provider.
-- Plano do Terraform aprovado em 2026-08-27 (D-010 a D-014): modulos hibridos, ambiente unico `prod`, sem Ingress nem Load Balancer, segredos via Secrets Manager + External Secrets Operator, e `gitops/base/` derivado de `infra/k8s/` da Fase 2.
-- Nos EKS: 2 x `t3.medium`, dimensionados a partir dos requests reais da Fase 2 (F-020).
-- Em andamento: P-026 (Etapa 1 do Terraform) e P-027 (`gitops/base/`).
-- Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
+**Placar:** 24 obrigatorios comprovados, 6 escritos e validados sem apply,
+9 nao iniciados - e os 9 sao, todos, video e relatorio. Nenhum requisito
+tecnico do enunciado esta em aberto. Detalhe item a item em
+`docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`.
+
+**Fatos que valem para qualquer sessao:**
+
+- Entrega em grupo, prazo final 2026-09-15 (D-006). Os 5 integrantes do
+  Grupo 203 estao na tabela do `README.md`; falta so o usuario confirmar
+  que a composicao nao mudou (P-018).
+- Monorepo (D-007): codigo em `services/`, infra em `terraform/`,
+  manifestos em `gitops/`, pipelines em `.github/workflows/`.
+- Microsservicos em duas stacks: Go (`auth`, `evaluation`) e Python
+  (`flag`, `targeting`, `analytics`).
+- Conta pessoal AWS, nao AWS Academy; regiao `us-east-2`; IAM criado por
+  Terraform (D-016, R-05). **Nao ha chave estatica em lugar nenhum**: o
+  CI usa OIDC (S-01) e os pods usam IRSA (S-06).
+- Bucket de estado: `togglemaster-tfstate-891376952395-us-east-2-an`.
+- Tags padrao de todo recurso: `project = fiap`, `phase = 3`, em
+  MINUSCULAS (D-009), via `default_tags`.
+
+**Terraform em TRES camadas com estado separado (D-017):**
+
+| Camada | Contem | Situacao |
+|---|---|---|
+| `terraform/` | VPC, 5 ECR, SQS + DLQ, DynamoDB, OIDC do CI | **aplicada** em 2026-09-07, 33 recursos |
+| `terraform/cluster/` | EKS, node group, 2 RDS, ElastiCache, IRSA | escrita e validada, `plan` com 35 recursos, apply pendente |
+| `terraform/k8s/` | 5 Secrets, StorageClass gp3, ArgoCD + Application | escrita e validada, apply pendente |
+
+**O que ja rodou de verdade:** os 5 pipelines verdes na main e na dev; as
+5 imagens no ECR com tag `v1.0.0-<commit>`; o bloqueio por CRITICAL
+testado na pratica (um CVE do `x/crypto` derrubou o pipeline e o job de
+imagem ficou `skipped`); e 5 commits `chore(gitops)` feitos pelo proprio
+pipeline atualizando a tag.
+
+**Correcoes desta rodada (2026-09-09):** `ignore-unfixed` desligado nos 4
+scans Trivy com excecoes nominais em `.trivyignore` (F-042); bootstrap do
+ArgoCD documentado em duas etapas por causa do CRD (F-043); disputa da
+`SERVICE_API_KEY` resolvida com `ignore_changes` (F-046); `REDIS_URL`
+com comando pronto no runbook (F-047); `security-check.sh` deixou de
+reprovar a conta atual, e por isso o `validate-all.sh` roda inteiro pela
+primeira vez; documentacao alinhada ao codigo (F-048).
+
+**Nos EKS:** 2 x `c7i-flex.large`. O `t3.medium` do plano original foi
+recusado pela conta como nao elegivel ao Free Tier (F-023). Versao do
+EKS: **1.34**, e nao 1.31 - fora do suporte padrao o preco vai de
+US$ 0,10/h para US$ 0,60/h.
+
+**Desvios conscientes que precisam constar no relatorio (O-38):** 2 RDS
+em vez de 3, com o terceiro banco em pod (D-015, liberado pelo
+professor); sem Ingress nem Load Balancer (D-012, F-018); External
+Secrets Operator cortado, com os Secrets criados por
+`terraform/k8s/secrets.tf` (D-018).
+
+**Fluxo de Git (D-020):** trabalho humano so na `dev`; promocao para a
+`main` por PR. A `main` tambem recebe commits do robo do CI, que atualiza
+a tag da imagem - por isso, **sincronize a `dev` antes de comecar**.
+
+Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
 
 ## Ponteiros
 
@@ -54,3 +111,5 @@ TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco
 - Bootstrap do backend S3: `terraform/BOOTSTRAP-BACKEND-S3.md`
 - Runbook da sessao (subir, semear, gravar, derrubar): `docs/00_COLAB_IA/RUNBOOK-SESSAO.md`
 - Contrato de Secrets entre Terraform e GitOps: `gitops/SECRETS-CONTRATO.md`
+- Excecoes de seguranca com justificativa: `.trivyignore`
+- Instrucoes para agentes (regra da branch dev): `AGENTS.md`

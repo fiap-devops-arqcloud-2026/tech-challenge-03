@@ -70,7 +70,10 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  # Nome do Secret que o ExternalSecret vai criar.
+                  # Nome do Secret criado por terraform/k8s/secrets.tf (D-018).
+                  # O contrato desses nomes esta em gitops/SECRETS-CONTRATO.md:
+                  # se este valor e o de la divergirem, o pod fica em
+                  # CreateContainerConfigError, sem erro no ArgoCD.
                   name: auth-service-secret
                   # Chave especifica dentro dele.
                   key: DATABASE_URL

@@ -1,5 +1,19 @@
 # DOSSIE_CONTEXTO
 
+## Diretriz confirmada pelo usuario - 2026-09-09 18:09 -03:00, Codex
+
+TL;DR: D-020 substitui a preferencia anterior por regra: somente dev para trabalho, PR dev -> main e merge para promocao. Fonte: pedido do usuario em 2026-09-09 e AGENTS.md.
+
+Conferido main/dev/remotas iguais em 5b8cd86; checkout ja esta em dev. Nenhum conteudo exclusivo main. Documentos locais preservados, sem commit/push. Jobs automaticos GitOps ainda usam main diretamente (P-052); a regra documental nao equivale a protecao remota efetiva.
+
+
+## Atualizacao confirmada - 2026-09-09 17:57 -03:00, Codex
+
+TL;DR: main/dev/remotas sincronizadas em 5b8cd86 apos PRs #4/#5; EKS default agora 1.34. A sintese das 13:31 abaixo e historica. Fonte: [revalidacao atual](03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md).
+
+Roteiro corrigiu nomes dos parametros e regra PERCENTAGE e documentou schemas RDS; falta execucao AWS. Permanecem excecao ignore-unfixed, bootstrap CRD, disputa de Secret, Redis placeholder e consolidacao documental. D-019 mantida; P-051 nao exige mais sincronizar os 19 commits. O complemento desta revalidacao esta apenas local, sem commit/push.
+
+
 ## Sintese da auditoria de 2026-09-09
 
 TL;DR: monorepo com cinco servicos, Terraform em tres roots (base/cluster/k8s), CI com execucoes verdes e GitOps com tags reais. Ainda nao considerar a entrega concluida: faltam correcoes do bootstrap/seed/seguranca e demonstracao no EKS. Ultima atualizacao desta sintese: 2026-09-09 13:31 -03:00, Codex.

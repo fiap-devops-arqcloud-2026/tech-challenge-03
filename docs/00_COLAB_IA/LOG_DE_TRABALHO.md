@@ -1,5 +1,33 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-10 - Claude - Merge do PR #6 e pre-flight da sessao paga
+
+TL;DR: PR #6 mesclado, os 7 workflows verdes na main e a regra estrita do Trivy validada no pipeline real. Pre-flight da sessao de ensaio feito: `plan` do cluster limpo (35 to add) e nenhum bloqueio de cota, versao ou disponibilidade. Ultima atualizacao: 2026-09-10, Claude.
+
+Feito - merge e verificacao:
+
+- PR #6 (`dev` -> `main`) mesclado apos 42 verificacoes verdes e nenhuma falha. Merge commit `7ab0602`.
+- Os 7 workflows rodaram na main: os 5 servicos, Terraform Check e Compose Integration - **todos success**.
+- **A mudanca do Trivy foi validada onde importa.** Os jobs de imagem so rodam em push na main, entao no PR eles ficaram `skipping`; e no merge que a regra estrita e exercitada de fato. O log do job confirma `ignore-unfixed: false` e `trivyignores: .trivyignore` sendo passados a action, e os 3 servicos Python (os que carregam os 3 CRITICAL sem correcao em `perl-base`) passaram. A previsao feita pela medicao local se confirmou no pipeline real.
+- Cadeia GitOps completa outra vez: as 5 imagens publicadas no ECR com a tag `v1.0.0-7ab0602` e 5 commits `chore(gitops)` feitos pelo proprio pipeline. As tags do overlay deixaram de ser `v1.0.0-placeholder`.
+- `dev` sincronizada com a main depois dos 6 commits do robo. Conferido: 0/0.
+
+Feito - pre-flight da sessao com o cluster (tudo leitura, custo zero):
+
+- `terraform -chdir=terraform/cluster plan`: **35 to add, 0 to change, 0 to destroy**, sem erro. O caminho critico da sessao paga esta validado contra o estado real da base.
+- EKS **1.34 confirmada em STANDARD_SUPPORT** ate 2026-12-01. Nao ha risco de cair na tarifa de suporte estendido (US$ 0,60/h) durante a entrega.
+- `c7i-flex.large` disponivel nas tres AZs de us-east-2.
+- Cota de Elastic IP: 5, com 0 em uso - o NAT Gateway tem folga.
+- 0 instancias RDS na conta - as 2 do plano cabem sem esbarrar no limite do plano gratuito (F-023).
+- Chart `argo-cd` 7.7.11 ainda publicado no repositorio oficial. A versao fixa nao foi removida.
+- Nenhum NAT Gateway vivo: a conta nao esta sangrando custo entre sessoes.
+- Schemas conferidos: os 3 `init.sql` existem, e o do targeting esta de fato no ConfigMap montado em `/docker-entrypoint-initdb.d` do StatefulSet - ou seja, o passo 1.7 so precisa cobrir auth e flag, como o runbook ja diz.
+
+Arquivos: runbook ganhou nota sobre qual shell usar em cada bloco (a mistura de PowerShell e Bash e armadilha de dia de gravacao) e a correcao de que as tags do overlay ja estao certas; checklist com O-16 reforcado.
+
+Estado p/ o proximo agente: main e dev em `a38db95`, 0/0. Nada tecnico em aberto. O proximo passo real e a sessao com o cluster no ar, e o pre-flight dela ja foi feito - se falhar, sera por algo que so aparece em tempo de criacao, nao por configuracao.
+
+
 ## 2026-09-09 22:40 (-03:00) - Claude - Analise pedida pelo usuario e correcao dos achados abertos
 
 TL;DR: main e dev estao identicas (0/0, sem diferenca de arquivo); os achados F-042, F-043, F-046, F-047 e F-048 foram fechados; o `validate-all.sh` roda inteiro pela primeira vez. Ultima atualizacao: 2026-09-09 22:40 -03:00, Claude.

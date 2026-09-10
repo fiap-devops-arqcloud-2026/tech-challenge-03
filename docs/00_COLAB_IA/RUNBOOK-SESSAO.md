@@ -25,6 +25,21 @@ requisito**, e a Fase 4 deste runbook nao pode ser pulada.
 Rodar tudo isto ANTES de criar qualquer recurso. Cada linha existe
 porque a ausencia dela ja custou tempo.
 
+> **QUAL TERMINAL USAR.** Este runbook mistura dois shells, e trocar na
+> hora errada gera erro confuso:
+>
+> - **Git Bash ou WSL** para tudo que usa `<` (redirecionamento de
+>   arquivo), `$(...)` ou `|` — ou seja, os comandos `psql` do passo 1.7,
+>   o `sed` do passo 1.5 e os comandos `git`. No PowerShell o `<` nem
+>   existe como redirecionamento e o comando falha com erro de sintaxe.
+> - **PowerShell** para a linha do token logo abaixo (`$env:...`), que e
+>   sintaxe exclusiva dele.
+>
+> Sugestao pratica: deixe **duas janelas abertas** e nao troque no meio
+> de uma fase. No PowerShell, lembre que `terraform plan -out=arquivo`
+> precisa do token `--%` antes dos parametros, senao ele reclama de
+> "Too many command line arguments".
+
 **Identidade na AWS.** Se falhar, nada adiante funciona:
 
 ```bash
@@ -177,9 +192,12 @@ Compare com o que esta no repositorio e corrija se divergir:
   `PREENCHER` antes de seguir.
 
 - `gitops/overlays/prod/patches/irsa.yaml` - conferir os dois ARNs.
-- `gitops/overlays/prod/kustomization.yaml` - as 5 tags estao em
-  `v1.0.0-placeholder`. Elas so ficam corretas depois que o pipeline
-  rodar verde na `main` e publicar as imagens.
+- `gitops/overlays/prod/kustomization.yaml` - **JA ESTA CORRETO,
+  nao precisa mexer.** As 5 tags deixaram de ser `v1.0.0-placeholder`
+  em 2026-09-10: o pipeline rodou verde na `main` e o proprio job de
+  GitOps as atualizou para `v1.0.0-<commit>`. So confira que as 5
+  apontam para o mesmo commit; se alguma estiver diferente, e porque um
+  pipeline falhou e nao publicou.
 
 **Como levar isso ate a `main`** — o ArgoCD so enxerga o que esta no Git,
 e a regra do projeto e nao commitar direto na `main` (D-020):

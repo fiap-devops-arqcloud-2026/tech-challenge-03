@@ -164,19 +164,35 @@ camada."
 
 **Esta é a cena que mais vale nota. Ela tem duas partes.**
 
-### Parte 1 — a prova histórica, que já aconteceu (1:30)
+### Parte 1 — a prova que já está pronta (1:30)
+
+> **ATUALIZADO EM 11/09/2026: o ensaio já foi feito.** O grupo rodou a
+> demonstração da Parte 2 e ela funcionou exatamente como previsto. Agora
+> existem **duas** execuções reais para escolher, e a primeira é a melhor,
+> porque é a que o enunciado pede que vocês mesmos provoquem:
+>
+> | Execução | O que mostra |
+> |---|---|
+> | [**run 34596859079**](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34596859079) — commit `8d1da56` | **A demonstração de vocês.** `PyYAML CVE-2020-14343 CRITICAL`. SCA vermelho, imagem e GitOps pulados. |
+> | [run 34597106311](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34597106311) — commit `eb7ffc2` | A correção: tudo verde depois de trocar para `PyYAML==6.0.1`. |
+> | [run 34360653255](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34360653255) | A prova histórica: `CVE-2026-56854` em `golang.org/x/crypto`, um CVE que já estava no projeto sem ninguém saber. Use como reforço. |
+>
+> **Como isso muda a gravação:** você pode gravar a Cena 3 inteira
+> mostrando execuções que já existem, sem esperar pipeline nenhum. A
+> Parte 2 vira opcional — refaça ao vivo só se quiser mostrar o ato de
+> inserir a dependência.
 
 Abra esta execução real:
 
-**https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34360653255**
+**https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34596859079**
 
 Na tela aparece exatamente isto:
 
 | Job | Resultado |
 |---|---|
 | Build e testes | ✅ verde |
-| Linter (golangci-lint) | ✅ verde |
-| SAST (gosec) | ✅ verde |
+| Linter (flake8 e pylint) | ✅ verde |
+| SAST (bandit) | ✅ verde |
 | **SCA (Trivy fs)** | ❌ **vermelho** |
 | **Imagem Docker e push no ECR** | ⏭️ **cinza — skipped** |
 | **Atualizar tag no GitOps** | ⏭️ **cinza — skipped** |
@@ -185,7 +201,7 @@ Clique no job vermelho e mostre o achado:
 
 ```
 Total: 1 (CRITICAL: 1)
-golang.org/x/crypto │ CVE-2026-56854 │ CRITICAL │ v0.20.0 → 0.55.0
+PyYAML │ CVE-2020-14343 │ CRITICAL │ fixed │ 5.3.1 → 5.4
 ```
 
 **Diga — e enfatize, porque é aqui que está o requisito:**
@@ -943,6 +959,10 @@ Duas fontes servem, e mostrar as duas é mais forte:
 - [ ] Interface do ArgoCD com os **5** microsserviços visíveis
 - [ ] Os 5 integrantes citados
 - [ ] Vídeo **não listado**, link testado numa aba anônima
+
+**Limpeza pós-demonstração**
+
+- [ ] Remover `PyYAML==6.0.1` de `services/flag-service/requirements.txt` — entrou só para a demonstração de segurança e o serviço não usa YAML. Deixar uma dependência sem uso no arquivo é o tipo de detalhe que um avaliador nota
 
 **Relatório**
 

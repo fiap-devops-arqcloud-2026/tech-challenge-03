@@ -63,14 +63,105 @@ aws --version
 ```
 
 **Token do GitHub para o ArgoCD.** O repositorio e privado (F-014), e
-sem isto a Application fica em Unknown com "authentication required":
+repositorio privado exige credencial: sem ela o ArgoCD mostra
+`authentication required` e a Application nunca sai de `Unknown`.
 
-```bash
-$env:TF_VAR_github_token = "ghp_SEU_TOKEN_AQUI"
+> **Crie e teste o token ANTES da sessao paga.** Criar leva 3 minutos e
+> nao custa nada. Descobrir que ele nao funciona com o cluster no ar
+> custa a sessao.
+
+### Como criar o token (uma vez so)
+
+O repositorio pertence a uma **organizacao** (`fiap-devops-arqcloud-2026`),
+e isso muda o caminho — tem um passo que nao existe em repositorio pessoal.
+
+1. No GitHub, clique na sua foto (canto superior direito) → **Settings**
+2. Desca a barra lateral esquerda ate o fim → **Developer settings**
+3. **Personal access tokens** → **Fine-grained tokens**
+4. **Generate new token**
+5. **Token name:** `argocd-tech-challenge-03`
+6. **Resource owner:** selecione **`fiap-devops-arqcloud-2026`**, e nao
+   sua conta pessoal. **Este e o passo que costuma passar batido** — com
+   o dono errado, o token e criado normalmente e falha na hora de clonar.
+7. **Expiration:** qualquer data depois de **2026-09-15**. 30 dias serve.
+8. **Repository access:** *Only select repositories* → `tech-challenge-03`
+9. **Permissions** → *Repository permissions* → **Contents** → **Read-only**.
+   Nao marque mais nada: o ArgoCD so precisa ler.
+10. **Generate token** e **copie o valor agora** — o GitHub mostra uma
+    vez so. Ele comeca com `github_pat_`.
+
+### Se aparecer "pending approval"
+
+Token fine-grained apontando para uma organizacao pode ficar aguardando
+aprovacao de um dono da organizacao. **Voce e dono**, entao voce mesmo
+libera:
+
+- **Organizacao** → **Settings** → **Personal access tokens** →
+  **Pending requests** → aprovar
+- Se nem aparecer a opcao de criar, va em **Settings** → **Personal
+  access tokens** → **Settings** e marque *Allow access via fine-grained
+  personal access tokens*
+
+### Alternativa, se o fine-grained der trabalho
+
+Token **classico** funciona em qualquer organizacao, sem politica extra.
+O preco e a permissao ser mais larga — nao existe escopo de somente
+leitura para repositorio privado no modelo classico:
+
+- **Developer settings** → **Personal access tokens** → **Tokens (classic)**
+  → **Generate new token (classic)** → marque o escopo **`repo`**
+
+Comeca com `ghp_`. Prefira o fine-grained; use este so se o outro travar.
+
+### Colocar o token na sessao do terminal
+
+O Terraform le sozinho qualquer variavel de ambiente que comece com
+`TF_VAR_`. Entao `TF_VAR_github_token` vira a variavel `github_token`.
+
+No **PowerShell**:
+
+```powershell
+$env:TF_VAR_github_token = "github_pat_COLE_AQUI"
 ```
 
-O token precisa apenas de `Contents: Read-only`. Ele fica so na sessao
-do terminal - nao entra em arquivo nenhum.
+No **Git Bash**:
+
+```bash
+export TF_VAR_github_token="github_pat_COLE_AQUI"
+```
+
+Duas coisas que valem lembrar:
+
+- **Vale so para aquela janela.** Fechou o terminal, a variavel morre.
+  Defina na **mesma janela** onde voce vai rodar o `terraform apply` da
+  camada k8s.
+- **Nunca coloque em arquivo.** A variavel de ambiente nao deixa rastro
+  em disco. Um `terraform.tfvars` tambem funcionaria e esta protegido
+  pelo `.gitignore`, mas deixa o valor gravado.
+
+### Testar o token agora, sem gastar nada
+
+Este comando usa **exatamente** o mesmo mecanismo do ArgoCD: HTTPS com
+usuario `git` e o token como senha.
+
+```bash
+git ls-remote "https://git:$TF_VAR_github_token@github.com/fiap-devops-arqcloud-2026/tech-challenge-03.git" | head -3
+```
+
+- **Listou linhas com hashes e nomes de branch** → o token funciona, e o
+  ArgoCD vai conseguir clonar.
+- **`Authentication failed`** → revise o passo 6 (Resource owner) e
+  verifique se o token nao esta aguardando aprovacao.
+
+O historico do shell guarda a linha com `$TF_VAR_github_token` sem
+expandir, entao o valor do token nao fica gravado ali.
+
+### Quando o repositorio virar publico, o token deixa de ser necessario
+
+Se o grupo publicar o repositorio para a entrega, nao ha o que
+autenticar. Basta **nao definir** a variavel: o codigo tem
+`count = var.github_token != "" ? 1 : 0`, entao o Secret de credencial
+simplesmente nao e criado, e o ArgoCD clona anonimamente.
 
 **Conferir que a camada base esta aplicada:**
 

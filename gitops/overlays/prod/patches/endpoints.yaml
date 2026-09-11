@@ -25,7 +25,7 @@ data:
   # O evaluation consulta este cache antes de chamar flag e targeting;
   # e o que mantem o hot path rapido.
   # PLACEHOLDER ate a Etapa 2 existir.
-  REDIS_URL: "redis://togglemaster-redis.PREENCHER.use2.cache.amazonaws.com:6379"
+  REDIS_URL: "redis://togglemaster-redis.ewbn3x.ng.0001.use2.cache.amazonaws.com:6379"
 
   # URL da fila SQS. Sai de `terraform output sqs_queue_url` (Etapa 1,
   # ja aplicavel). Contem o numero da conta, por isso nao fica na base.

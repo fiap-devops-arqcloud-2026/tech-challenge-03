@@ -92,8 +92,8 @@ variable "github_token" {
 
     COMO PASSAR SEM COMITAR NADA - preferir a variavel de ambiente:
 
-        $env:TF_VAR_github_token = "ghp_xxxx"    (PowerShell)
-        export TF_VAR_github_token=ghp_xxxx      (bash)
+        $env:TF_VAR_github_token = "github_pat_xxxx"   (PowerShell)
+        export TF_VAR_github_token=github_pat_xxxx     (Git Bash)
 
     O Terraform le TF_VAR_<nome> automaticamente. Um terraform.tfvars
     tambem funciona e esta protegido pelo .gitignore (`*.tfvars`), mas a
@@ -101,6 +101,12 @@ variable "github_token" {
 
     O token precisa APENAS de leitura de conteudo do repositorio. Um
     fine-grained token com permissao "Contents: Read-only" basta.
+
+    ATENCAO: o repositorio pertence a uma ORGANIZACAO. Ao criar o token,
+    o campo "Resource owner" precisa apontar para a organizacao, e nao
+    para a conta pessoal - com o dono errado o token e criado sem erro e
+    so falha na hora de clonar. Passo a passo no RUNBOOK-SESSAO.md,
+    FASE 0.
 
     Deixe vazio se o repositorio for publico: neste caso o bloco de
     credencial nem e criado.

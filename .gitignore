@@ -83,3 +83,8 @@ desktop.ini
 .vscode/
 *.swp
 *~
+
+# Pasta de rascunho de execucao. Apareceu em 2026-09-11 com um script de
+# captura de tela dentro; o script foi promovido para scripts/ e a pasta
+# passa a ser ignorada, para nao virar deposito de arquivo solto.
+tmp/

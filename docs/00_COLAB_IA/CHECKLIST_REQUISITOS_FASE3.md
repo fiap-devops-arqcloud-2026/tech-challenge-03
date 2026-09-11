@@ -85,9 +85,9 @@ Fonte unica desta lista: paginas 2 a 6 do PDF do enunciado. Itens fora do PDF es
 ### 2.3 Relatorio de entrega (.PDF ou .txt)
 
 - [x] O-36 Nomes dos participantes do grupo. Os 5 integrantes do Grupo 203, com RM e GitHub, estao na tabela do `README.md`. Conferido em 2026-09-09. Resta apenas o usuario confirmar que a composicao do grupo nao mudou desde a Fase 2 (P-018).
-- [ ] O-37 Link da documentacao e do video.
-- [ ] O-38 Breve resumo dos desafios encontrados e das decisoes tomadas.
-- [ ] O-39 Print da estimativa de custos da AWS.
+- [~] O-37 Link da documentacao e do video. Secao 2 do relatorio ja escrita, com o link do repositorio. Falta so colar a URL do YouTube depois de gravar.
+- [x] O-38 Breve resumo dos desafios encontrados e das decisoes tomadas. ESCRITO em 2026-09-11: secao 7 do relatorio, com 8 desafios documentados - o limite de RDS do plano gratuito, o tipo de maquina recusado, a versao do EKS que custava 6x mais, o CVE critico que o pipeline antigo escondia, os 3 CVEs sem correcao, o bootstrap do ArgoCD em duas etapas, a remocao do Ingress e a disciplina de branches.
+- [~] O-39 Print da estimativa de custos da AWS. Secao 8 do relatorio ja tem a tabela de custo por hora (US$ 0,368/h) e a projecao mensal (~US$ 269). Falta anexar o print do Pricing Calculator ou do Cost Explorer.
 
 ---
 

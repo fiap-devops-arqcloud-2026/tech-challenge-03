@@ -1,5 +1,8 @@
 # Roteiro do vídeo — máximo 20 minutos
 
+> **Cena a cena, com os comandos prontos e o que dizer em cada tela:**
+> [GUIA_GRAVACAO.md](GUIA_GRAVACAO.md). Este arquivo e so a linha do tempo.
+>
 > Ajustado em 2026-09-09: são **2 RDS + 1 banco em pod** (D-015) e **uma**
 > Application do Argo CD gerenciando os cinco serviços. O roteiro
 > detalhado, com o que já pode ser gravado sem o cluster no ar, está na

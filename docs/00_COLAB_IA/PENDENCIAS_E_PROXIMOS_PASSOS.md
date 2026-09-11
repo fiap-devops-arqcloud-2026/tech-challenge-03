@@ -18,7 +18,7 @@ TL;DR: **nenhum requisito tecnico do enunciado esta em aberto.** O que falta e u
 
 1. **P-041 - Sessao de ensaio com o cluster** (CAMINHO CRITICO). Primeira vez que a pilha completa sobe. Seguir o runbook: NAT -> `cluster/` -> kubeconfig -> `k8s/` **em dois comandos** -> schemas (passo 1.7) -> seed -> conferir ArgoCD Healthy/Synced -> destroy. Reservar 3h.
 2. **P-047 - Criar os schemas nos RDS.** Etapa documentada (runbook 1.7), nunca executada. Sem ela os servicos sobem, respondem `/health` com 200 e falham no primeiro INSERT. Os comandos sao Bash: rodar no Git Bash ou WSL.
-3. **P-042 - Gravar o video** (O-27 a O-32). Metade nao precisa do cluster: pipeline falhando/passando (O-28/O-29) e atualizacao da tag no GitOps (O-30) rodam so no GitHub Actions. Gravar essa metade ANTES da sessao paga.
+3. **P-042 - Gravar o video** (O-27 a O-32). Roteiro cena a cena, com comandos prontos e a demo de falha JA TESTADA, em [GUIA_GRAVACAO.md](../fase-3/GUIA_GRAVACAO.md). Metade nao precisa do cluster: pipeline falhando/passando (O-28/O-29) e atualizacao da tag no GitOps (O-30) rodam so no GitHub Actions. Gravar essa metade ANTES da sessao paga.
 4. **P-006 / P-043 - Relatorio** (O-37, O-38, O-39). Os desvios que precisam estar la: 2 RDS + 1 pod (D-015), sem Ingress (D-012), ESO cortado (D-018) e a excecao do `.trivyignore`. Print de custo pelo AWS Pricing Calculator.
 5. **P-018 - Confirmar os integrantes.** A tabela do README ja tem os 5 do Grupo 203; falta so o usuario confirmar que nao mudou.
 

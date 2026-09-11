@@ -344,38 +344,121 @@ banco pronto.
 O `targeting_db` e a excecao: como roda em pod, o schema vai num
 ConfigMap e o proprio PostgreSQL o executa na primeira subida.
 
-Pegue os endpoints e as senhas:
+### Você não precisa descobrir senha nem endereço
+
+A versão anterior deste passo pedia para trocar quatro coisas na mão —
+duas senhas e dois endereços. Isso era desnecessário e perigoso: a senha
+apareceria digitada na tela durante a gravação.
+
+**O Terraform já guardou tudo junto.** Quando ele criou os bancos, gerou
+uma senha aleatória para cada um e montou uma URL de conexão completa,
+que ficou dentro do Secret que o próprio serviço usa. A URL tem este
+formato, com as quatro informações de uma vez:
+
+```
+postgres://toggle:SENHA@endereco-do-rds.amazonaws.com:5432/auth_db
+         └usuário┘ └──┘ └──────────────────────────┘      └banco┘
+                  senha            endereço
+```
+
+E o `psql` aceita essa URL inteira como primeiro argumento. Ou seja:
+**basta ler o Secret e entregar o valor ao `psql`.** Nada para preencher.
+
+### Passo 1 — guardar a URL numa variável do terminal
+
+```bash
+AUTH_DB=$(kubectl get secret auth-service-secret -n togglemaster -o jsonpath='{.data.DATABASE_URL}' | base64 -d)
+```
+
+```bash
+FLAG_DB=$(kubectl get secret flag-service-secret -n togglemaster -o jsonpath='{.data.DATABASE_URL}' | base64 -d)
+```
+
+Parte por parte:
+
+| Trecho | O que faz |
+|---|---|
+| `VARIAVEL=$(...)` | roda o comando entre parênteses e guarda a saída na variável, sem imprimir nada |
+| `get secret auth-service-secret` | lê o Secret que o Terraform criou |
+| `-o jsonpath='{.data.DATABASE_URL}'` | extrai só o campo da URL |
+| `\| base64 -d` | decodifica. O Kubernetes guarda Secrets em base64 — que não é criptografia, é só codificação |
+
+**Por que usar variável em vez de colar o valor:** na tela aparece
+`$AUTH_DB`, nunca a senha. Numa gravação isso deixa de ser detalhe —
+senha em vídeo publicado é senha vazada.
+
+Se quiser **conferir** que a variável foi preenchida, sem expor a senha:
+
+```bash
+echo "${AUTH_DB%%:*}// ... ${AUTH_DB##*@}"
+```
+
+Mostra só o começo e o fim da URL — o protocolo e o endereço do banco —
+escondendo o miolo, que é onde está a senha.
+
+### Passo 2 — aplicar os schemas
+
+O RDS está em subnet privada: nada de fora do cluster alcança. Por isso o
+`psql` roda **de dentro**, num pod descartável.
+
+```bash
+kubectl run psql-auth --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine -- psql "$AUTH_DB" < services/auth-service/db/init.sql
+```
+
+```bash
+kubectl run psql-flag --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine -- psql "$FLAG_DB" < services/flag-service/db/init.sql
+```
+
+Parte por parte:
+
+| Trecho | O que faz |
+|---|---|
+| `kubectl run psql-auth` | cria um pod avulso com esse nome |
+| `--rm` | apaga o pod assim que ele terminar — não deixa lixo no cluster |
+| `-i` | liga a entrada padrão: é o que permite empurrar o arquivo `.sql` para dentro |
+| `--restart=Never` | pod de tarefa única; sem isso o Kubernetes o reiniciaria em loop ao terminar |
+| `--image=postgres:16-alpine` | imagem oficial, que já traz o cliente `psql` |
+| `--` | fim das opções do `kubectl`; o que vem depois é o comando do container |
+| `psql "$AUTH_DB"` | conecta usando a URL inteira. As aspas são obrigatórias: sem elas, caracteres da senha podem ser interpretados pelo shell |
+| `< arquivo.sql` | manda o conteúdo do arquivo **da sua máquina** para a entrada do `psql` |
+
+> **Só funciona em Git Bash ou WSL.** O `<` como redirecionamento de
+> arquivo não existe no PowerShell — lá o comando falha com erro de
+> sintaxe. Este é um dos passos que exigem o terminal certo.
+
+Os schemas usam `CREATE TABLE IF NOT EXISTS`, então rodar duas vezes não
+quebra nada. Se você não tiver certeza se já rodou, rode de novo.
+
+### Passo 3 — conferir antes de seguir
+
+```bash
+kubectl run psql-check --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine -- psql "$AUTH_DB" -c "\dt"
+```
+
+O `-c` executa um comando único e sai; `\dt` lista as tabelas.
+
+Tem que aparecer a tabela **`api_keys`**. Repita trocando `$AUTH_DB` por
+`$FLAG_DB` — lá devem aparecer **`flags`** e as demais.
+
+Se vier `No relations found`, o schema não foi aplicado: o serviço vai
+subir, responder `/health` com 200 e falhar no primeiro INSERT. **Health
+verde não prova banco pronto.**
+
+### Se precisar mesmo ver as partes separadas
+
+Para diagnóstico — por exemplo, para confirmar que o endereço do RDS
+bate com o que o Terraform criou:
 
 ```bash
 terraform -chdir=terraform/cluster output rds_endpoints
 ```
 
+E a URL completa, com a senha visível na tela — **não use isto durante a
+gravação**:
+
 ```bash
 kubectl get secret auth-service-secret -n togglemaster -o jsonpath='{.data.DATABASE_URL}' | base64 -d
 ```
-
-O RDS esta em subnet privada, entao o `psql` precisa rodar DE DENTRO do
-cluster. Um pod descartavel resolve - repita trocando o banco:
-
-```bash
-kubectl run psql-auth --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine --env="PGPASSWORD=<SENHA_AUTH>" -- psql -h <ENDPOINT_AUTH> -U toggle -d auth_db < services/auth-service/db/init.sql
-```
-
-```bash
-kubectl run psql-flag --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine --env="PGPASSWORD=<SENHA_FLAG>" -- psql -h <ENDPOINT_FLAG> -U toggle -d flags_db < services/flag-service/db/init.sql
-```
-
-Os schemas usam `CREATE TABLE IF NOT EXISTS`, entao rodar duas vezes nao
-quebra nada.
-
-Confira antes de seguir:
-
-```bash
-kubectl run psql-check --rm -i --restart=Never -n togglemaster --image=postgres:16-alpine --env="PGPASSWORD=<SENHA_AUTH>" -- psql -h <ENDPOINT_AUTH> -U toggle -d auth_db -c "\dt"
-```
-
-Tem que listar a tabela `api_keys`. Se vier "No relations found", o
-schema nao foi aplicado e o seed da Fase 2 vai falhar.
 
 ---
 

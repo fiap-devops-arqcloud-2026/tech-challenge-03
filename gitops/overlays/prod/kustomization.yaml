@@ -72,7 +72,7 @@ images:
   newTag: v1.0.0-7ab0602
 - name: flag-service
   newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/flag-service
-  newTag: v1.0.0-ff441a1
+  newTag: v1.0.0-5c5a034
 - name: targeting-service
   newName: 891376952395.dkr.ecr.us-east-2.amazonaws.com/targeting-service
   newTag: v1.0.0-ff441a1

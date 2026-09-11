@@ -1,5 +1,33 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-11 - Claude - Guia de gravacao com comandos explicados e relatorio de entrega
+
+TL;DR: guia ganhou apendice com todos os comandos explicados parte por parte; relatorio de entrega escrito e gerado em PDF; a estimativa oficial de custos feita pelo Codex em paralelo foi incorporada, fechando parte de O-39. Ultima atualizacao: 2026-09-11, Claude.
+
+Pedido: acrescentar ao guia de gravacao os comandos que o usuario vai rodar, com explicacao; e criar o relatorio de entrega conforme o enunciado, tomando como base o relatorio da Fase 2, aprovado com nota maxima.
+
+Feito - guia de gravacao:
+
+- Novo apendice "todos os comandos, explicados parte por parte", com tabela por comando explicando cada flag e o que esperar na tela. Cobre as conferencias iniciais, as 8 cenas e o encerramento. O guia passou de 570 para 959 linhas.
+- Pontos que a explicacao deixa explicito e que valem na hora da gravacao: o `&&` como "so continue se o anterior der certo"; o `-chdir` como alternativa ao `cd` porque cada camada e um projeto independente; o `[-1]` do `--query` do ECR; o `||` do grep como "senao"; o `base64 -d` e o fato de que base64 NAO e criptografia; o `--wait=false` para a camera nao esperar; e por que o apply da camada k8s e em duas etapas.
+
+Feito - relatorio de entrega:
+
+- `docs/fase-3/RELATORIO_DE_ENTREGA.md`, na mesma estrutura do relatorio da Fase 2: capa, identificacao do grupo, links obrigatorios, o problema, IaC, CI/DevSecOps, GitOps, desafios e decisoes, custos e atividades opcionais.
+- Secao 7 documenta 8 desafios: limite de RDS do plano gratuito, tipo de maquina recusado, EKS 1.31 que custava 6x mais, o CVE critico que o pipeline antigo escondia, os 3 CVEs sem correcao e a decisao pelo `.trivyignore` nominal, o bootstrap do ArgoCD em duas etapas, a remocao do Ingress e a disciplina de branches. Isso fecha **O-38**.
+- `scripts/gerar-relatorio-pdf.py` converte o Markdown em PDF com capa, numeracao de pagina e a captura de custos embutida. O PDF e reproduzivel: qualquer integrante roda o script e obtem o mesmo documento. Resultado: 9 paginas, 242 KB.
+
+Sobre o trabalho do outro agente (Codex), executado em paralelo nesta mesma janela:
+
+- **Ganho real, incorporado:** ele produziu a estimativa oficial no AWS Pricing Calculator, com link publico e captura de tela (`docs/fase-3/ESTIMATIVA_CUSTOS_AWS.md` e `evidencias/estimativa-custos-aws-2026-09-11.png`). Conferi a aritmetica: a soma dos 7 itens da US$ 281,03 e o x12 da US$ 3.372,36 - ambos batem com o declarado. Substitui a secao 8 do meu relatorio, que usava uma conta por hora menos completa (US$ 269/mes), pelos numeros oficiais, mantendo a tabela por sessao. Isso avanca **O-39**, que so precisa agora do print anexado - e ele ja esta.
+- **Conflito resolvido:** ele tambem escreveu um segundo gerador de PDF (`scripts/build-report-fase3.py`, reportlab, identidade visual propria). Constatado que ele **nao roda nesta maquina** - `reportlab` nao esta instalado - e que escreve em `output/pdf/`, caminho que ja esta no `.gitignore`, entao o resultado nao seria versionado. Alem disso, o formato dele diverge do relatorio da Fase 2, que foi o que o usuario pediu como base. Mantive o arquivo, sem apagar, e acrescentei no topo dele uma nota dizendo qual gerador e o canonico, o que cada um produz e o que cada um exige. A escolha final de identidade visual e do usuario.
+- **Higiene:** o script de captura estava em `tmp/pdfs/capture_aws_estimate.cjs`, pasta nao ignorada - entraria no repositorio como arquivo solto. Promovido para `scripts/capturar-estimativa-aws.cjs`, porque e util e reproduzivel, e `tmp/` foi acrescentado ao `.gitignore`.
+
+Verificacao: `validate-all.sh` verde de ponta a ponta; PDF conferido com pypdf (9 paginas, capa correta, tabelas inteiras, imagem embutida); aritmetica da estimativa refeita de forma independente.
+
+Estado p/ o proximo agente: relatorio escrito e gerado, faltando apenas o link do video (O-37). Placar do checklist: 25 comprovados, 8 escritos e validados, 6 nao iniciados.
+
+
 ## 2026-09-10 - Claude - Merge do PR #6 e pre-flight da sessao paga
 
 TL;DR: PR #6 mesclado, os 7 workflows verdes na main e a regra estrita do Trivy validada no pipeline real. Pre-flight da sessao de ensaio feito: `plan` do cluster limpo (35 to add) e nenhum bloqueio de cota, versao ou disponibilidade. Ultima atualizacao: 2026-09-10, Claude.

@@ -111,6 +111,7 @@ Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
 - Bootstrap do backend S3: `terraform/BOOTSTRAP-BACKEND-S3.md`
 - Runbook da sessao (subir, semear, gravar, derrubar): `docs/00_COLAB_IA/RUNBOOK-SESSAO.md`
 - Guia de gravacao (o que a FIAP quer ver e como mostrar): `docs/fase-3/GUIA_GRAVACAO.md`
+- Relatorio de entrega (rascunho + PDF gerado): `docs/fase-3/RELATORIO_DE_ENTREGA.md`
 - Contrato de Secrets entre Terraform e GitOps: `gitops/SECRETS-CONTRATO.md`
 - Excecoes de seguranca com justificativa: `.trivyignore`
 - Instrucoes para agentes (regra da branch dev): `AGENTS.md`

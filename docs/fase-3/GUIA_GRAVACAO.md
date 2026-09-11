@@ -492,6 +492,397 @@ dólar e dez."
 
 ---
 
+# Apêndice — todos os comandos, explicados parte por parte
+
+Esta seção existe para você **entender o que está digitando**, não só copiar.
+Na gravação, saber explicar o comando enquanto ele roda vale mais do que o
+resultado na tela — é isso que mostra domínio.
+
+Os comandos aparecem na ordem em que você vai usá-los.
+
+---
+
+## Antes de tudo — duas conferências rápidas
+
+### Confirmar em qual conta da AWS você está
+
+```bash
+aws sts get-caller-identity
+```
+
+| Parte | O que faz |
+|---|---|
+| `aws` | o programa de linha de comando da AWS |
+| `sts` | serviço de credenciais temporárias (*Security Token Service*) |
+| `get-caller-identity` | pergunta "quem sou eu?" — devolve conta, usuário e ID |
+
+**Por que importa:** na conta errada, tudo depois falha de um jeito confuso.
+Esperado: conta `891376952395`.
+
+### Confirmar em qual branch você está
+
+```bash
+git status --short --branch
+```
+
+| Parte | O que faz |
+|---|---|
+| `--branch` | mostra a branch atual e se ela está à frente ou atrás do GitHub |
+| `--short` | saída compacta, uma linha por arquivo |
+
+**Regra do projeto (D-020):** trabalho humano só na `dev`.
+
+---
+
+## Cena 2 — IaC, a parte gratuita
+
+### 1. Mostrar a estrutura em três camadas
+
+```bash
+find terraform -maxdepth 2 -type d | sort
+```
+
+| Parte | O que faz |
+|---|---|
+| `find terraform` | procura dentro da pasta `terraform` |
+| `-maxdepth 2` | desce no máximo dois níveis — sem isso a saída viraria uma lista gigante |
+| `-type d` | traz só diretórios, ignorando arquivos |
+| `| sort` | ordena alfabeticamente, para a tela ficar previsível |
+
+### 2. O `plan` que o enunciado pede
+
+```bash
+terraform -chdir=terraform/cluster plan
+```
+
+| Parte | O que faz |
+|---|---|
+| `terraform` | a ferramenta de infraestrutura como código |
+| `-chdir=terraform/cluster` | roda **como se** você estivesse dentro dessa pasta, sem precisar de `cd`. Cada camada é um projeto independente |
+| `plan` | calcula o que precisaria ser criado, alterado ou destruído — **e não faz nada** |
+
+**O que dizer enquanto roda:** o `plan` compara o que está escrito no código com
+o que existe de fato na AWS e mostra a diferença. É seguro — não cria recurso
+nenhum e não custa nada.
+
+**Saída esperada, na última linha:**
+
+```
+Plan: 35 to add, 0 to change, 0 to destroy.
+```
+
+> **Se estiver no PowerShell** e o comando tiver `-out=arquivo`, é preciso o
+> token `--%` antes dos parâmetros, senão o PowerShell reclama de *"Too many
+> command line arguments"*. No Git Bash não existe esse problema.
+
+### 3. Provar que o estado não é local
+
+```bash
+aws s3 ls s3://togglemaster-tfstate-891376952395-us-east-2-an/prod/
+```
+
+| Parte | O que faz |
+|---|---|
+| `s3 ls` | lista o conteúdo de um caminho no S3 |
+| `s3://...` | o bucket onde o estado do Terraform vive |
+| `/prod/` | a pasta com um arquivo de estado por camada |
+
+**Por que essa cena existe:** o enunciado tem um requisito literal — *"o
+`terraform.tfstate` não pode ficar local"*. Este comando é a prova.
+
+**O que dizer:** "esse arquivo guarda as senhas dos bancos em texto puro. No
+computador de alguém, ou pior, no Git, seria um vazamento. Por isso ele vive num
+bucket criptografado e versionado."
+
+---
+
+## Cena 3 — DevSecOps, a falha ao vivo
+
+### 1. Inserir a dependência vulnerável
+
+Edite `services/flag-service/requirements.txt` e acrescente no fim:
+
+```
+PyYAML==5.3.1
+```
+
+**Por que essa e não outra:** essa versão tem o **CVE-2020-14343**, classificado
+como crítico, **e tem correção disponível** (5.4 em diante). As duas coisas
+importam: crítico para acionar o bloqueio, e com correção para você conseguir
+mostrar o pipeline verde logo depois.
+
+### 2. Enviar para a branch de trabalho
+
+```bash
+git switch dev && git add services/flag-service/requirements.txt && git commit -m "demo: dependencia vulneravel proposital" && git push origin dev
+```
+
+São quatro comandos encadeados. O `&&` significa **"só continue se o anterior
+der certo"** — assim, se o commit falhar, nada é enviado.
+
+| Comando | O que faz |
+|---|---|
+| `git switch dev` | garante que você está na branch de trabalho |
+| `git add <arquivo>` | marca o arquivo alterado para entrar no próximo commit |
+| `git commit -m "..."` | grava a alteração no histórico local, com a mensagem entre aspas |
+| `git push origin dev` | envia para o GitHub, na branch `dev` |
+
+**É o `push` que acorda o pipeline.** Os workflows escutam `push` na `dev` e na
+`main`, e só acordam se o caminho alterado interessar a eles — mexer só em
+documentação não dispara nada.
+
+### 3. Corrigir
+
+Troque a linha para `PyYAML==6.0.1` e repita:
+
+```bash
+git add services/flag-service/requirements.txt && git commit -m "fix: corrige a dependencia vulneravel" && git push origin dev
+```
+
+Sem o `git switch` desta vez — você já está na `dev`.
+
+**O que dizer:** "mesma pipeline, mesma regra. Mudou só a versão da dependência.
+O portão não foi afrouxado: o problema é que foi resolvido."
+
+---
+
+## Cena 4 — GitOps
+
+### 1. Provar que a tag existe no registro de imagens
+
+```bash
+aws ecr describe-images --repository-name flag-service --region us-east-2 --query 'sort_by(imageDetails,&imagePushedAt)[-1].imageTags' --output text
+```
+
+| Parte | O que faz |
+|---|---|
+| `ecr describe-images` | lista as imagens de um repositório do ECR |
+| `--repository-name flag-service` | qual repositório consultar |
+| `--region us-east-2` | Ohio, onde vive toda a infraestrutura do projeto |
+| `--query 'sort_by(...)[-1].imageTags'` | ordena por data de envio, pega a **última** (`[-1]`) e devolve só as tags |
+| `--output text` | saída limpa, sem as chaves e colchetes do JSON |
+
+**O que dizer:** "a tag que está no Git e a tag que está no registro são a mesma.
+E ela é o hash do commit — exatamente o padrão `v1.0.0-a1b2c3d` que o enunciado
+pede."
+
+### 2. Provar que o CI não faz deploy
+
+```bash
+grep -rn "kubectl apply" .github/workflows/ || echo "nenhum kubectl apply no CI"
+```
+
+| Parte | O que faz |
+|---|---|
+| `grep` | procura um texto dentro de arquivos |
+| `-r` | recursivo: entra nas subpastas |
+| `-n` | mostra o número da linha, se achar algo |
+| `\|\| echo "..."` | se o `grep` **não achar nada**, imprime a mensagem. O `\|\|` é o "senão" |
+
+**Por que esse comando é forte no vídeo:** o enunciado diz *"abandonaremos o push
+direto via CI"*. Este comando prova a **ausência** — e provar ausência é mais
+difícil do que mostrar presença.
+
+---
+
+## Cena 5 — o apply de verdade
+
+```bash
+terraform -chdir=terraform/cluster apply
+```
+
+Igual ao `plan`, mas **executa**. O Terraform mostra o plano e pergunta antes de
+prosseguir: digite `yes`.
+
+**Confira o resumo antes de confirmar:** deve dizer `35 to add, 0 to change, 0 to destroy`.
+
+**Quanto demora, e por quê:** o control plane do EKS leva ~10 minutos, o node
+group mais ~5, e as duas instâncias RDS ~10 (em paralelo). Total de 20 a 30
+minutos. **A cobrança começa aqui.**
+
+### Apontar o kubectl para o cluster recém-criado
+
+```bash
+aws eks update-kubeconfig --region us-east-2 --name togglemaster
+```
+
+| Parte | O que faz |
+|---|---|
+| `eks update-kubeconfig` | escreve no arquivo de configuração do `kubectl` os dados de acesso ao cluster |
+| `--name togglemaster` | qual cluster |
+
+Sem isso, o `kubectl` não sabe com qual cluster falar.
+
+**Testar:**
+
+```bash
+kubectl get nodes
+```
+
+Esperado: **2 nós em `Ready`**. Se aparecer `Unauthorized`, quem está rodando o
+comando não é o mesmo usuário IAM que criou o cluster — só ele recebe acesso
+administrativo automático.
+
+### Subir Secrets, StorageClass e ArgoCD — SÃO DOIS COMANDOS
+
+```bash
+terraform -chdir=terraform/k8s apply -target=helm_release.argocd
+```
+
+```bash
+terraform -chdir=terraform/k8s apply
+```
+
+| Parte | O que faz |
+|---|---|
+| `-target=helm_release.argocd` | limita esta rodada a **um único recurso** e às dependências dele |
+
+**Por que dois comandos:** o cluster nasce sem conhecer o tipo `Application` do
+ArgoCD — quem ensina esse tipo é a própria instalação do ArgoCD. Mas o Terraform
+valida o tipo ainda no *plan*, ou seja, **antes** de instalar. O apply direto
+falha com `no matches for kind "Application"`. O `-target` resolve: a primeira
+rodada instala o ArgoCD, a segunda cria o resto.
+
+---
+
+## Cena 6 — abrir o ArgoCD
+
+```bash
+kubectl port-forward svc/argocd-server -n argocd 8080:80
+```
+
+| Parte | O que faz |
+|---|---|
+| `port-forward` | cria um túnel do seu computador até um serviço dentro do cluster |
+| `svc/argocd-server` | o serviço de destino |
+| `-n argocd` | o namespace onde ele vive |
+| `8080:80` | porta 8080 na sua máquina → porta 80 no serviço |
+
+**O terminal fica travado — isso é normal.** O túnel só existe enquanto o comando
+roda. Deixe essa janela aberta e use outra.
+
+### A senha inicial do admin
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+```
+
+| Parte | O que faz |
+|---|---|
+| `get secret argocd-initial-admin-secret` | busca o Secret que o ArgoCD cria na instalação |
+| `-o jsonpath='{.data.password}'` | extrai apenas o campo da senha |
+| `\| base64 -d` | decodifica. O Kubernetes guarda Secrets em base64, que **não é criptografia** — é só codificação |
+
+**Detalhe que vale citar no vídeo:** base64 não protege nada. Por isso as senhas
+de verdade deste projeto são geradas pelo Terraform e nunca passam pelo Git.
+
+---
+
+## Cena 7 — provocar a sincronização automática
+
+### 1. Alterar o número de réplicas no Git
+
+Em `gitops/base/flag-service/deployment.yaml`, troque `replicas: 1` por
+`replicas: 2`. Então:
+
+```bash
+git switch dev && git add gitops/ && git commit -m "demo: sobe o flag-service para 2 replicas" && git push origin dev
+```
+
+### 2. Promover para a `main`, que é o que o ArgoCD observa
+
+```bash
+gh pr create --base main --head dev --title "demo: 2 replicas no flag-service" --body "Demonstracao de sincronizacao automatica." && gh pr merge --merge
+```
+
+| Parte | O que faz |
+|---|---|
+| `gh` | a linha de comando oficial do GitHub |
+| `pr create` | abre um Pull Request |
+| `--base main --head dev` | leve o conteúdo de `dev` **para** `main` |
+| `--title` / `--body` | título e descrição do PR |
+| `pr merge --merge` | faz o merge criando um commit de merge, preservando o histórico |
+
+**Por que passar pela `main`:** o ArgoCD observa a branch `main`. Um commit na
+`dev` não muda nada no cluster — e essa é uma boa resposta se perguntarem.
+
+### 3. Self-heal: mexer no cluster por fora e ver o ArgoCD desfazer
+
+```bash
+kubectl delete pod -n togglemaster -l app=flag-service --wait=false
+```
+
+| Parte | O que faz |
+|---|---|
+| `delete pod` | apaga pods |
+| `-n togglemaster` | no namespace das aplicações |
+| `-l app=flag-service` | `-l` é filtro por rótulo: atinge só os pods desse serviço |
+| `--wait=false` | não espera a exclusão terminar — devolve o terminal na hora, para a câmera ir direto ao ArgoCD |
+
+**O que dizer:** "mexi no cluster por fora. O ArgoCD desfez. É essa propriedade
+que acaba com o `kubectl apply` de máquina local que o enunciado descreve como o
+problema a resolver."
+
+---
+
+## Cena 8 — provar que funciona e desligar
+
+### Prova funcional — criar uma flag e avaliá-la
+
+Os comandos completos, com os parâmetros corretos, estão na **FASE 2 do
+runbook**. Os nomes dos campos importam: o handler exige `flag_name` e `user_id`,
+e a única regra implementada é `PERCENTAGE`.
+
+### Ver o evento gravado no DynamoDB
+
+```bash
+aws dynamodb scan --table-name ToggleMasterAnalytics --region us-east-2 --max-items 5
+```
+
+| Parte | O que faz |
+|---|---|
+| `dynamodb scan` | lê itens da tabela |
+| `--max-items 5` | traz só os 5 primeiros — sem isso a saída pode ser enorme |
+
+**O que dizer:** "o evento saiu do evaluation, foi para a fila SQS, o analytics
+consumiu e gravou aqui. É o caminho assíncrono completo, funcionando."
+
+### Destruir a camada cara
+
+```bash
+terraform -chdir=terraform/cluster destroy
+```
+
+Destrói **apenas** a camada do cluster. Os repositórios ECR, as imagens, a fila e
+a tabela continuam de pé, porque vivem numa camada de estado separada.
+
+**O que dizer:** "uma sessão de três horas custa cerca de um dólar e dez. A
+separação em camadas é o que permite destruir o que é caro sem perder as imagens
+já publicadas — senão o pipeline teria que reconstruir tudo antes de cada
+sessão."
+
+### O passo que todo mundo esquece: desligar o NAT Gateway
+
+Edite `terraform/terraform.tfvars`, troque para `enable_nat_gateway = false`, e
+aplique **a camada base**:
+
+```bash
+terraform -chdir=terraform apply
+```
+
+O NAT mora na camada **base**, que nunca é destruída. Ele **não morre** com o
+destroy do cluster e custa cerca de **US$ 33/mês** se ficar esquecido ligado.
+
+### Conferir que não sobrou nada cobrando
+
+```bash
+aws ec2 describe-nat-gateways --region us-east-2 --filter "Name=state,Values=available,pending" --query 'NatGateways[].NatGatewayId' --output text
+```
+
+Se a saída vier **vazia**, está tudo desligado.
+
+---
+
 # O relatório (.PDF ou .txt)
 
 São quatro itens. Nem um a menos.

@@ -2,8 +2,6 @@
 
 TL;DR: esta pasta e a fonte da verdade do que roda no cluster. Ninguem faz `kubectl apply` daqui: o ArgoCD observa este diretorio e ajusta o EKS sozinho. Derivada de `infra/k8s/` da Fase 2 (D-014), com Kustomize (D-008) e ambiente unico `prod` (D-011).
 
-Ultima atualizacao: 2026-09-09 -03:00, Claude.
-
 ## Por que esta pasta existe
 
 A primeira queixa do enunciado e literal:

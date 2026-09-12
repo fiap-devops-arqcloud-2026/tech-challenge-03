@@ -63,14 +63,14 @@ As separações `services/`, `terraform/`, `gitops/`, `.github/workflows/` e `do
 Ainda há conflitos verificáveis:
 
 - README e resumos antigos de CLAUDE/DOSSIE dizem que componentes existentes ainda precisam ser escritos.
-- `docs/fase-3/GUIA_EXECUCAO.md` e `ARQUITETURA.md` descrevem Academy/LabRole, credenciais estáticas, Ingress, três RDS e diretórios removidos.
+- `docs/OPERACAO.md` e `ARQUITETURA.md` descrevem Academy/LabRole, credenciais estáticas, Ingress, três RDS e diretórios removidos.
 - `terraform/README.md` descreve duas camadas, apesar de existirem três.
 - `gitops/README.md` ainda menciona ESO removido.
 - `RUNBOOK-SESSAO.md:158` ainda recomenda push direto para main.
 - O próprio aviso da primeira auditoria passou a dizer que dev estava atrasada depois de ela já ter sido sincronizada. Esta revalidação corrige o estado por nova entrada datada, preservando o registro anterior.
 - O checklist ainda marca provisionamento EKS/ArgoCD como concluído enquanto registra apply pendente. Além disso, S-08 diz fmt/validate/plan automatizados, mas `.github/workflows/terraform-check.yml` executa fmt/validate, sem plan.
 
-Recomendação: um README atual, um runbook executado de ponta a ponta, checklist separando escrito/validado/executado/evidenciado e LOG/PENDENCIAS curtos e coerentes. Arquivar documentos substituídos com de-para; preservar os testes de `docs/fase-3/TESTE_COMPOSE.md`, que são úteis. O histórico Git guarda as exclusões feitas nos PRs, mas isso não equivale ao arquivo morto solicitado pelo usuário.
+Recomendação: um README atual, um runbook executado de ponta a ponta, checklist separando escrito/validado/executado/evidenciado e LOG/PENDENCIAS curtos e coerentes. Arquivar documentos substituídos com de-para; preservar os testes de `docs/OPERACAO.md`, que são úteis. O histórico Git guarda as exclusões feitas nos PRs, mas isso não equivale ao arquivo morto solicitado pelo usuário.
 
 ## 5. Fluxo de branches confirmado no GitHub
 

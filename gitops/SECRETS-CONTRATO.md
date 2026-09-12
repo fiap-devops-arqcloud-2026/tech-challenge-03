@@ -5,8 +5,6 @@ TL;DR: nenhum Secret e versionado neste repositorio. O Terraform da camada
 consomem por nome. Esta pagina e o contrato entre os dois lados. Se um nome
 ou uma chave divergir, o pod nao sobe.
 
-Ultima atualizacao: 2026-09-01, Claude.
-
 ## Por que existe este arquivo
 
 O External Secrets Operator foi cortado em 2026-09-01 (P-037). Antes, cada

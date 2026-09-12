@@ -48,7 +48,7 @@ variable "kubernetes_version" {
       1.35  STANDARD_SUPPORT  ate 2027-03-26
       1.36  STANDARD_SUPPORT  ate 2027-08-01
 
-    Com a 1.31 o custo total da pilha subiria de ~US$ 0,37/h para
+    Com a 1.31 o custo total da pilha subiria de ~US$ 0,385/h para
     ~US$ 0,87/h, o que reduziria o credito disponivel de ~190 horas para
     ~80. A 1.34 e a mais conservadora entre as de suporte padrao - a
     mais madura, com menor risco de incompatibilidade de addon - e o

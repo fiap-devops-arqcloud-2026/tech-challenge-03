@@ -159,6 +159,35 @@ resource "helm_release" "argocd" {
           # problema nenhum: e so uma chave de mapa entre aspas.
           "server.insecure" = true
         }
+
+        # ------------------------------------------------------
+        # DE QUANTO EM QUANTO TEMPO O ARGOCD OLHA O GIT
+        # ------------------------------------------------------
+        # `cm` corresponde ao ConfigMap argocd-cm, onde fica a
+        # configuracao do proprio ArgoCD.
+        #
+        # O padrao de `timeout.reconciliation` e 180s - o ArgoCD
+        # consulta o repositorio a cada 3 MINUTOS. Isso e sensato em
+        # producao, onde ninguem esta olhando, e ruim aqui: o enunciado
+        # pede que o video mostre "o ArgoCD detectando a mudanca e
+        # sincronizando automaticamente" (O-31). Com 3 minutos de espera,
+        # ou o video tem 3 minutos de tela parada, ou precisa de um corte
+        # - e o corte enfraquece justamente a palavra "automaticamente".
+        #
+        # 30s deixa a deteccao acontecer enquanto a camera ainda esta
+        # ligada, sem nenhum clique.
+        #
+        # POR QUE NAO USAR WEBHOOK, que seria instantaneo: o GitHub
+        # precisaria alcancar o ArgoCD pela internet, e o projeto nao tem
+        # Ingress nem Load Balancer (D-012). Webhook exigiria expor o
+        # cluster - mais custo e mais superficie, para ganhar segundos.
+        #
+        # CUSTO DESTA MUDANCA: o repo-server passa a clonar o
+        # repositorio 6x mais vezes. Com UMA Application e um repositorio
+        # pequeno, e irrelevante.
+        cm = {
+          "timeout.reconciliation" = "30s"
+        }
       }
 
       # Uma replica de cada componente. O padrao do chart e maior e nao

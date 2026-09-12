@@ -1,7 +1,7 @@
 # Guia de gravação — o que a FIAP quer ver e como mostrar
 
 Criado em 2026-09-11, Claude. Complementa o [roteiro resumido](ROTEIRO_VIDEO.md)
-e o [runbook da sessão](../00_COLAB_IA/RUNBOOK-SESSAO.md).
+e o [runbook da sessão](RUNBOOK-SESSAO.md).
 
 ---
 
@@ -338,7 +338,7 @@ aplica no cluster é o ArgoCD."
 
 Custo: **~US$ 0,37/h**. Reserve **3 horas**, grave nas últimas.
 
-> **Antes de começar, leia o [runbook](../00_COLAB_IA/RUNBOOK-SESSAO.md)
+> **Antes de começar, leia o [runbook](RUNBOOK-SESSAO.md)
 > inteiro.** Ele tem as armadilhas: o NAT que precisa ser ligado, o
 > apply da camada k8s que são dois comandos, e os schemas dos bancos.
 > Nenhuma delas perdoa esquecimento.
@@ -447,10 +447,22 @@ enxerga a `main`.
 
 O que vai acontecer, em ordem:
 
-1. o card muda de `Synced` para **`OutOfSync`** (o ArgoCD consulta o Git a cada 3 minutos; se quiser acelerar, clique em **Refresh** — mas deixe claro que Refresh só antecipa a consulta, não aplica nada)
+1. em até **30 segundos**, o card muda de `Synced` para **`OutOfSync`** — sem ninguém tocar em nada
 2. ele entra em **`Progressing`**
 3. nasce um segundo pod do `flag-service`
 4. volta para **`Synced`** e **`Healthy`**
+
+> **Por que 30 segundos e não 3 minutos.** O padrão do ArgoCD é consultar
+> o Git a cada 180 segundos. É sensato em produção, onde ninguém está
+> olhando, e péssimo numa gravação: seriam 3 minutos de tela parada, ou
+> um corte — e o corte enfraquece justamente a palavra
+> "automaticamente" que o enunciado usa. O projeto define
+> `timeout.reconciliation: 30s` em `terraform/k8s/argocd.tf`, então a
+> detecção acontece com a câmera ainda ligada.
+>
+> **Não clique em Refresh.** Se clicar, não estraga nada — o Refresh só
+> antecipa a consulta, não aplica —, mas esperar os 30 segundos é mais
+> convincente, porque prova que ninguém provocou a sincronização.
 
 **Diga enquanto acontece:** "Ninguém rodou `kubectl`. Eu mudei um
 arquivo no Git e o ArgoCD reconciliou o cluster sozinho. É isso que o

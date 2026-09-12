@@ -32,5 +32,5 @@
 
 ## Evidência
 
-![Captura da estimativa oficial](evidencias/estimativa-custos-aws-2026-09-11.png)
+![Captura da estimativa oficial](../../evidencias/estimativa-custos-aws-2026-09-11.png)
 

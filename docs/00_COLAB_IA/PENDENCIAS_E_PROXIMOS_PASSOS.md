@@ -1,5 +1,14 @@
 # PENDENCIAS_E_PROXIMOS_PASSOS
 
+## Consulta viva e roteiro de exclusao - 2026-09-11 13:02 -03:00, Codex
+
+TL;DR: as TRES camadas estao aplicadas; EKS/ArgoCD/RDS/Redis/NAT ativos na consulta de 2026-09-11. Planos de destroy validados, nenhuma exclusao executada. Esta evidencia atualiza as notas historicas sobre apply pendente, sem presumir schemas, seed ou gravacao concluidos.
+
+- **P-053 - CONDICIONAL AO ENCERRAMENTO PELO USUARIO:** seguir [DESTRUIR_AWS_2026-09-11_v01.md](_ARQUIVO_MORTO/DESTRUIR_AWS_2026-09-11.md). Pedido atual foi "como excluo", nao ordem de executar. Ordem: encerrar Application -> k8s destroy -> verificar PV/EBS excluido -> cluster destroy -> base destroy -> conferir sobras -> bucket S3 versionado por ultimo. A opcao de pausa D-017 permanece documentada separadamente.
+- **F-050 - CUIDADO OPERACIONAL / CONFLITO DOCUMENTAL:** README Terraform chama k8s destroy de opcional; runbook exige. CSI criou EBS de 5 GiB fora dos resources Terraform; destruicao controlada deve preservar EKS/CSI/NAT ate confirmar remocao do disco. Application sem finalizer; encerra-la antes evita disputa selfHeal/namespace. Originais preservados; guia registra ambas as fontes.
+- **F-051 - ESTADO VIVO ATUALIZADO:** tres workspaces default, planos 14/35/36 objetos a destruir, todos exit 0; EKS ACTIVE, ArgoCD Synced/Healthy; PVC targeting Bound com reclaim Delete. Isso comprova implantacao/estado consultado, mas nao comprova testes de negocio nem finalizacao de P-041/P-047/P-042.
+- Fontes: consultas AWS/Kubernetes e planos de 2026-09-11, resumidos no guia e no LOG. Sem commit/push, apply/destroy, alteracao de memoria global ou de infraestrutura nesta sessao.
+
 ## Estado apos a rodada de correcoes - 2026-09-09 22:40 -03:00, Claude
 
 TL;DR: **nenhum requisito tecnico do enunciado esta em aberto.** O que falta e uma sessao com o cluster no ar e, depois dela, video e relatorio. Placar: 24 comprovados / 6 escritos e validados / 9 nao iniciados, e os 9 sao entregaveis.
@@ -10,7 +19,7 @@ TL;DR: **nenhum requisito tecnico do enunciado esta em aberto.** O que falta e u
 - **P-046 / F-043** - FECHADA. Bootstrap do ArgoCD em duas etapas, documentado em `terraform/k8s/argocd.tf` e no passo 1.4 do runbook.
 - **P-048 / F-046** - FECHADA. `ignore_changes = [data]` no Secret do evaluation-service encerra a disputa com o seed.
 - **P-040 / F-047** - FECHADA. Comando pronto no passo 1.5 do runbook substitui o `PREENCHER` do `REDIS_URL`.
-- **P-049 / F-048** - FECHADA na parte documental. README raiz, `terraform/README.md`, `gitops/README.md`, os quatro documentos de `docs/fase-3/`, o checklist e o `CLAUDE.md` foram alinhados ao codigo. `security-check.sh` corrigido e `validate-all.sh` rodando inteiro.
+- **P-049 / F-048** - FECHADA na parte documental. README raiz, `terraform/README.md`, `gitops/README.md`, os quatro documentos de `docs/`, o checklist e o `CLAUDE.md` foram alinhados ao codigo. `security-check.sh` corrigido e `validate-all.sh` rodando inteiro.
 - **P-051** - FECHADA. main e dev identicas (0/0, diff vazio), e as tres branches auxiliares remotas ja estao integradas.
 - **P-052** - FECHADA por decisao, sem alterar workflow. Ver **D-021**: o push do robo na main e intencional; D-020 rege trabalho humano.
 
@@ -18,7 +27,7 @@ TL;DR: **nenhum requisito tecnico do enunciado esta em aberto.** O que falta e u
 
 1. **P-041 - Sessao de ensaio com o cluster** (CAMINHO CRITICO). Primeira vez que a pilha completa sobe. Seguir o runbook: NAT -> `cluster/` -> kubeconfig -> `k8s/` **em dois comandos** -> schemas (passo 1.7) -> seed -> conferir ArgoCD Healthy/Synced -> destroy. Reservar 3h.
 2. **P-047 - Criar os schemas nos RDS.** Etapa documentada (runbook 1.7), nunca executada. Sem ela os servicos sobem, respondem `/health` com 200 e falham no primeiro INSERT. Os comandos sao Bash: rodar no Git Bash ou WSL.
-3. **P-042 - Gravar o video** (O-27 a O-32). Roteiro cena a cena, com comandos prontos e a demo de falha JA TESTADA, em [GUIA_GRAVACAO.md](../fase-3/GUIA_GRAVACAO.md). Metade nao precisa do cluster: pipeline falhando/passando (O-28/O-29) e atualizacao da tag no GitOps (O-30) rodam so no GitHub Actions. Gravar essa metade ANTES da sessao paga.
+3. **P-042 - Gravar o video** (O-27 a O-32). Roteiro cena a cena, com comandos prontos e a demo de falha JA TESTADA, em [GUIA_GRAVACAO.md](_ARQUIVO_MORTO/GUIA_GRAVACAO.md). Metade nao precisa do cluster: pipeline falhando/passando (O-28/O-29) e atualizacao da tag no GitOps (O-30) rodam so no GitHub Actions. Gravar essa metade ANTES da sessao paga.
 4. **P-006 / P-043 - Relatorio** (O-37, O-38, O-39). Os desvios que precisam estar la: 2 RDS + 1 pod (D-015), sem Ingress (D-012), ESO cortado (D-018) e a excecao do `.trivyignore`. Print de custo pelo AWS Pricing Calculator.
 5. **P-018 - Confirmar os integrantes.** A tabela do README ja tem os 5 do Grupo 203; falta so o usuario confirmar que nao mudou.
 
@@ -181,7 +190,7 @@ executam mas nada e publicado no ECR nem no GitOps.
 ## Encerradas ou substituidas
 
 - P-034: concluida em 2026-09-09. Runbook em
-  `docs/00_COLAB_IA/RUNBOOK-SESSAO.md`, com as 5 fases (pre-voo, subir,
+  `docs/OPERACAO.md`, com as 5 fases (pre-voo, subir,
   seed, gravar, derrubar), o roteiro do video mapeado item a item, uma
   tabela de armadilhas conhecidas e a conferencia final de custo.
   Inclui o passo que mais doi se for esquecido: ligar o NAT antes do
@@ -263,7 +272,7 @@ executam mas nada e publicado no ECR nem no GitOps.
   `gitops/infrastructure`) e dois workflows redundantes
   (`foundation-validation`, `reusable-devsecops`). O `terraform-check`
   foi ADAPTADO para as tres camadas e fechou o item S-08. Mantidos da
-  main: `docs/fase-3/`, docker-compose, scripts, SECURITY.md.
+  main: `docs/`, docker-compose, scripts, SECURITY.md.
 
   CUSTO DESSA ESTRATEGIA, aprendido na pratica: escolher um lado inteiro
   descarta em silencio o que o outro tinha de exclusivo dentro de arquivo

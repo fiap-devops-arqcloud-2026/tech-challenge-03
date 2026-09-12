@@ -8,7 +8,7 @@ Escopo: revisão da implementação consolidada em main `0242d33`, da proposta F
 ## 1. Fontes e critérios
 
 - Fonte acadêmica: [enunciado original](../../POSTECH%20-%20Tech%20Challenge%20-%20Fase%203.pdf), leitura integral e inspeção visual das sete páginas em 2026-09-09. Requisitos substantivos nas páginas 2–6.
-- Contexto anterior: [decisões](../DECISOES.md), [checklist](../CHECKLIST_REQUISITOS_FASE3.md), [pendências](../PENDENCIAS_E_PROXIMOS_PASSOS.md) e [runbook](../RUNBOOK-SESSAO.md). Esses registros foram confrontados com código e Git, não tratados isoladamente como prova de execução.
+- Contexto anterior: [decisões](../DECISOES.md), [checklist](../CHECKLIST_REQUISITOS_FASE3.md), [pendências](../PENDENCIAS_E_PROXIMOS_PASSOS.md) e [runbook](../_ARQUIVO_MORTO/RUNBOOK-SESSAO.md). Esses registros foram confrontados com código e Git, não tratados isoladamente como prova de execução.
 - Estado local/remoto: `git fetch origin --prune`, comparação de branches e consultas de PRs/Actions pela API GitHub em 2026-09-09. HEAD main/origin/main: `0242d33c09866dcf1deaac6779ffa99f026fefda`; dev/origin/dev: `cc80c4e30fd2f71cbfe4db35c2bfac781dbe864f`.
 - Prazo 2026-09-15: informação do usuário registrada em D-006; não consta no PDF.
 - Critério: distinguir **código existente**, **verificação local**, **execução no CI**, **funcionamento na AWS** e **evidência de entrega**. Um não substitui automaticamente o outro.
@@ -41,7 +41,7 @@ O PDF p.4 exige que uma vulnerabilidade crítica faça o pipeline falhar, sem es
 
 ### F-043 — Bootstrap da Application ArgoCD depende de CRD ainda inexistente — P-046
 
-**Evidência:** `terraform/k8s/argocd.tf:196` cria `kubernetes_manifest.app_togglemaster`; `:278` usa `depends_on = [helm_release.argocd]`. O [runbook](../RUNBOOK-SESSAO.md) manda um único apply da camada k8s.
+**Evidência:** `terraform/k8s/argocd.tf:196` cria `kubernetes_manifest.app_togglemaster`; `:278` usa `depends_on = [helm_release.argocd]`. O [runbook](../_ARQUIVO_MORTO/RUNBOOK-SESSAO.md) manda um único apply da camada k8s.
 
 Em cluster novo, o provider precisa consultar o schema de Application no plan, antes de o Helm instalar o CRD. `depends_on` não resolve essa consulta antecipada. A [HashiCorp documenta a separação em duas etapas](https://developer.hashicorp.com/terraform/tutorials/kubernetes/kubernetes-provider), consultada em 2026-09-09.
 
@@ -82,8 +82,8 @@ Um apply posterior pode restaurar o valor provisório; após reinício, evaluati
 | Fonte | Divergência em relação ao código verificado |
 |---|---|
 | `README.md:281–285`, `CLAUDE.md`, `DOSSIE_CONTEXTO.md` | Descrevem infraestrutura/CI “a escrever” ou mandam reconfirmar bucket já registrado. README também afirma serviços sem alteração, apesar dos commits de correção. |
-| `docs/fase-3/GUIA_EXECUCAO.md:5–24` | Orienta chaves estáticas, AWS Academy/LabRole e pastas removidas `terraform/bootstrap` e `terraform/environments/dev`. |
-| `docs/fase-3/ARQUITETURA.md`, `EVIDENCIAS.md` e `ROTEIRO_VIDEO.md` | Descrevem Ingress, três RDS e cinco Applications; vigente é sem Ingress, 2 RDS + pod e uma Application gerenciando cinco serviços. |
+| `docs/OPERACAO.md:5–24` | Orienta chaves estáticas, AWS Academy/LabRole e pastas removidas `terraform/bootstrap` e `terraform/environments/dev`. |
+| `docs/ARQUITETURA.md`, `EVIDENCIAS.md` e `ROTEIRO_VIDEO.md` | Descrevem Ingress, três RDS e cinco Applications; vigente é sem Ingress, 2 RDS + pod e uma Application gerenciando cinco serviços. |
 | `terraform/README.md:3` | Descreve duas camadas; há três roots: base, cluster e k8s. |
 | `gitops/README.md:62`, `SECRETS-CONTRATO.md:4` | Mandam instalar ESO já removido ou atribuem Secrets à camada errada. |
 | `scripts/security-check.sh:19`, `SECURITY.md:10` | Script reprova o ID da própria conta como “legado”; política ainda descreve LabRole. |
@@ -92,7 +92,7 @@ Um apply posterior pode restaurar o valor provisório; após reinício, evaluati
 | `CHECKLIST_REQUISITOS_FASE3.md` | Mistura “escrito”, “pendente execução” e “PROVADO” no mesmo item. ArgoCD aparece concluído com apply pendente. |
 | `ORGANIZACAO_DE_PASTAS.md` e topo histórico do LOG | Informações antigas não foram substituídas por uma síntese vigente de handoff. |
 
-**Ajuste mínimo:** um README atual, um guia operacional validado, checklist com estados distintos e contexto curto coerente. Arquivar guias substituídos com de-para, preservando `TESTE_COMPOSE.md` e seus testes úteis. Não remover `docs/fase-3/` inteira: contém trabalho válido.
+**Ajuste mínimo:** um README atual, um guia operacional validado, checklist com estados distintos e contexto curto coerente. Arquivar guias substituídos com de-para, preservando `TESTE_COMPOSE.md` e seus testes úteis. Não remover `docs/` inteira: contém trabalho válido.
 
 Os módulos `terraform/modules/network`, `sqs` e `dynamodb` não são chamados pelos roots ativos; rede usa módulo comunitário, SQS/DynamoDB usam `messaging`. Conferir e arquivar sobras na consolidação.
 

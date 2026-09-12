@@ -6,7 +6,7 @@
 > Ajustado em 2026-09-09: são **2 RDS + 1 banco em pod** (D-015) e **uma**
 > Application do Argo CD gerenciando os cinco serviços. O roteiro
 > detalhado, com o que já pode ser gravado sem o cluster no ar, está na
-> FASE 3 do [runbook](../00_COLAB_IA/RUNBOOK-SESSAO.md).
+> FASE 3 do [runbook](RUNBOOK-SESSAO.md).
 
 
 1. **0:00–1:30** — equipe, problema e evolução das fases.

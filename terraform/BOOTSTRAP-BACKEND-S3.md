@@ -2,8 +2,6 @@
 
 TL;DR: passo a passo para criar, uma unica vez e fora do Terraform, o bucket S3 que vai guardar o `terraform.tfstate` do ToggleMaster. Regiao do projeto: **`us-east-2` (Ohio)**. Atende O-09 e R-03 do `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. Depois deste passo, todo o resto da infraestrutura sera criado por Terraform.
 
-Ultima atualizacao: 2026-08-27 13:10 -03:00, Claude.
-
 **Executado em 2026-08-27 pelo usuario, via console.** Bucket em uso: `togglemaster-tfstate-891376952395-us-east-2-an`. Este documento passa a ser registro do procedimento e referencia para reproduzir o ambiente do zero. Os demais integrantes so precisam da secao 8.
 
 ---

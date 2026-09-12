@@ -17,7 +17,7 @@
 # modulo detalha o que mudou e por que.
 #
 # LEMBRETE DE CUSTO
-# Com tudo isto de pe a conta corre a cerca de US$ 0,37/h (F-026), ou
+# Com tudo isto de pe a conta corre a cerca de US$ 0,385/h, ou
 # US$ 8,80 por dia. Rodar `terraform destroy` NESTA PASTA ao fim de cada
 # sessao nao e otimizacao, e requisito - restavam US$ 70 de credito.
 # ============================================================

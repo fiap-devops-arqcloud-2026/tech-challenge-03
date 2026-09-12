@@ -1,5 +1,73 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-11 - Reorganizacao da documentacao para repositorio publico
+
+TL;DR: README reescrito na linha do da Fase 2; guias e runbooks fundidos em docs/OPERACAO.md; arquitetura consolidada em docs/ARQUITETURA.md; tracos de IA recolhidos para 00_COLAB_IA; 18 MB de material de aula tirados do versionamento; 81 links validados, zero quebrado.
+
+Pedido: atualizar o README tomando como base o da Fase 2, deixar o projeto bem documentado agora que o repositorio fica publico, remanejar ou remover arquivos inuteis, fundir guias e runbooks, descrever os problemas e as solucoes, e recolher as evidencias de IA para a pasta de colaboracao.
+
+Metodo: auditoria com seis leitores paralelos (referencia da Fase 2, inventario de documentos, varredura de tracos de IA, extracao de problemas, apuracao do estado tecnico real e conferencia dos documentos tecnicos), depois redacao dos tres documentos e revisao adversarial de cada um contra o repositorio. A revisao encontrou 54 problemas nos rascunhos - numeros que nao batiam com o codigo, links para arquivos inexistentes, citacoes imprecisas do enunciado - e todos entraram corrigidos na versao final.
+
+ARVORE FINAL
+
+- Raiz: apenas README.md e SECURITY.md como documentacao.
+- docs/: ARQUITETURA.md, OPERACAO.md, RELATORIO_DE_ENTREGA.md (+ PDF), evidencias/ e o enunciado.
+- docs/00_COLAB_IA/: todo o material de processo, incluindo INSTRUCOES_ASSISTENTES.md (CLAUDE.md + AGENTS.md fundidos) e _ARQUIVO_MORTO/ com o que a gravacao tornou historico.
+- docs/fase-3/ deixou de existir.
+
+FUSOES
+
+- docs/OPERACAO.md absorve o runbook de sessao (681 linhas), o guia de execucao e o teste com Docker Compose. Um documento no lugar de tres.
+- docs/ARQUITETURA.md substitui a versao antiga, com diagramas refeitos.
+- A estimativa de custos deixou de ter arquivo proprio: a secao 8 do relatorio ja trazia a mesma tabela, e dois lugares com o mesmo numero divergem cedo ou tarde.
+
+CORRECOES DE FATO
+
+- SECURITY.md afirmava que o projeto usa credenciais do AWS Academy e que os pods usam a identidade do node group (LabRole). Falso e contradizia o README inteiro: o projeto usa conta pessoal, OIDC no CI e IRSA nos pods. Reescrito.
+- O custo por hora aparecia como 0,37 em arquivos publicos e 0,385 no relatorio. A estimativa oficial do Pricing Calculator da 281,03/mes, que dividido por 730 da 0,385. Alinhado, e a tabela do terraform/README.md ganhou as linhas que faltavam (EBS, Secrets Manager, IPv4) para fechar a conta.
+- O PyYAML que entrou no flag-service so para a demonstracao de seguranca foi removido: o servico nao usa YAML.
+
+MATERIAL DE AULA
+
+33 arquivos em docs/01_ a docs/05_ somavam 18 MB - 87% do peso do repositorio - e sao slides da propria FIAP. Num repositorio publico isso e redistribuicao de material da instituicao. Retirados do versionamento com git rm --cached e acrescentados ao .gitignore; continuam no disco de quem os tem. O enunciado do desafio segue versionado, porque o README aponta para ele.
+
+VERIFICACAO
+
+81 links relativos conferidos um a um, zero quebrado. Nenhuma mencao a assistente de IA fora de 00_COLAB_IA. Nenhuma sigla interna (D-0xx, P-0xx, F-0xx, O-xx) nos documentos publicos. validate-all.sh verde de ponta a ponta. PDF do relatorio regerado a partir do novo caminho.
+
+ESTADO DA AWS: nada gerando custo. Os tres estados do Terraform estao com zero recursos; varredura em us-east-1, us-east-2 e sa-east-1 nao encontrou EKS, EC2, NAT, RDS, ElastiCache, EIP nem volumes. Cost Explorer do mes acusa fracoes de centavo. Sobraram o bucket de estado (687 bytes) e duas roles IAM de junho/julho, que sao restos da Fase 2 e nao cobram.
+
+
+## 2026-09-11 13:03 (-03:00) - Codex - Guia de exclusao completa AWS verificado, sem destruir
+
+TL;DR: tres camadas aplicadas e planos -destroy validados (k8s 14 / cluster 35 / base 36). Guia PowerShell pronto; nenhum recurso excluido. Ultima atualizacao: 2026-09-11 13:03 -03:00, Codex.
+
+Feito: consultas de leitura confirmaram conta/regiao, tres workspaces default e estados S3, EKS ACTIVE, dois RDS/Redis/NAT ativos, ArgoCD Synced/Healthy sem finalizers, Services ClusterIP sem Ingress e EBS de 5 GiB ligado ao PVC targeting. Os tres planos encerraram com exit 0. Nao salvei plano binario, tfstate, senhas ou kubeconfig. Plan usa lock temporario do backend; nenhuma mudanca de infraestrutura aplicada.
+
+Decisoes/Por que: orientacao de encerramento completo separada da pausa D-017, sem mudar a decisao anterior. Encerrar primeiro a Application evita corrida selfHeal/namespace; k8s destroy remove namespace/PVC e EKS/CSI/NAT ficam vivos ate confirmar EBS excluido. Cluster vem depois; base remove tambem ECR/imagens, SQS/DynamoDB e CI; bucket versionado fora do Terraform somente no final. Usuario pediu como fazer; nao houve autorizacao nem tentativa de executar destruicao.
+
+Arquivos: criado terraform/DESTRUIR_AWS_2026-09-11_v01.md; acrescentados registros em LOG_DE_TRABALHO.md, PENDENCIAS_E_PROXIMOS_PASSOS.md e DOSSIE_CONTEXTO.md. Nenhum original substituido, commit ou push. Nenhuma memoria global alterada.
+
+Descobertas: F-050 (k8s opcional no README conflita com runbook; EBS externo requer verificacao), F-051 (implantacao viva posterior aos registros de apply pendente). Fontes e comandos no guia. Inventario limitado a servicos consultados em us-east-2 e IAM; nao garante ausencia de recursos em toda a conta. Sem snapshots EBS proprios/manuais RDS encontrados nesta consulta. Nao inferir teste de negocio, seed, schemas ou video concluidos.
+
+VERIFICACAO: lista de tarefas concluida; revisao independente de ordem/ArgoCD/EBS/S3; 11 blocos PowerShell analisados pelo parser sem execucao; links locais conferidos; git diff --check passou. Ajustados formato JSON da verificacao de EBS e limite do filtro por tag, com inventario regional complementar. As destruicoes continuam sem teste real, deliberadamente.
+
+Retificacao de horario: a entrada inicial abaixo foi rotulada 13:00 por engano; a primeira consulta verificavel ocorreu em 2026-09-11 12:53:44 -03:00 e a entrada ja existia na consulta de 12:56:02. Preservada sem reescrita para manter o historico append-only.
+
+Estado p/ o proximo agente: branch dev; quatro arquivos locais de documentacao pendentes de commit (guia + tres registros). P-053 e condicional ao usuario decidir executar: repetir identificacao/plan, seguir o guia bloco a bloco e concluir inventario antes do bucket. Nao executar destroy por continuidade automatica. P-041/P-047/P-042 nao encerradas sem evidencias proprias.
+
+## 2026-09-11 13:00 (-03:00) - Codex - Inicio da analise de exclusao completa AWS
+
+TL;DR: pedido de orientacao, sem autorizacao para executar destruicao. Analise na branch dev, inicialmente limpa, HEAD eb0bdf3. Ultima atualizacao: 2026-09-11 13:00 -03:00, Codex.
+
+Feito: lidos protocolo, pendencias, registros recentes e configuracao das tres camadas. Identidade AWS e backends locais conferidos sem expor credenciais. Nenhum apply/destroy executado.
+
+Lista de tarefas: (1) mapear estados e dependencias; (2) conferir recursos/estados por consultas de leitura; (3) preparar guia PowerShell de exclusao completa, incluindo recursos fora do estado; (4) VERIFICACAO independente dos comandos, limites e handoff.
+
+Decisoes/Por que: preservar D-017 como estrategia de pausa; o pedido atual tambem exige explicar encerramento definitivo com destroy da base. A analise nao altera essa estrategia nem a infraestrutura. Fontes: terraform/backend.tf, terraform/cluster/backend.tf, terraform/k8s/backend.tf e terraform/BOOTSTRAP-BACKEND-S3.md.
+
+Estado p/ o proximo agente: analise em andamento; nao executar exclusao a partir desta entrada. Roteiro final e resultados de leitura serao registrados em nova entrada.
+
 ## 2026-09-11 - Claude - Guia de gravacao com comandos explicados e relatorio de entrega
 
 TL;DR: guia ganhou apendice com todos os comandos explicados parte por parte; relatorio de entrega escrito e gerado em PDF; a estimativa oficial de custos feita pelo Codex em paralelo foi incorporada, fechando parte de O-39. Ultima atualizacao: 2026-09-11, Claude.
@@ -13,13 +81,13 @@ Feito - guia de gravacao:
 
 Feito - relatorio de entrega:
 
-- `docs/fase-3/RELATORIO_DE_ENTREGA.md`, na mesma estrutura do relatorio da Fase 2: capa, identificacao do grupo, links obrigatorios, o problema, IaC, CI/DevSecOps, GitOps, desafios e decisoes, custos e atividades opcionais.
+- `docs/RELATORIO_DE_ENTREGA.md`, na mesma estrutura do relatorio da Fase 2: capa, identificacao do grupo, links obrigatorios, o problema, IaC, CI/DevSecOps, GitOps, desafios e decisoes, custos e atividades opcionais.
 - Secao 7 documenta 8 desafios: limite de RDS do plano gratuito, tipo de maquina recusado, EKS 1.31 que custava 6x mais, o CVE critico que o pipeline antigo escondia, os 3 CVEs sem correcao e a decisao pelo `.trivyignore` nominal, o bootstrap do ArgoCD em duas etapas, a remocao do Ingress e a disciplina de branches. Isso fecha **O-38**.
 - `scripts/gerar-relatorio-pdf.py` converte o Markdown em PDF com capa, numeracao de pagina e a captura de custos embutida. O PDF e reproduzivel: qualquer integrante roda o script e obtem o mesmo documento. Resultado: 9 paginas, 242 KB.
 
 Sobre o trabalho do outro agente (Codex), executado em paralelo nesta mesma janela:
 
-- **Ganho real, incorporado:** ele produziu a estimativa oficial no AWS Pricing Calculator, com link publico e captura de tela (`docs/fase-3/ESTIMATIVA_CUSTOS_AWS.md` e `evidencias/estimativa-custos-aws-2026-09-11.png`). Conferi a aritmetica: a soma dos 7 itens da US$ 281,03 e o x12 da US$ 3.372,36 - ambos batem com o declarado. Substitui a secao 8 do meu relatorio, que usava uma conta por hora menos completa (US$ 269/mes), pelos numeros oficiais, mantendo a tabela por sessao. Isso avanca **O-39**, que so precisa agora do print anexado - e ele ja esta.
+- **Ganho real, incorporado:** ele produziu a estimativa oficial no AWS Pricing Calculator, com link publico e captura de tela (`docs/RELATORIO_DE_ENTREGA.md` e `evidencias/estimativa-custos-aws-2026-09-11.png`). Conferi a aritmetica: a soma dos 7 itens da US$ 281,03 e o x12 da US$ 3.372,36 - ambos batem com o declarado. Substitui a secao 8 do meu relatorio, que usava uma conta por hora menos completa (US$ 269/mes), pelos numeros oficiais, mantendo a tabela por sessao. Isso avanca **O-39**, que so precisa agora do print anexado - e ele ja esta.
 - **Conflito resolvido:** ele tambem escreveu um segundo gerador de PDF (`scripts/build-report-fase3.py`, reportlab, identidade visual propria). Constatado que ele **nao roda nesta maquina** - `reportlab` nao esta instalado - e que escreve em `output/pdf/`, caminho que ja esta no `.gitignore`, entao o resultado nao seria versionado. Alem disso, o formato dele diverge do relatorio da Fase 2, que foi o que o usuario pediu como base. Mantive o arquivo, sem apagar, e acrescentei no topo dele uma nota dizendo qual gerador e o canonico, o que cada um produz e o que cada um exige. A escolha final de identidade visual e do usuario.
 - **Higiene:** o script de captura estava em `tmp/pdfs/capture_aws_estimate.cjs`, pasta nao ignorada - entraria no repositorio como arquivo solto. Promovido para `scripts/capturar-estimativa-aws.cjs`, porque e util e reproduzivel, e `tmp/` foi acrescentado ao `.gitignore`.
 
@@ -78,9 +146,9 @@ Feito - documentacao (F-048), alinhando o texto ao codigo:
 - `README.md`: a tabela "Estado atual" dizia que EKS, ArgoCD e os workflows estavam "a escrever" - todos existem e rodaram. Reescrita com legenda de tres estados (comprovado / escrito e validado / pendente). "Como reproduzir" passou a cobrir as tres camadas e o destroy. Nova secao "Fluxo de trabalho no Git" com D-020 e o aviso de que a main anda sozinha.
 - `terraform/README.md`: dizia "duas camadas" havendo tres. Tabela refeita com a camada `k8s/`, incluindo por que ela e separada (provider que depende de recurso que ele mesmo cria), a arvore de pastas atualizada e o apply em duas etapas.
 - `gitops/README.md`: mandava usar External Secrets Operator, cortado em D-018. Reescrito apontando para `terraform/k8s/secrets.tf` e `SECRETS-CONTRATO.md`, com nota historica explicando o corte. Tambem corrigidos 4 comentarios em manifestos que ainda citavam `ExternalSecret`.
-- `docs/fase-3/GUIA_EXECUCAO.md`: **era o documento mais perigoso do repositorio.** Mandava criar `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` nos Secrets do GitHub - o oposto do OIDC que o projeto usa - e apontava para `terraform/bootstrap` e `terraform/environments/dev`, pastas removidas. Virou um indice curto para os documentos canonicos, com aviso do que mudou.
-- `docs/fase-3/ARQUITETURA.md`: diagrama tinha Ingress, 3 RDS e LabRole do Academy. Reescrito com o desenho real, mais um diagrama das tres camadas e a justificativa dos tres desvios.
-- `docs/fase-3/EVIDENCIAS.md` e `ROTEIRO_VIDEO.md`: 3 RDS e "cinco Applications" corrigidos; evidencias separadas entre o que ja esta comprovado e o que depende do cluster.
+- `docs/OPERACAO.md`: **era o documento mais perigoso do repositorio.** Mandava criar `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` nos Secrets do GitHub - o oposto do OIDC que o projeto usa - e apontava para `terraform/bootstrap` e `terraform/environments/dev`, pastas removidas. Virou um indice curto para os documentos canonicos, com aviso do que mudou.
+- `docs/ARQUITETURA.md`: diagrama tinha Ingress, 3 RDS e LabRole do Academy. Reescrito com o desenho real, mais um diagrama das tres camadas e a justificativa dos tres desvios.
+- `docs/EVIDENCIAS.md` e `ROTEIRO_VIDEO.md`: 3 RDS e "cinco Applications" corrigidos; evidencias separadas entre o que ja esta comprovado e o que depende do cluster.
 - `CHECKLIST_REQUISITOS_FASE3.md`: a auditoria estava certa - `[x]` misturava "escrito" com "aplicado". Criada legenda de tres marcadores e rebaixados para `[~]` os itens que dependem do apply (O-03, O-04, O-06, O-23, O-25) e o S-08 (o workflow roda fmt e validate, nao `plan`). O-36 subiu para `[x]`: os 5 integrantes ja estao na tabela do README. Placar: **24 / 6 / 9**.
 - `CLAUDE.md`: a secao "Estado atual" ainda dizia que `terraform/`, `gitops/` e `.github/workflows/` estavam vazios. Reescrita.
 

@@ -2,7 +2,7 @@
 ============================================================
 GERADOR DO PDF DO RELATORIO DE ENTREGA - FASE 3
 ============================================================
-Converte docs/fase-3/RELATORIO_DE_ENTREGA.md no PDF que vai ser
+Converte docs/RELATORIO_DE_ENTREGA.md no PDF que vai ser
 entregue, acrescentando uma capa no mesmo formato do relatorio da
 Fase 2 - que foi aprovado com nota maxima.
 
@@ -40,7 +40,7 @@ from weasyprint import HTML, CSS      # renderiza HTML em PDF
 # parents[1] sobe de scripts/ para a raiz do repositorio, entao o
 # script funciona chamado de qualquer pasta.
 RAIZ = pathlib.Path(__file__).resolve().parents[1]
-PASTA = RAIZ / "docs" / "fase-3"
+PASTA = RAIZ / "docs"
 ORIGEM = PASTA / "RELATORIO_DE_ENTREGA.md"
 DESTINO = PASTA / "Relatorio de Entrega - Tech Challenge Fase 3 - Grupo 203.pdf"
 

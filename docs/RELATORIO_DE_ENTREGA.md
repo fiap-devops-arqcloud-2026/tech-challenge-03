@@ -29,7 +29,7 @@
 
 - **Repositório (Git):** https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03
 - **Vídeo de Demonstração (YouTube):** `[PREENCHER APÓS A GRAVAÇÃO]`
-- **Documentação técnica:** [`README.md`](../../README.md) no repositório, com
+- **Documentação técnica:** [`README.md`](../README.md) no repositório, com
   arquitetura, decisões e instruções de reprodução
 
 ---
@@ -301,8 +301,8 @@ levaria junto os repositórios ECR e as imagens já publicadas.
 > automaticamente, via `default_tags` no provider. O AWS Cost Explorer pode ser
 > filtrado por essas tags para isolar o gasto real desta entrega.
 
-O detalhamento e a evidência também estão em
-[`ESTIMATIVA_CUSTOS_AWS.md`](ESTIMATIVA_CUSTOS_AWS.md).
+A tabela acima e a captura são a estimativa completa — não há detalhamento em
+outro arquivo.
 
 ---
 

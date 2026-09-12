@@ -18,10 +18,10 @@ assunto e o que evita que eles voltem a divergir:
 
 | Voce quer... | Leia |
 |---|---|
-| Entender o projeto e subir a infraestrutura do zero | [`README.md`](../../README.md), secao **Como reproduzir** |
-| Conduzir uma sessao completa: ligar o NAT, subir o cluster, criar as tabelas, semear os dados, gravar e derrubar | [`RUNBOOK-SESSAO.md`](../00_COLAB_IA/RUNBOOK-SESSAO.md) |
-| Entender a divisao em tres camadas do Terraform e o custo de cada uma | [`terraform/README.md`](../../terraform/README.md) |
-| Saber quais Secrets existem e quais valores precisam coincidir | [`gitops/SECRETS-CONTRATO.md`](../../gitops/SECRETS-CONTRATO.md) |
+| Entender o projeto e subir a infraestrutura do zero | [`README.md`](../../../README.md), secao **Como reproduzir** |
+| Conduzir uma sessao completa: ligar o NAT, subir o cluster, criar as tabelas, semear os dados, gravar e derrubar | [`RUNBOOK-SESSAO.md`](RUNBOOK-SESSAO.md) |
+| Entender a divisao em tres camadas do Terraform e o custo de cada uma | [`terraform/README.md`](../../../terraform/README.md) |
+| Saber quais Secrets existem e quais valores precisam coincidir | [`gitops/SECRETS-CONTRATO.md`](../../../gitops/SECRETS-CONTRATO.md) |
 | Rodar os cinco servicos na sua maquina, sem AWS | [`TESTE_COMPOSE.md`](TESTE_COMPOSE.md) |
 
 ## O minimo para nao errar

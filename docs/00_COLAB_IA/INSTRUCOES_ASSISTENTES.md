@@ -1,4 +1,20 @@
-# Tech Challenge 03 - Contexto de Colaboracao
+# Instrucoes para assistentes de IA
+
+Este arquivo reune o que antes ficava em `CLAUDE.md` e `AGENTS.md`, na raiz do
+repositorio. Foi movido para ca em 2026-09-11, quando o repositorio passou a ser
+publico: instrucao de ferramenta e material de processo, nao documentacao do
+projeto, e a pasta `00_COLAB_IA/` e o lugar declarado desse tipo de registro.
+
+**Consequencia pratica:** fora da raiz, este arquivo deixa de ser carregado
+automaticamente pelo Claude Code. Para reativar, basta criar um `CLAUDE.md` na
+raiz com uma linha apontando para ca.
+
+A documentacao do projeto em si esta no [README](../../README.md), em
+[docs/ARQUITETURA.md](../ARQUITETURA.md) e em [docs/OPERACAO.md](../OPERACAO.md).
+
+---
+
+## Parte 1 - contexto de colaboracao (era o CLAUDE.md)
 
 ## Regra de trabalho vigente - 2026-09-09 18:09 -03:00, Codex
 
@@ -9,12 +25,12 @@ Conferencia atual: main/dev/remotas em 5b8cd86, sem commits ou arquivos exclusiv
 
 ## Revalidacao vigente - 2026-09-09 17:57 -03:00, Codex
 
-TL;DR: main/dev/origin sincronizadas em 5b8cd86; a nota das 13:31 abaixo e historica. EKS default corrigido para 1.34; parametros do seed corrigidos e schemas documentados. Persistem CI ignore-unfixed, bootstrap ArgoCD, Secret/chave, Redis placeholder e documentacao divergente. Ler [revalidacao](docs/00_COLAB_IA/03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md) e topo atualizado de LOG/PENDENCIAS. Fluxo preferido D-019: dev -> PR -> main.
+TL;DR: main/dev/origin sincronizadas em 5b8cd86; a nota das 13:31 abaixo e historica. EKS default corrigido para 1.34; parametros do seed corrigidos e schemas documentados. Persistem CI ignore-unfixed, bootstrap ArgoCD, Secret/chave, Redis placeholder e documentacao divergente. Ler [revalidacao](03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md) e topo atualizado de LOG/PENDENCIAS. Fluxo preferido D-019: dev -> PR -> main.
 
 
 ## Aviso de continuidade - auditoria 2026-09-09
 
-TL;DR: o resumo historico abaixo esta desatualizado. Leia primeiro o topo de docs/00_COLAB_IA/LOG_DE_TRABALHO.md e PENDENCIAS_E_PROXIMOS_PASSOS.md, atualizados pela auditoria. Fonte: [parecer](docs/00_COLAB_IA/03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
+TL;DR: o resumo historico abaixo esta desatualizado. Leia primeiro o topo de docs/00_COLAB_IA/LOG_DE_TRABALHO.md e PENDENCIAS_E_PROXIMOS_PASSOS.md, atualizados pela auditoria. Fonte: [parecer](03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
 Ultima atualizacao deste aviso: 2026-09-09 13:31 -03:00, Codex.
 
 A implementacao principal e os workflows existem; falta corrigir bootstrap ArgoCD, schemas/seed e filtro CRITICAL, atualizar documentacao e ensaiar no EKS. Diretriz D-019: dev -> PR -> main; dev precisa receber os 19 commits que ja estao em main. Auditoria nao fez checkout, merge, commit, push ou apply. P-049 consolida os documentos antigos preservados abaixo.
@@ -109,9 +125,29 @@ Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
 - Log: `docs/00_COLAB_IA/LOG_DE_TRABALHO.md`
 - Organizacao: `docs/00_COLAB_IA/ORGANIZACAO_DE_PASTAS.md`
 - Bootstrap do backend S3: `terraform/BOOTSTRAP-BACKEND-S3.md`
-- Runbook da sessao (subir, semear, gravar, derrubar): `docs/00_COLAB_IA/RUNBOOK-SESSAO.md`
-- Guia de gravacao (o que a FIAP quer ver e como mostrar): `docs/fase-3/GUIA_GRAVACAO.md`
-- Relatorio de entrega (rascunho + PDF gerado): `docs/fase-3/RELATORIO_DE_ENTREGA.md`
+- Runbook da sessao (subir, semear, gravar, derrubar): `docs/OPERACAO.md`
+- Guia de gravacao (o que a FIAP quer ver e como mostrar): `docs/00_COLAB_IA/_ARQUIVO_MORTO/GUIA_GRAVACAO.md`
+- Relatorio de entrega (rascunho + PDF gerado): `docs/RELATORIO_DE_ENTREGA.md`
 - Contrato de Secrets entre Terraform e GitOps: `gitops/SECRETS-CONTRATO.md`
 - Excecoes de seguranca com justificativa: `.trivyignore`
 - Instrucoes para agentes (regra da branch dev): `AGENTS.md`
+
+
+---
+
+## Parte 2 - regras de trabalho dos agentes (era o AGENTS.md)
+
+TL;DR: trabalhar somente na branch dev; promover para main apenas por PR dev -> main e merge.
+Ultima atualizacao: 2026-09-09 18:09 -03:00, Codex.
+Fonte: instrucao explicita do usuario em 2026-09-09; D-020 em docs/00_COLAB_IA/DECISOES.md.
+
+- Ler docs/00_COLAB_IA/LEIA-PRIMEIRO.md, topo de PENDENCIAS_E_PROXIMOS_PASSOS.md e LOG_DE_TRABALHO.md antes de trabalhar.
+- Antes de editar, conferir git status e a branch atual. Usar dev, preservando alteracoes locais; nao criar commits nem fazer push direto na main.
+- Promocao para main: validar dev, abrir PR dev -> main, revisar e fazer merge. Nao promover branches auxiliares diretamente para main sem nova instrucao do usuario.
+- A regra de fluxo nao e, por si so, uma ordem para publicar ou fazer merge nesta sessao.
+- Depois de um merge, conferir main/dev e sincronizar dev sem descartar trabalho.
+- CI GitOps ainda possui pushes diretos na main; isso esta pendente de adaptacao em P-052. Nao afirmar que a politica ja esta imposta pela configuracao remota.
+- A branch dev nao implica criar outro ambiente AWS: o ambiente de infraestrutura continua prod.
+- Preservar fontes, segredos fora do Git e registros anteriores. Documentar trabalho e verificar antes de encerrar.
+
+

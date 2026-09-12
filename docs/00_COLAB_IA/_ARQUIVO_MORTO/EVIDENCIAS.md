@@ -5,7 +5,7 @@
 > gerenciando os 5 servicos, nao cinco Applications.
 >
 > O acompanhamento item a item do enunciado esta em
-> [`CHECKLIST_REQUISITOS_FASE3.md`](../00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md).
+> [`CHECKLIST_REQUISITOS_FASE3.md`](../CHECKLIST_REQUISITOS_FASE3.md).
 > Esta lista e mais curta de proposito: e o que precisa aparecer **na
 > tela**, durante a gravacao.
 

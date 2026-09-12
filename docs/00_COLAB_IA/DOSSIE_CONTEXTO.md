@@ -1,5 +1,13 @@
 # DOSSIE_CONTEXTO
 
+## Snapshot operacional - 2026-09-11 13:02 -03:00, Codex
+
+TL;DR: consulta viva confirmou base, cluster e k8s implantados; registros abaixo sobre apply ainda pendente sao historicos. Fonte: [guia de exclusao com evidencias](_ARQUIVO_MORTO/DESTRUIR_AWS_2026-09-11.md).
+
+EKS togglemaster ACTIVE, dois RDS, Redis e NAT ativos; Application ArgoCD Synced/Healthy. PVC PostgreSQL targeting usa EBS de 5 GiB criado pelo CSI, fora dos recursos dos tres states; sua exclusao deve terminar antes de destruir EKS. Backend S3 versionado permanece fora do Terraform. Todos os workspaces verificados sao default, com chaves prod/base.tfstate, prod/cluster.tfstate e prod/k8s.tfstate.
+
+Pedido desta sessao: explicar encerramento completo. Tres plans -destroy passaram (k8s 14, cluster 35, base 36), sem execucao da destruicao. Guia PowerShell novo cobre Application, disco, camadas, sobras e backend por ultimo; D-017 continua sendo a alternativa de pausa preservando base. P-053/F-050/F-051 registram continuidade. Nao inferir schemas/seed/video prontos a partir do estado Healthy.
+
 ## Diretriz confirmada pelo usuario - 2026-09-09 18:09 -03:00, Codex
 
 TL;DR: D-020 substitui a preferencia anterior por regra: somente dev para trabalho, PR dev -> main e merge para promocao. Fonte: pedido do usuario em 2026-09-09 e AGENTS.md.

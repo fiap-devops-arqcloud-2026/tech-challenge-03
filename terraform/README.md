@@ -1,8 +1,6 @@
 # Terraform - ToggleMaster Fase 3
 
-TL;DR: infraestrutura AWS em `us-east-2`, dividida em **tres camadas com estados separados**. A camada `terraform/` custa ~US$ 0 e fica de pe permanentemente; `terraform/cluster/` custa ~US$ 0,37/h e e destruida ao fim de cada sessao; `terraform/k8s/` cria objetos DENTRO do cluster e nao custa nada por si so.
-
-Ultima atualizacao: 2026-09-09 -03:00, Claude.
+TL;DR: infraestrutura AWS em `us-east-2`, dividida em **tres camadas com estados separados**. A camada `terraform/` custa ~US$ 0 e fica de pe permanentemente; `terraform/cluster/` custa ~US$ 0,385/h e e destruida ao fim de cada sessao; `terraform/k8s/` cria objetos DENTRO do cluster e nao custa nada por si so.
 
 ## Antes de comecar
 
@@ -18,7 +16,7 @@ Ultima atualizacao: 2026-09-09 -03:00, Claude.
 | **Onde age** | na conta AWS | na conta AWS | dentro do cluster, pela API do Kubernetes |
 | **Estado** | `prod/base.tfstate` | `prod/cluster.tfstate` | `prod/k8s.tfstate` |
 | **Providers** | aws | aws, random, tls | kubernetes, helm |
-| **Custo parado** | ~US$ 0 | ~US$ 0,37/h | ~US$ 0 (vive dentro do cluster) |
+| **Custo parado** | ~US$ 0 | ~US$ 0,385/h | ~US$ 0 (vive dentro do cluster) |
 | **Ciclo de vida** | aplicada uma vez, **nunca destruida** | sobe e desce a cada sessao | sobe e desce junto com o cluster |
 | **Situacao** | **aplicada** em 2026-09-07 (33 recursos) | escrita e validada; `plan` com 35 recursos, apply pendente | escrita e validada; apply pendente |
 
@@ -130,17 +128,26 @@ A VPC usa o modulo oficial `terraform-aws-modules/vpc/aws` (D-010). Os demais sa
 
 ## Custo
 
-| Camada | US$/h |
-|---|---|
-| Base (VPC, ECR, SQS, DynamoDB, IAM) | ~0,00 |
-| Cluster: EKS control plane | 0,100 |
-| Cluster: 2x `c7i-flex.large` | 0,170 |
-| Cluster: NAT Gateway | 0,045 |
-| Cluster: 2x `db.t3.micro` | 0,036 |
-| Cluster: ElastiCache `t3.micro` | 0,017 |
-| **Total com o cluster de pe** | **~0,37** |
+Valores derivados da estimativa oficial no AWS Pricing Calculator, consultada em
+11/09/2026 para a regiao `us-east-2`: US$ 281,03 por mes com tudo ligado as 730
+horas. Dividido por 730, da o custo por hora abaixo.
 
-Uma sessao de 3 horas custa cerca de US$ 1,10. Numeros aproximados: o print exigido em O-39 deve sair do AWS Pricing Calculator.
+| Item | US$/h | US$/mes |
+|---|---|---|
+| Base (VPC, ECR, SQS, DynamoDB, IAM) | ~0,000 | ~0,00 |
+| Cluster: EKS control plane | 0,100 | 73,00 |
+| Cluster: 2x `c7i-flex.large` | 0,174 | 126,99 |
+| Cluster: NAT Gateway e IPv4 publico | 0,050 | 36,54 |
+| Cluster: 2x RDS `db.t3.micro` | 0,042 | 30,88 |
+| Cluster: ElastiCache `cache.t3.micro` | 0,017 | 12,41 |
+| Cluster: volume EBS do banco em pod | 0,001 | 0,40 |
+| Cluster: Secrets Manager | 0,001 | 0,81 |
+| **Total com o cluster de pe** | **0,385** | **281,03** |
+
+Uma sessao de 3 horas custa cerca de **US$ 1,15**. A diferenca entre manter o
+ambiente ligado o mes inteiro e liga-lo so quando precisa - de US$ 281 para
+pouco mais de um dolar por sessao - e exatamente o que justifica a divisao em
+camadas descrita acima.
 
 ## Nunca versionar
 

@@ -1,7 +1,7 @@
 # Guia de gravação — o que a FIAP quer ver e como mostrar
 
 Criado em 2026-09-11, Claude. Complementa o [roteiro resumido](ROTEIRO_VIDEO.md)
-e o [runbook da sessão](../00_COLAB_IA/RUNBOOK-SESSAO.md).
+e o [runbook da sessão](RUNBOOK-SESSAO.md).
 
 ---
 
@@ -338,7 +338,7 @@ aplica no cluster é o ArgoCD."
 
 Custo: **~US$ 0,37/h**. Reserve **3 horas**, grave nas últimas.
 
-> **Antes de começar, leia o [runbook](../00_COLAB_IA/RUNBOOK-SESSAO.md)
+> **Antes de começar, leia o [runbook](RUNBOOK-SESSAO.md)
 > inteiro.** Ele tem as armadilhas: o NAT que precisa ser ligado, o
 > apply da camada k8s que são dois comandos, e os schemas dos bancos.
 > Nenhuma delas perdoa esquecimento.

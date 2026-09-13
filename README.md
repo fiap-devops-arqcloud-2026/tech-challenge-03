@@ -725,10 +725,13 @@ tech-challenge-03/
 ├── 📂 infra/postgres-app/          #    inicialização dos bancos no ambiente local
 │
 ├── 📂 docs/
-│   ├── 📂 fase-3/                  # 📖 arquitetura, relatório, guia de execução,
-│   │                               #    teste local, custos e evidências
-│   ├── 📂 00_COLAB_IA/             # 🤝 registros de apoio à condução do projeto
-│   └── 📄 POSTECH - Tech Challenge - Fase 3.pdf
+│   ├── 📄 ARQUITETURA.md           # 🏛️ diagramas, decisões e o porquê de cada uma
+│   ├── 📄 OPERACAO.md              # 🛠️ subir, semear, verificar e derrubar o ambiente
+│   ├── 📄 RELATORIO_DE_ENTREGA.md  # 📄 o relatório exigido, em Markdown (+ PDF ao lado)
+│   ├── 📂 evidencias/              # 🖼️ captura da estimativa de custos
+│   ├── 📄 POSTECH - Tech Challenge - Fase 3.pdf   # o enunciado
+│   ├── 📂 01_ … 05_/               # 🎓 material das aulas que fundamentam a fase
+│   └── 📂 00_COLAB_IA/             # 🤝 registros de apoio à condução do projeto
 │
 ├── 📄 docker-compose.yaml          # sobe os 5 serviços e os bancos na sua máquina
 ├── 📄 docker-compose.integration.yaml  # acrescenta o simulador local de fila e tabela

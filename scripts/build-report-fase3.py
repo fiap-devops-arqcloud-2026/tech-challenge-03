@@ -3,9 +3,9 @@
 ATENCAO - EXISTEM DOIS GERADORES NESTA PASTA (anotado em 2026-09-11).
 
   scripts/gerar-relatorio-pdf.py   <- CANONICO
-      Converte docs/fase-3/RELATORIO_DE_ENTREGA.md em PDF, com a capa no
+      Converte docs/RELATORIO_DE_ENTREGA.md em PDF, com a capa no
       formato do relatorio da Fase 2 (aprovado com nota maxima) e a
-      captura da estimativa de custos embutida. Escreve em docs/fase-3/,
+      captura da estimativa de custos embutida. Escreve em docs/,
       que e versionado. Depende de `markdown` e `weasyprint`.
 
   scripts/build-report-fase3.py    <- ESTE ARQUIVO, alternativo
@@ -41,7 +41,7 @@ from reportlab.platypus import (
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "output" / "pdf" / "FIAP_Tech_Challenge_Fase_3_Grupo_203_RELATORIO_PRELIMINAR.pdf"
-COST_IMAGE = ROOT / "docs" / "fase-3" / "evidencias" / "estimativa-custos-aws-2026-09-11.png"
+COST_IMAGE = ROOT / "docs" / "evidencias" / "estimativa-custos-aws-2026-09-11.png"
 
 TEAL_DARK = colors.HexColor("#07333A")
 TEAL = colors.HexColor("#028090")

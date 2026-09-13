@@ -27,9 +27,11 @@ CORRECOES DE FATO
 - O custo por hora aparecia como 0,37 em arquivos publicos e 0,385 no relatorio. A estimativa oficial do Pricing Calculator da 281,03/mes, que dividido por 730 da 0,385. Alinhado, e a tabela do terraform/README.md ganhou as linhas que faltavam (EBS, Secrets Manager, IPv4) para fechar a conta.
 - O PyYAML que entrou no flag-service so para a demonstracao de seguranca foi removido: o servico nao usa YAML.
 
-MATERIAL DE AULA
+MATERIAL DE AULA - DECISAO REVERTIDA PELO USUARIO
 
-33 arquivos em docs/01_ a docs/05_ somavam 18 MB - 87% do peso do repositorio - e sao slides da propria FIAP. Num repositorio publico isso e redistribuicao de material da instituicao. Retirados do versionamento com git rm --cached e acrescentados ao .gitignore; continuam no disco de quem os tem. O enunciado do desafio segue versionado, porque o README aponta para ele.
+33 arquivos em docs/01_ a docs/05_ somam 18 MB, 87% do peso do repositorio, e sao slides da propria FIAP. Foram retirados do versionamento por iniciativa desta reorganizacao, com o argumento de que publicar material da instituicao num repositorio aberto nao e prerrogativa do grupo.
+
+**O usuario decidiu manter os arquivos no repositorio.** Restaurados em 2026-09-13: o bloco correspondente saiu do .gitignore e os 33 arquivos voltaram ao controle de versao. A preocupacao fica registrada aqui como ressalva, nao como pendencia - a decisao e do grupo, que conhece as regras do curso.
 
 VERIFICACAO
 

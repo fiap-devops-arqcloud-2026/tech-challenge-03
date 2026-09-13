@@ -89,19 +89,3 @@ desktop.ini
 # passa a ser ignorada, para nao virar deposito de arquivo solto.
 tmp/
 
-# ------------------------------------------------------------
-# MATERIAL DE AULA DA FIAP
-# ------------------------------------------------------------
-# Retirado do controle de versao em 2026-09-11, quando o repositorio passou a
-# ser publico. Sao 18 MB de slides e guias de estudo da propria instituicao -
-# 87% do peso do repositorio, e conteudo que nao e nosso para redistribuir
-# abertamente. Os arquivos continuam no disco de quem ja os tem.
-#
-# O enunciado do desafio (docs/POSTECH - Tech Challenge - Fase 3.pdf) CONTINUA
-# versionado de proposito: o README aponta para ele e sem o enunciado o leitor
-# nao entende o que o projeto tinha de cumprir.
-docs/01_*/
-docs/02_*/
-docs/03_*/
-docs/04_*/
-docs/05_*/

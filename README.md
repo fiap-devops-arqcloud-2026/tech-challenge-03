@@ -20,11 +20,13 @@
 <!-- ANTES DE PUBLICAR: trocar PREENCHER_URL_DO_VIDEO pela URL do vídeo no YouTube,
      e preencher o mesmo link em docs/RELATORIO_DE_ENTREGA.md. -->
 
-[🎥 Vídeo da entrega](PREENCHER_URL_DO_VIDEO) · [📄 Relatório de entrega](./docs/RELATORIO_DE_ENTREGA.md) · [📋 Enunciado](./docs/POSTECH%20-%20Tech%20Challenge%20-%20Fase%203.pdf) · [🏗️ Terraform](./terraform/) · [⚙️ Pipelines](./.github/workflows/) · [☸️ GitOps](./gitops/) · [📦 Fase 2](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-02)
+[🎥 Vídeo da entrega](PREENCHER_URL_DO_VIDEO) · [📄 Relatório preliminar](./docs/RELATORIO_DE_ENTREGA.md) · [🗂️ PDF preliminar](./output/pdf/RELATORIO_ENTREGA_FIAP_FASE3_GRUPO203_2026-09-14_v01_PRELIMINAR.pdf) · [📋 Enunciado](./docs/POSTECH%20-%20Tech%20Challenge%20-%20Fase%203.pdf) · [🏗️ Terraform](./terraform/) · [⚙️ Pipelines](./.github/workflows/) · [☸️ GitOps](./gitops/) · [📦 Fase 2](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-02)
 
 </div>
 
 ---
+
+> **Estado verificado em 2026-09-14:** a infraestrutura foi aplicada e observada em 2026-09-11 e depois desmontada para encerrar os custos. O código e as evidências históricas permanecem no repositório. A entrega ainda depende do vídeo e da liberação de acesso ao avaliador.
 
 ## 📑 Índice
 
@@ -657,7 +659,7 @@ Esta seção existe para o avaliador não precisar caçar o que falta: o escopo 
 
 ## 💰 Custo
 
-Estimativa oficial levantada no AWS Pricing Calculator em **11 de setembro de 2026**, região `us-east-2`, com o ambiente **ligado o mês inteiro** — o cenário que o projeto deliberadamente evita:
+Estimativa oficial levantada no AWS Pricing Calculator em **2026-09-11**, região `us-east-2`, com o ambiente **ligado o mês inteiro** — o cenário que o projeto deliberadamente evita:
 
 | Serviço | Configuração | Mensal |
 |---|---|---:|
@@ -727,11 +729,13 @@ tech-challenge-03/
 ├── 📂 docs/
 │   ├── 📄 ARQUITETURA.md           # 🏛️ diagramas, decisões e o porquê de cada uma
 │   ├── 📄 OPERACAO.md              # 🛠️ subir, semear, verificar e derrubar o ambiente
-│   ├── 📄 RELATORIO_DE_ENTREGA.md  # 📄 o relatório exigido, em Markdown (+ PDF ao lado)
+│   ├── 📄 RELATORIO_DE_ENTREGA.md  # 📄 fonte do relatório preliminar exigido
 │   ├── 📂 evidencias/              # 🖼️ captura da estimativa de custos
 │   ├── 📄 POSTECH - Tech Challenge - Fase 3.pdf   # o enunciado
 │   ├── 📂 01_ … 05_/               # 🎓 material das aulas que fundamentam a fase
 │   └── 📂 00_COLAB_IA/             # 🤝 registros de apoio à condução do projeto
+│
+├── 📂 output/pdf/                  # 🗂️ PDF preliminar pronto para revisão
 │
 ├── 📄 docker-compose.yaml          # sobe os 5 serviços e os bancos na sua máquina
 ├── 📄 docker-compose.integration.yaml  # acrescenta o simulador local de fila e tabela

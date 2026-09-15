@@ -1,13 +1,12 @@
 # Instrucoes para assistentes de IA
 
-Este arquivo reune o que antes ficava em `CLAUDE.md` e `AGENTS.md`, na raiz do
-repositorio. Foi movido para ca em 2026-09-11, quando o repositorio passou a ser
-publico: instrucao de ferramenta e material de processo, nao documentacao do
-projeto, e a pasta `00_COLAB_IA/` e o lugar declarado desse tipo de registro.
+Este arquivo reune as instrucoes detalhadas que antes ficavam em `CLAUDE.md` e
+`AGENTS.md`, na raiz do repositorio. Elas foram movidas para ca em 2026-09-11
+durante a reorganizacao da documentacao. Em 2026-09-14, o repositorio continua
+privado. O `CLAUDE.md` curto da raiz apenas aponta para este arquivo.
 
-**Consequencia pratica:** fora da raiz, este arquivo deixa de ser carregado
-automaticamente pelo Claude Code. Para reativar, basta criar um `CLAUDE.md` na
-raiz com uma linha apontando para ca.
+**Consequencia pratica:** o `CLAUDE.md` da raiz deve ser mantido, pois permite
+que o Claude Code encontre automaticamente estas instrucoes.
 
 A documentacao do projeto em si esta no [README](../../README.md), em
 [docs/ARQUITETURA.md](../ARQUITETURA.md) e em [docs/OPERACAO.md](../OPERACAO.md).
@@ -15,6 +14,25 @@ A documentacao do projeto em si esta no [README](../../README.md), em
 ---
 
 ## Parte 1 - contexto de colaboracao (era o CLAUDE.md)
+
+## Estado atual - 2026-09-14 10:20 -03:00, Codex
+
+TL;DR: trabalhar na `dev` e promover mudancas humanas por PR para a `main`
+(D-020). `dev` e `main` locais possuem a mesma arvore no commit de merge
+`c60e792`; `origin/dev` esta apenas um merge commit atras de `origin/main`.
+A AWS foi integralmente desmontada em 2026-09-11 e revalidada vazia em
+2026-09-14. O relatorio FIAP foi refeito como versao preliminar curta; faltam o
+video, a confirmacao dos participantes e o acesso do avaliador ao repo privado.
+
+O CI de integracao e a validacao Terraform estao verdes no conteudo atual. A
+ultima publicacao do `flag-service` falhou somente na autenticacao OIDC porque
+a role, o provedor e o ECR foram removidos no encerramento da AWS. Antes de um
+novo ensaio, recriar base, imagens, cluster e k8s, atualizar o endpoint Redis,
+executar schemas/seed e capturar a nova tag sendo sincronizada pelo ArgoCD.
+
+Os pushes automaticos de tags GitOps diretamente na `main` sao a excecao
+intencional D-021. O GitHub ainda nao possui protecao de branch; a disciplina
+dev -> PR -> main e processual, nao imposta pela plataforma.
 
 ## Regra de trabalho vigente - 2026-09-09 18:09 -03:00, Codex
 

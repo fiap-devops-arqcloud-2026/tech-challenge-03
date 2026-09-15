@@ -1,5 +1,21 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-14 09:46 (-03:00) - Codex - Inicio da revisao final da documentacao FIAP
+
+TL;DR: revisao em andamento na branch `dev`, sem publicar nem alterar a AWS. O relatorio existente atende a maior parte do pedido, mas o PDF ainda contem o link do video em branco, uma secao opcional vazia e fatos anteriores ao ensaio completo. Ultima atualizacao: 2026-09-14 09:46 -03:00, Codex.
+
+Feito: lidos o protocolo, o topo de pendencias e log, o enunciado, o relatorio aprovado da Fase 2, o relatorio atual da Fase 3 e as nove paginas do PDF renderizadas. Refs revalidadas depois de `git fetch`: checkout `dev` em `c60e792`, igual a `main`/`origin/main` e um commit a frente de `origin/dev` por causa do merge do PR #14. Nenhuma mudanca exclusiva da `main` falta no checkout local.
+
+Lista de tarefas: (1) revalidar Git, GitHub e estado AWS; (2) confrontar o relatorio com os requisitos da FIAP; (3) corrigir placeholders e fatos desatualizados sem apagar o historico; (4) gerar a versao preliminar identificada e revisar todas as paginas; (5) atualizar pendencias, dossie e memoria autorizada; (6) VERIFICACAO final de links, PDF, Git e segredos.
+
+Decisoes/Por que: preservar o relatorio detalhado produzido anteriormente e melhorar a versao de entrega. O video continua `[INCERTO]` porque nenhuma URL foi localizada. Nao afirmar teste funcional, seed ou gravacao sem evidencia. A estimativa oficial de 2026-09-11 e mantida, pois tem link publico e captura verificavel.
+
+Arquivos: nenhuma alteracao de conteudo concluida ate esta entrada; apenas este registro incremental.
+
+Descobertas: o repositorio permanece privado; a execucao mais recente do `flag-service` na `main` falhou ao assumir a role OIDC depois da destruicao da base AWS, embora build, lint, SAST, SCA e scan da imagem tenham passado. Avaliar esse risco no fechamento.
+
+Estado p/ o proximo agente: revisao em curso. Nao enviar o PDF atual enquanto houver placeholder de video e conteudo opcional vazio.
+
 ## 2026-09-11 - Reorganizacao da documentacao para repositorio publico
 
 TL;DR: README reescrito na linha do da Fase 2; guias e runbooks fundidos em docs/OPERACAO.md; arquitetura consolidada em docs/ARQUITETURA.md; tracos de IA recolhidos para 00_COLAB_IA; 18 MB de material de aula tirados do versionamento; 81 links validados, zero quebrado.

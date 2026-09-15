@@ -1,6 +1,6 @@
 # Terraform - ToggleMaster Fase 3
 
-TL;DR: infraestrutura AWS em `us-east-2`, dividida em **tres camadas com estados separados**. A camada `terraform/` custa ~US$ 0 e fica de pe permanentemente; `terraform/cluster/` custa ~US$ 0,385/h e e destruida ao fim de cada sessao; `terraform/k8s/` cria objetos DENTRO do cluster e nao custa nada por si so.
+TL;DR: infraestrutura AWS em `us-east-2`, dividida em **tres camadas com estados separados**. Esse desenho permite aplicar e destruir o ambiente de forma controlada. A pilha completa funcionou em 2026-09-11 e foi destruida no mesmo dia; em 2026-09-14, os tres estados estavam vazios e nenhum recurso da pilha permanecia ativo.
 
 ## Antes de comecar
 
@@ -17,8 +17,10 @@ TL;DR: infraestrutura AWS em `us-east-2`, dividida em **tres camadas com estados
 | **Estado** | `prod/base.tfstate` | `prod/cluster.tfstate` | `prod/k8s.tfstate` |
 | **Providers** | aws | aws, random, tls | kubernetes, helm |
 | **Custo parado** | ~US$ 0 | ~US$ 0,385/h | ~US$ 0 (vive dentro do cluster) |
-| **Ciclo de vida** | aplicada uma vez, **nunca destruida** | sobe e desce a cada sessao | sobe e desce junto com o cluster |
-| **Situacao** | **aplicada** em 2026-09-07 (33 recursos) | escrita e validada; `plan` com 35 recursos, apply pendente | escrita e validada; apply pendente |
+| **Ciclo normal** | pode ser preservada entre sessoes | sobe e desce a cada sessao | sobe e desce antes do cluster |
+| **Situacao em 2026-09-14** | destruida; estado vazio | destruida; estado vazio | destruida; estado vazio |
+
+Historico comprovado: em 2026-09-11, as tres camadas foram aplicadas. A consulta registrou EKS `ACTIVE`, dois RDS, Redis, NAT, ArgoCD `Synced/Healthy` e o PVC do targeting ligado a um EBS. Depois do ensaio, houve encerramento completo da AWS. Esse historico comprova que o codigo foi executado, mas nao significa que a infraestrutura esteja ativa hoje.
 
 Por que a terceira camada existe separada da segunda: os providers
 `kubernetes` e `helm` precisam de um endereco de cluster que **so passa

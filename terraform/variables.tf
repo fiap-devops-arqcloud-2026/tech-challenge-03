@@ -167,3 +167,22 @@ variable "github_repository" {
   # Confirmado em 2026-08-27 pelo `git remote -v` deste repositorio.
   default = "fiap-devops-arqcloud-2026/tech-challenge-03"
 }
+
+# ------------------------------------------------------------
+# Provedor OIDC do GitHub: criar ou reaproveitar
+# ------------------------------------------------------------
+# A AWS permite UM provedor OIDC por endereco em cada conta. Numa conta
+# nova, esta camada cria o provedor. Numa conta onde outro projeto ja o
+# registrou, criar de novo falha no apply com EntityAlreadyExists - e ai
+# o certo e reaproveitar, sem virar dono do recurso alheio.
+#
+# Para descobrir o seu caso, antes do apply:
+#   aws iam list-open-id-connect-providers
+# Se aparecer token.actions.githubusercontent.com, use false.
+# ------------------------------------------------------------
+variable "create_github_oidc_provider" {
+  description = "true: esta camada cria o provedor OIDC do GitHub. false: reaproveita o provedor que ja existe na conta (obrigatorio quando outro projeto ja o criou)."
+  type        = bool
+  # true mantem o comportamento original em contas sem OIDC do GitHub.
+  default = true
+}

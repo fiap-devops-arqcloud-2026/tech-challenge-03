@@ -26,7 +26,7 @@ conhecida, e algumas delas custam a sessão inteira.
 
 ## O mínimo para não errar
 
-Três pontos que valem estar no topo, porque são os que mais custam caro quando
+Quatro pontos que valem estar no topo, porque são os que mais custam caro quando
 esquecidos:
 
 1. **Nenhuma chave estática da AWS circula neste projeto.** Os workflows do CI
@@ -38,15 +38,22 @@ esquecidos:
 
 2. **A ordem das camadas do Terraform não é negociável:** `terraform/` primeiro,
    depois `terraform/cluster/`, depois `terraform/k8s/` — esta última em **dois
-   comandos**, por causa do tipo `Application` do ArgoCD ([explicação na seção
-   2.6](#26-passo-4--secrets-storageclass-e-argocd-dois-comandos)). Cada camada lê o
+   comandos**, por causa do tipo `Application` do ArgoCD ([explicação no passo
+   2.7](#27-passo-5--secrets-storageclass-e-argocd-dois-comandos)). Cada camada lê o
    estado da anterior; fora de ordem, o `plan` falha.
 
-3. **O que custa dinheiro é a camada do meio, mais o NAT Gateway.** Ao terminar,
-   destrua `terraform/cluster/` **e desligue o NAT** (seção 6.3). O NAT mora na
-   camada base, que nunca é destruída: esquecido ligado, ele cobra US$ 0,045/h de
-   hora parada — cerca de US$ 33 por mês —, e perto de **US$ 36 por mês** somando o
-   endereço IPv4 público que fica preso a ele. Tudo isso com nada rodando.
+3. **Base recriada significa ECR vazio.** Se a camada base foi destruída e criada de
+   novo, os cinco repositórios de imagem nascem sem nenhuma imagem, e as tags gravadas
+   em `gitops/overlays/prod/kustomization.yaml` apontam para o nada. Sem republicar as
+   imagens ([passo 2.4](#24-passo-2--publicar-as-cinco-imagens-no-ecr)), todo pod fica
+   em `ImagePullBackOff`.
+
+4. **O que custa dinheiro é a camada do meio, mais o NAT Gateway.** Ao terminar,
+   destrua `terraform/k8s/` e `terraform/cluster/` e decida o destino da base
+   ([seção 6](#6-encerrar-a-sessão)): desligar só o NAT ou destruir a base também.
+   Esquecido ligado, o NAT cobra US$ 0,045/h de hora parada — cerca de US$ 33 por
+   mês —, e perto de **US$ 36 por mês** somando o endereço IPv4 público preso a ele.
+   Tudo isso com nada rodando.
 
 ---
 
@@ -57,18 +64,21 @@ de comando abaixo vem rotulado. A regra geral:
 
 | Use | Para |
 |---|---|
-| **Git Bash ou WSL** | Tudo que usa `<` (redirecionamento de arquivo), `$(...)` ou `\|` — os comandos `psql` da seção 3 e o `sed` da seção 2.8 |
+| **Git Bash ou WSL** | Tudo que usa `<` (redirecionamento de arquivo), `$(...)`, `\|`, `&&` ou `\` no fim da linha — os comandos `psql` da seção 3, a republicação das imagens do passo 2.4 e o `sed` do passo 2.9 |
 | **PowerShell** | Sintaxe `$env:...`, `Invoke-RestMethod`, `Copy-Item`, `Get-Content` |
 | **Qualquer um** | `terraform`, `kubectl`, `aws`, `docker compose`, `git`, `gh` — idênticos nos dois |
 
 > 💡 **Sugestão prática:** deixe **duas janelas abertas** e não troque no meio de uma
 > fase.
 
-> ⚠️ **Dois detalhes do PowerShell que economizam tempo:**
+> ⚠️ **Três detalhes do PowerShell que economizam tempo:**
 > - `terraform plan -out=arquivo` precisa do token `--%` antes dos parâmetros, senão
 >   o PowerShell reclama de *"Too many command line arguments"*.
 > - `curl` no PowerShell é um alias de `Invoke-WebRequest`, que tem outra sintaxe.
 >   Use `curl.exe` quando quiser o curl de verdade.
+> - O PowerShell 5.1 **não aceita `&&`** (erro de parser) e continua linha com crase,
+>   não com `\`. Blocos com esses caracteres são para o Git Bash; onde a diferença
+>   importa, este guia traz a versão PowerShell ao lado.
 
 ---
 
@@ -416,7 +426,7 @@ docker compose restart evaluation-service
 | **AWS CLI** | v2 | Autenticação, `update-kubeconfig` e as conferências de teardown |
 | **kubectl** | compatível com Kubernetes 1.34 | Operar o cluster |
 | **Git** | qualquer | Levar as mudanças do GitOps até a `main` |
-| **GitHub CLI** (`gh`) | opcional | Abrir e mesclar o pull request pelo terminal |
+| **GitHub CLI** (`gh`) | autenticado (`gh auth status`) | Republicar as imagens (passo 2.4) e abrir e mesclar pull requests |
 
 Além das ferramentas:
 
@@ -452,6 +462,7 @@ que aparece nas URLs do ECR em `gitops/overlays/prod/kustomization.yaml`.
 terraform version        # precisa ser >= 1.11.0
 kubectl version --client
 aws --version
+gh auth status           # o passo 2.4 usa o gh para republicar as imagens
 ```
 
 Se você usa perfis nomeados na AWS CLI, selecione o perfil na janela onde vai rodar
@@ -469,9 +480,27 @@ $env:AWS_PROFILE = "togglemaster"
 export AWS_PROFILE=togglemaster
 ```
 
-Por fim, confirme que a **camada base já está aplicada** — as outras duas leem o
-estado dela. Como o estado mora no S3, o diretório precisa estar inicializado antes
-de qualquer leitura:
+**Descubra se a conta já tem o provedor OIDC do GitHub.** A AWS aceita um único
+provedor por endereço em cada conta. Se outro projeto já registrou o GitHub, a camada
+base não pode criar outro — precisa reaproveitar o que existe:
+
+```bash
+aws iam list-open-id-connect-providers
+```
+
+| A saída mostra `token.actions.githubusercontent.com`? | Em `terraform/terraform.tfvars` |
+|---|---|
+| **Sim** | `create_github_oidc_provider = false` |
+| **Não** | `create_github_oidc_provider = true` (é o padrão) |
+
+> ⚠️ Com `true` numa conta que já tem o provedor, o apply da base para no meio com
+> `EntityAlreadyExists` — e o `plan` **não** avisa antes, porque só compara com o
+> estado. Com `false`, o provedor é apenas lido: o destroy nunca o apaga, e o CI de
+> quem o criou continua funcionando.
+
+Por fim, veja **em que situação está a camada base** — as outras duas leem o estado
+dela. Como o estado mora no S3, o diretório precisa estar inicializado antes de
+qualquer leitura:
 
 **Git Bash ou PowerShell:**
 
@@ -482,25 +511,31 @@ terraform -chdir=terraform init
 terraform -chdir=terraform output github_actions_role_arn
 ```
 
-> ⚠️ **Não confunda os dois erros.** Falha no `output` **antes** do `init` significa
-> apenas que o diretório local não conhece o backend — não diz nada sobre a
-> infraestrutura. Se, **depois** do `init`, o output vier vazio ou o estado aparecer
-> sem recursos, aí sim a base nunca foi aplicada: rode
-> `terraform -chdir=terraform apply`.
+| Saída | Significado | Próximo passo |
+|---|---|---|
+| Um ARN terminado em `role/togglemaster-github-actions` | A base está aplicada | O passo 2.3 só liga o NAT |
+| `Warning: No outputs found` | A base não existe — foi destruída ou nunca subiu | O passo 2.3 cria a base inteira, e o **passo 2.4 é obrigatório** |
+
+> ℹ️ `No outputs found` não é erro: o comando sai com código 0. Não reinicialize nada
+> por causa dele.
 
 ### 2.2 As três camadas, e por que são três
 
 | Camada | Pasta | Chave do estado | O que provisiona | Ciclo de vida |
 |---|---|---|---|---|
-| **Base** | `terraform/` | `prod/base.tfstate` | VPC, 5 repositórios ECR, fila SQS + DLQ, tabela DynamoDB, provedor OIDC e role do CI | **Permanente.** Custo ~US$ 0 com o NAT desligado |
+| **Base** | `terraform/` | `prod/base.tfstate` | VPC, 5 repositórios ECR, fila SQS + DLQ, tabela DynamoDB, role do CI e o provedor OIDC, quando a conta ainda não tem | **Preservável entre sessões.** Custo ~US$ 0 com o NAT desligado. Destruí-la apaga as imagens do ECR |
 | **Cluster** | `terraform/cluster/` | `prod/cluster.tfstate` | EKS, node group, 2 RDS, ElastiCache, 2 roles de IRSA | **Efêmera.** É o que cobra por hora |
 | **K8s** | `terraform/k8s/` | `prod/k8s.tfstate` | 2 namespaces (`togglemaster` e `argocd`), 5 Secrets, StorageClass `gp3`, ArgoCD e a Application | **Efêmera.** Vive dentro do cluster |
 
 A divisão existe por um motivo prático: o ambiente é destruído ao fim de cada sessão.
 Com estado único, o `destroy` levaria junto os cinco repositórios ECR e, com
 `force_delete` ligado, as imagens já publicadas — o CI teria de reconstruir e
-reenviar tudo antes de cada sessão. Separando, **só a camada que cobra por hora sobe
-e desce**.
+reenviar tudo antes de cada sessão. Separando, **só a camada que cobra por hora
+precisa subir e descer**.
+
+Isso não impede destruir a base também — é o que se faz no encerramento do projeto,
+para zerar o custo. A consequência é a do item 3 do topo: na próxima subida, o ECR
+volta vazio e as imagens precisam ser republicadas.
 
 ```
  terraform/                  terraform/cluster/            terraform/k8s/
@@ -508,18 +543,16 @@ e desce**.
  │ VPC · ECR · SQS  │ ──lê──▶│ EKS · RDS ·      │ ──lê──▶  │ Secrets ·        │
  │ DynamoDB · OIDC  │  saída │ ElastiCache·IRSA │   saída  │ StorageClass ·   │
  │                  │        │                  │          │ ArgoCD           │
- │ permanente       │        │ efêmera          │          │ efêmera          │
+ │ preservável      │        │ efêmera          │          │ efêmera          │
  └──────────────────┘        └──────────────────┘          └──────────────────┘
         ~US$ 0/h                   paga por hora              dentro do cluster
 ```
 
-### 2.3 Passo 1 — Ligar o NAT Gateway
+### 2.3 Passo 1 — Aplicar a camada base e ligar o NAT
 
-**Este é o passo mais esquecido e o que mais dói.**
-
-O NAT mora na camada **base**, que nunca é destruída. Sem ele, os nós do EKS ficam em
-subnet privada sem saída para a internet: não conseguem baixar imagem do ECR nem
-falar com o control plane, e **todo pod fica em `ImagePullBackOff`**.
+**O NAT Gateway é o item mais esquecido e o que mais dói.** Sem ele, os nós do EKS
+ficam em subnet privada sem saída para a internet: não conseguem baixar imagem do ECR
+nem falar com o control plane, e **todo pod fica em `ImagePullBackOff`**.
 
 Se você ainda não tem um `terraform.tfvars`, crie a partir do exemplo versionado:
 
@@ -535,20 +568,40 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 Copy-Item terraform/terraform.tfvars.example terraform/terraform.tfvars
 ```
 
-Edite o arquivo e deixe:
+Edite o arquivo e confira as duas linhas que mudam o resultado:
 
 ```hcl
-enable_nat_gateway = true
+enable_nat_gateway          = true
+create_github_oidc_provider = false   # ou true, conforme o pré-voo 2.1
 ```
 
 **Git Bash ou PowerShell:**
 
 ```bash
 terraform -chdir=terraform init     # só na primeira vez da máquina
+terraform -chdir=terraform plan
+```
+
+**Leia o resumo do plan antes de aplicar.** Ele diz qual das situações do pré-voo você
+está vivendo:
+
+| Resumo do plan | Situação | Tempo do apply |
+|---|---|---|
+| Poucos recursos a criar: o NAT, o endereço IPv4 e a rota | A base já existia; só o NAT liga | ~2 min (medido: 2m24s) |
+| `35 to add` (reaproveitando o provedor OIDC) ou `36 to add` (criando) | Base do zero | não medido — reserve 10 min |
+| Qualquer `to destroy` | Você está mirando no estado errado | **Pare** e verifique o backend |
+
+```bash
 terraform -chdir=terraform apply
 ```
 
-Leva cerca de 2 minutos.
+Ao terminar, confirme que a role do CI existe — o passo 2.4 depende dela:
+
+```bash
+terraform -chdir=terraform output github_actions_role_arn
+```
+
+**Esperado:** `arn:aws:iam::<conta>:role/togglemaster-github-actions`.
 
 > 💡 **Atalho sem editar arquivo:** `terraform -chdir=terraform apply -var enable_nat_gateway=true`.
 > O valor passado na linha de comando tem precedência sobre o `terraform.tfvars`.
@@ -559,10 +612,130 @@ Leva cerca de 2 minutos.
 > sobe ligado** — e cobrando.
 
 **Anote o horário.** O relógio da sessão começa aqui: o NAT passa a custar
-US$ 0,045/h (US$ 0,050/h com o IPv4 público junto), e quem desliga é o
-[passo 6.3](#63-desligar-o-nat-gateway).
+US$ 0,045/h (US$ 0,050/h com o IPv4 público junto), e quem desliga é a
+[seção 6](#6-encerrar-a-sessão).
 
-### 2.4 Passo 2 — Subir o cluster (20 a 30 minutos)
+### 2.4 Passo 2 — Publicar as cinco imagens no ECR
+
+**Obrigatório quando a base foi criada do zero no passo 2.3. Pule se a base já existia
+e as imagens continuam lá.**
+
+Para saber, liste as tags de cada repositório:
+
+**Git Bash:**
+
+```bash
+for r in auth-service evaluation-service flag-service targeting-service analytics-service; do
+  echo "== $r"
+  aws ecr list-images --region us-east-2 --repository-name "$r" --query 'imageIds[].imageTag' --output text
+done
+```
+
+Compare com as tags de `gitops/overlays/prod/kustomization.yaml`. Se algum repositório
+vier vazio, siga abaixo.
+
+**Por que é preciso.** Quem publica imagem é o pipeline, e só num `push` na `main`: os
+jobs `Imagem Docker e push no ECR` e `Atualizar tag no GitOps` têm a condição
+`github.event_name == 'push' && github.ref == 'refs/heads/main'`. Disparar o workflow
+à mão pela aba Actions (`workflow_dispatch`) roda os testes e **não publica nada**.
+
+**Pré-condição: o apply da base terminado.** O job de imagem assume a role
+`togglemaster-github-actions`. Se ela ainda não existir — ou se a policy de push ainda
+não estiver anexada —, o passo falha em `Could not assume role with OIDC` depois de
+cerca de 1 minuto de tentativas, e nada repete sozinho. Espere o `Apply complete!` do
+passo 2.3 antes de disparar.
+
+**Pode rodar em paralelo com o passo 2.5.** O cluster não precisa das imagens para
+subir; só os pods precisam. Dispare aqui e comece o apply do cluster logo em seguida.
+
+#### Caminho A — re-executar os últimos runs da `main` (recomendado)
+
+Sem commit e sem pull request. O re-run refaz o pipeline **inteiro** sobre o mesmo
+commit — build, linter, SAST, SCA e scan da imagem rodam de novo — e publica a tag do
+commit original, que é a que o overlay já referencia.
+
+**Git Bash:**
+
+```bash
+# Para cada serviço, pega o run mais recente disparado por push na main e o re-executa.
+for svc in auth-service evaluation-service flag-service targeting-service analytics-service; do
+  id=$(gh run list --workflow "$svc.yml" --branch main --event push --limit 1 --json databaseId --jq '.[0].databaseId')
+  echo "$svc -> run $id"
+  gh run rerun "$id"
+done
+```
+
+| Parte | O que faz |
+|---|---|
+| `gh run list --workflow <svc>.yml` | lista os runs do workflow daquele serviço |
+| `--branch main --event push` | só os que nasceram de push na `main` — os únicos que publicam |
+| `--jq '.[0].databaseId'` | pega o identificador do mais recente |
+| `gh run rerun <id>` | re-executa o run inteiro, com todos os jobs |
+
+> ⚠️ Use `gh run rerun <id>` **sem** `--failed`. Com `--failed`, só os jobs que
+> falharam rodam de novo; sem ele, os portões de segurança também se repetem.
+
+> ℹ️ O GitHub só re-executa runs de até 30 dias. Passado isso, use o caminho B.
+
+Se a tag de algum serviço no overlay for de um commit **anterior** ao do run
+re-executado, o job de GitOps comita a tag nova na `main` sozinho — é esperado. Para
+os demais, ele termina com `A tag ja esta correta`.
+
+#### Caminho B — um commit que dispare os cinco pipelines
+
+Para quando o re-run não serve: runs com mais de 30 dias, ou quando é preciso mudar
+algo antes de publicar, como uma exceção nova no `.trivyignore`.
+
+Os workflows de serviço escutam alterações no workflow reutilizável da própria stack:
+`_ci-go.yml` dispara `auth` e `evaluation`; `_ci-python.yml` dispara `flag`,
+`targeting` e `analytics`. Alterar um comentário nos dois basta.
+
+**Git Bash:**
+
+```bash
+git switch dev
+# edite um comentário em .github/workflows/_ci-go.yml e em .github/workflows/_ci-python.yml
+git add .github/workflows/_ci-go.yml .github/workflows/_ci-python.yml
+git commit -m "ci: republica as imagens no ECR recriado"
+git push origin dev
+gh pr create --base main --head dev --title "ci: republica as imagens no ECR recriado" --body "Base recriada do zero; ECR vazio."
+gh pr merge --merge
+```
+
+> ⚠️ No `git add`, liste só os arquivos que você mudou. Um `git add -A` leva junto
+> qualquer alteração local que não era para ir.
+
+O merge gera tags novas, com o hash do commit de merge, e o job de GitOps as comita na
+`main`.
+
+> ⚠️ **Limite de jobs simultâneos.** No plano gratuito, uma organização roda até 20
+> jobs ao mesmo tempo. O caminho B dispara três ondas — push na `dev`, pull request e
+> merge na `main` —, e só a última publica. Se a fila travar, cancele os runs que não
+> publicam:
+>
+> ```bash
+> gh run list --branch dev --json databaseId,status --jq '.[] | select(.status != "completed") | .databaseId' | xargs -n1 gh run cancel
+> ```
+
+#### Conferir antes de seguir
+
+```bash
+gh run list --branch main --limit 10
+```
+
+Os cinco workflows de serviço em `completed` com `success`. Depois repita a listagem de
+tags do início desta seção: cada repositório precisa ter a tag que o overlay espera.
+
+**Não aplique a camada k8s (passo 2.7) antes disso.** No caminho A, a tag publicada é a
+mesma que o Deployment usa: se o pod nascer antes da imagem, o Kubernetes só tenta
+baixar de novo no próximo ciclo de espera, que chega a 5 minutos. O
+[passo 2.9](#29-passo-7--conferir-os-endereços-no-overlay-do-gitops) mostra como
+destravar se acontecer.
+
+Se o scan barrar a imagem por uma CVE crítica nova, a correção está na
+[seção 7](#7-armadilhas-conhecidas).
+
+### 2.5 Passo 3 — Subir o cluster (15 a 30 minutos)
 
 **Git Bash ou PowerShell:**
 
@@ -572,14 +745,15 @@ terraform -chdir=terraform/cluster apply
 ```
 
 O que demora: o control plane do EKS leva cerca de 10 minutos, o node group mais 5, e
-as duas instâncias RDS cerca de 10, em paralelo. Vá tomar um café.
+as duas instâncias RDS cerca de 10, em paralelo. Na sessão de 11/09, o apply inteiro
+levou **15m42s**. Enquanto isso, o passo 2.4 pode estar publicando as imagens.
 
 > ⚠️ **Confira o resumo antes de confirmar.** Numa subida em cluster novo deve ser
 > algo como `N to add, 0 to change, 0 to destroy`. Qualquer `destroy` no resumo da
 > primeira subida significa que você está mirando num estado que não é o esperado —
 > pare e verifique o backend.
 
-### 2.5 Passo 3 — Apontar o kubectl para o cluster
+### 2.6 Passo 4 — Apontar o kubectl para o cluster
 
 **Git Bash ou PowerShell:**
 
@@ -597,7 +771,11 @@ kubectl get nodes
 > (`bootstrap_cluster_creator_admin_permissions`). Verifique o perfil ativo com
 > `aws sts get-caller-identity`.
 
-### 2.6 Passo 4 — Secrets, StorageClass e ArgoCD (dois comandos)
+### 2.7 Passo 5 — Secrets, StorageClass e ArgoCD (dois comandos)
+
+**Pré-condição:** as cinco tags do overlay já presentes no ECR
+([passo 2.4](#24-passo-2--publicar-as-cinco-imagens-no-ecr)). Aplicar antes faz os pods
+nascerem em `ImagePullBackOff`.
 
 **SÃO DOIS COMANDOS, NESTA ORDEM. Não pule o primeiro.**
 
@@ -624,7 +802,7 @@ terraform -chdir=terraform/k8s apply -target=helm_release.argocd
 terraform -chdir=terraform/k8s apply
 ```
 
-### 2.7 Passo 5 — Conferir o que a camada criou
+### 2.8 Passo 6 — Conferir o que a camada criou
 
 **Git Bash ou PowerShell:**
 
@@ -639,11 +817,11 @@ kubectl get storageclass
 Os nomes e as chaves esperadas de cada Secret estão em `gitops/SECRETS-CONTRATO.md`.
 É a primeira coisa a conferir se algum pod ficar em `CreateContainerConfigError`.
 
-### 2.8 Passo 6 — Conferir os endereços no overlay do GitOps
+### 2.9 Passo 7 — Conferir os endereços no overlay do GitOps
 
 Alguns valores dos manifestos só nascem com o apply do cluster. Eles **já estão
-preenchidos no repositório**, mas vale conferir, porque um deles pode mudar quando o
-ambiente é recriado.
+preenchidos no repositório** e, na prática, se repetem a cada recriação — mas a
+conferência leva um minuto e evita um pod quebrado difícil de explicar.
 
 **Git Bash ou PowerShell:**
 
@@ -655,18 +833,20 @@ terraform -chdir=terraform/cluster output irsa_role_arns
 Compare com o repositório:
 
 - **`gitops/overlays/prod/patches/endpoints.yaml`** — o `REDIS_URL` e o `AWS_SQS_URL`.
-  A URL da fila é estável; **o endereço do ElastiCache pode mudar** quando o
-  replication group é recriado, porque ele carrega um identificador gerado pela AWS.
-  É o valor que mais costuma divergir.
+  A URL da fila é estável: depende só do nome da fila e da conta. O endereço do
+  ElastiCache carrega um identificador gerado pela AWS; o histórico do projeto mostra o
+  mesmo identificador em duas criações diferentes, o que indica que ele pertence à conta
+  e à região, e não a cada cluster. Ainda assim, confira.
 - **`gitops/overlays/prod/patches/irsa.yaml`** — os dois ARNs de role. São estáveis:
-  os nomes das roles são fixos, então o ARN se repete a cada recriação.
+  os nomes das roles são fixos.
 - **`gitops/overlays/prod/kustomization.yaml`** — as cinco tags de imagem. **Não
-  mexa.** Quem escreve ali é o último job do pipeline, a cada push verde na `main`.
+  mexa à mão.** Quem escreve ali é o último job do pipeline.
 
-Se o endereço do Redis divergir, este comando lê a saída do Terraform e reescreve o
-arquivo sem digitação manual:
+Se o `REDIS_URL` divergir, o `evaluation-service` encerra logo na partida, sem
+conseguir conectar no Redis, e fica em `CrashLoopBackOff`. Este comando lê a saída do
+Terraform e reescreve o arquivo sem digitação manual:
 
-**Git Bash / WSL** (usa `$(...)` e `sed`):
+**Git Bash / WSL** (usa `$(...)`, `sed` e `&&`):
 
 ```bash
 REDIS=$(terraform -chdir=terraform/cluster output -raw redis_url) \
@@ -677,50 +857,72 @@ REDIS=$(terraform -chdir=terraform/cluster output -raw redis_url) \
 A última parte imprime a linha resultante — confira antes de seguir.
 
 **Como levar isso até a `main`.** O ArgoCD só enxerga o que está no Git, e a regra do
-projeto é não commitar direto na `main`: trabalho humano sai da `dev` e chega à
-`main` por pull request.
+projeto é não commitar direto na `main`: trabalho humano sai da `dev` e chega à `main`
+por pull request.
 
-**Git Bash ou PowerShell:**
+**Git Bash:**
 
 ```bash
 git switch dev
-git add gitops/overlays/prod
+git add gitops/overlays/prod/patches/endpoints.yaml
 git commit -m "chore(gitops): endpoints reais da sessao"
 git push origin dev
+gh pr create --base main --head dev --title "chore(gitops): endpoints reais da sessao" --body "Valores gerados pelo apply desta sessao." && gh pr merge --merge
 ```
 
-```bash
-gh pr create --base main --head dev \
-  --title "chore(gitops): endpoints reais da sessao" \
-  --body "Valores gerados pelo apply desta sessao." \
-  && gh pr merge --merge
+**PowerShell** (o 5.1 não aceita `&&`):
+
+```powershell
+gh pr create --base main --head dev --title "chore(gitops): endpoints reais da sessao" --body "Valores gerados pelo apply desta sessao."; if ($?) { gh pr merge --merge }
 ```
 
-Depois do merge, traga a `dev` de volta ao mesmo ponto. **A `main` anda sozinha**: o
-job de GitOps do CI comita a tag da imagem direto nela, então a `dev` fica para trás
-sem ninguém perceber.
+Depois do merge, traga a `dev` de volta ao mesmo ponto. **A `main` anda sozinha**: o job
+de GitOps do CI comita a tag da imagem direto nela, então a `dev` fica para trás sem
+ninguém perceber.
+
+**Git Bash:**
 
 ```bash
 git switch dev && git fetch origin && git merge --ff-only origin/main && git push origin dev
 ```
 
-**Antes de seguir para a seção 3: espere o ArgoCD sincronizar.**
+**PowerShell:**
+
+```powershell
+git switch dev; if ($?) { git fetch origin }; if ($?) { git merge --ff-only origin/main }; if ($?) { git push origin dev }
+```
+
+> ⚠️ Se aparecer `fatal: Not possible to fast-forward, aborting.`, nada quebrou: a
+> `dev` tem um commit que a `main` ainda não tem, e o robô comitou na `main` nesse
+> meio-tempo. Resolva com `git pull --no-rebase origin main` e depois
+> `git push origin dev`.
+
+**Antes de seguir para a seção 3: espere os pods ficarem prontos.**
 
 A camada `terraform/k8s/` criou namespaces, Secrets, StorageClass e a Application —
-mas **nenhum Deployment e nenhum Service**. Esses vêm de `gitops/base/`, e quem os
-aplica é o ArgoCD, lendo o repositório. A reconciliação roda de 30 em 30 segundos, e
-a primeira leva 1 ou 2 minutos:
+mas **nenhum Deployment e nenhum Service**. Esses vêm de `gitops/base/`, e quem os aplica
+é o ArgoCD, lendo o repositório. A reconciliação roda de 30 em 30 segundos, e a primeira
+leva 1 ou 2 minutos:
 
 ```bash
 kubectl get pods -n togglemaster
 ```
 
-Enquanto a lista vier vazia, não adianta seguir — os comandos das seções 3 e 5 vão
-falhar com `services "auth-service" not found`. É normal que os pods de `auth` e
-`flag` apareçam antes de os schemas existirem; eles só quebram quando alguém tenta
-gravar (é o que a seção 3 resolve).
+**Critério para avançar:** todos os pods — no mínimo seis, os cinco serviços e o
+`postgres-targeting` — em `Running` com `READY 1/1`. Uma lista que apenas não vem vazia
+não basta: pods em `ImagePullBackOff` também aparecem nela. É normal que `auth` e
+`flag` fiquem prontos antes de os schemas existirem; eles só quebram quando alguém tenta
+gravar, e é isso que a seção 3 resolve.
 
-### 2.9 Credencial do ArgoCD para clonar o repositório
+> 💡 **Pod parado em `ImagePullBackOff` com a imagem já no ECR?** Apague o pod. O
+> ReplicaSet recria na hora e o download é imediato, sem esperar o próximo ciclo:
+>
+> ```bash
+> kubectl get pods -n togglemaster
+> kubectl delete pod -n togglemaster <nome-do-pod>
+> ```
+
+### 2.10 Credencial do ArgoCD para clonar o repositório
 
 **Com o repositório público, não há o que autenticar** — o ArgoCD clona
 anonimamente e não é preciso configurar nada. O código já prevê isso: o Secret de
@@ -1002,9 +1204,13 @@ Acesse **http://localhost:8080**.
 
 # 5. Verificar que funciona ponta a ponta
 
-> ℹ️ **Pré-requisito:** o ArgoCD já sincronizou e `kubectl get pods -n togglemaster`
-> lista os pods (fim da seção 2.8), e os schemas do RDS já foram aplicados (seção 3).
-> Sem isso, os port-forwards abaixo não encontram os Services.
+> ℹ️ **Pré-requisito:** todos os pods de `kubectl get pods -n togglemaster` em
+> `Running` com `READY 1/1` (fim do passo 2.9), e os schemas do RDS já aplicados
+> (seção 3). Sem isso, os port-forwards abaixo falham com `pod is not running`.
+
+> ⚠️ **Rode os passos 5.1 a 5.3 na mesma janela de terminal.** A chave de API criada
+> no 5.1 fica numa variável da sessão e é usada nos passos seguintes — e ela só é
+> devolvida uma vez.
 
 ### 5.1 Semear os dados
 
@@ -1022,12 +1228,22 @@ kubectl port-forward svc/targeting-service  -n togglemaster 8003:8003
 kubectl port-forward svc/evaluation-service -n togglemaster 8004:8004
 ```
 
-**Pegue a `MASTER_KEY` do Secret:**
+**Pegue a `MASTER_KEY` do Secret e crie a chave de API já guardando a resposta numa
+variável.** A chave tem 71 caracteres e só aparece uma vez; copiá-la da tela à mão é o
+ponto onde esta verificação costuma quebrar.
 
 **Git Bash:**
 
 ```bash
 MASTER=$(kubectl get secret auth-service-secret -n togglemaster -o jsonpath='{.data.MASTER_KEY}' | base64 -d)
+
+CHAVE=$(curl -s -X POST http://localhost:8001/admin/keys \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MASTER" \
+  -d '{"name":"demo-fase3"}' | sed -E 's/.*"key":"([^"]+)".*/\1/')
+
+# Mostra só o começo, para conferir sem expor a chave inteira.
+echo "${CHAVE:0:12}..."
 ```
 
 **PowerShell:**
@@ -1036,45 +1252,41 @@ MASTER=$(kubectl get secret auth-service-secret -n togglemaster -o jsonpath='{.d
 $MASTER = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(
   (kubectl get secret auth-service-secret -n togglemaster -o jsonpath='{.data.MASTER_KEY}')
 ))
+
+$CHAVE = (Invoke-RestMethod `
+  -Method Post -Uri "http://localhost:8001/admin/keys" `
+  -Headers @{ Authorization = "Bearer $MASTER" } `
+  -ContentType "application/json" `
+  -Body (@{ name = "demo-fase3" } | ConvertTo-Json -Compress)).key
+
+$CHAVE.Substring(0, 12) + "..."
 ```
 
-**Crie a chave de API:**
+**Esperado:** algo como `tm_key_3f9a...`. Se vier vazio ou com `{`, a chamada falhou —
+confira o túnel da porta 8001 e a `MASTER_KEY`.
+
+### 5.2 Sincronizar a chave com o evaluation-service
+
+O `SERVICE_API_KEY` do Secret é um valor **provisório** gerado pelo Terraform — ele não
+corresponde a nenhuma chave real do banco, porque o banco nasce depois. Substitua pela
+chave recém-criada e reinicie o pod, **na mesma janela do 5.1**, onde a variável existe:
 
 **Git Bash:**
 
 ```bash
-curl -X POST http://localhost:8001/admin/keys \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $MASTER" \
-  -d '{"name":"demo-fase3"}'
-```
-
-**PowerShell:**
-
-```powershell
-Invoke-RestMethod `
-  -Method Post -Uri "http://localhost:8001/admin/keys" `
-  -Headers @{ Authorization = "Bearer $MASTER" } `
-  -ContentType "application/json" `
-  -Body (@{ name = "demo-fase3" } | ConvertTo-Json -Compress)
-```
-
-A resposta traz a chave no campo `key`, no formato `tm_key_...`. **Guarde: ela só
-aparece uma vez.**
-
-### 5.2 Sincronizar a chave com o evaluation-service
-
-O `SERVICE_API_KEY` do Secret é um valor **provisório** gerado pelo Terraform — ele
-não corresponde a nenhuma chave real do banco, porque o banco nasce depois. Substitua
-pela chave recém-criada e reinicie o pod:
-
-**Git Bash ou PowerShell:**
-
-```bash
 kubectl create secret generic evaluation-service-secret -n togglemaster \
-  --from-literal=SERVICE_API_KEY='<CHAVE_tm_key>' \
+  --from-literal=SERVICE_API_KEY="$CHAVE" \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
+
+**PowerShell** (numa linha só — o PowerShell não usa `\` para continuar linha):
+
+```powershell
+kubectl create secret generic evaluation-service-secret -n togglemaster --from-literal=SERVICE_API_KEY=$CHAVE --dry-run=client -o yaml | kubectl apply -f -
+```
+
+**Confira a saída:** ela precisa dizer `secret/evaluation-service-secret configured`. Só
+então reinicie:
 
 ```bash
 kubectl rollout restart deployment/evaluation-service -n togglemaster
@@ -1091,11 +1303,11 @@ kubectl rollout restart deployment/evaluation-service -n togglemaster
 
 ### 5.3 Criar uma flag e uma regra
 
+Ainda na mesma janela, com `CHAVE` definida:
+
 **Git Bash:**
 
 ```bash
-CHAVE="<CHAVE_tm_key>"
-
 curl -X POST http://localhost:8002/flags \
   -H "Content-Type: application/json" -H "Authorization: Bearer $CHAVE" \
   -d '{"name":"novo-painel","description":"Painel novo para demonstracao","is_enabled":true}'
@@ -1110,8 +1322,6 @@ curl -X POST http://localhost:8003/rules \
 **PowerShell:**
 
 ```powershell
-$CHAVE = "<CHAVE_tm_key>"
-
 Invoke-RestMethod -Method Post -Uri "http://localhost:8002/flags" `
   -Headers @{ Authorization = "Bearer $CHAVE" } -ContentType "application/json" `
   -Body (@{ name = "novo-painel"; description = "Painel novo para demonstracao"; is_enabled = $true } | ConvertTo-Json -Compress)
@@ -1205,11 +1415,15 @@ enquanto o Metrics Server inicializa.
 
 # 6. Encerrar a sessão
 
-**Nenhum passo desta seção é opcional.** Leva de 20 a 25 minutos.
+**Nenhum passo desta seção é opcional.** Leva de 15 a 25 minutos — em 11/09, as três
+camadas foram destruídas em cerca de 13 minutos.
 
 > ⚠️ Os comandos abaixo **destroem infraestrutura**. O `destroy` da camada de cluster
 > apaga as duas instâncias RDS e todos os dados nelas, sem snapshot. Cada comando
 > pede confirmação; leia o resumo antes de digitar `yes`.
+
+> ⚠️ **Antes de destruir, confirme que terminou tudo o que precisava do ambiente.**
+> Recriar do zero depois custa de 40 minutos a 1 hora, mais a republicação das imagens.
 
 ### 6.1 Derrubar a camada k8s
 
@@ -1219,18 +1433,31 @@ enquanto o Metrics Server inicializa.
 terraform -chdir=terraform/k8s destroy
 ```
 
+Medido: cerca de 1m30s.
+
 ### 6.2 Derrubar o cluster
 
 ```bash
 terraform -chdir=terraform/cluster destroy
 ```
 
+Medido: cerca de 8 minutos.
+
 > ⚠️ **Se travar em VPC ou subnet:** normalmente é um Load Balancer criado pelo
 > Kubernetes segurando a subnet. Não deveria acontecer aqui, porque o projeto não tem
 > Ingress, mas se acontecer, apague o Load Balancer órfão no console do EC2 e rode o
 > destroy de novo.
 
-### 6.3 Desligar o NAT Gateway
+### 6.3 A camada base: escolha uma das duas opções
+
+| | Opção A — desligar só o NAT | Opção B — destruir a base também |
+|---|---|---|
+| **Quando usar** | Entre sessões, quando o ambiente vai subir de novo em breve | No encerramento do projeto |
+| **Custo parado** | ~US$ 0 | US$ 0 |
+| **Próxima subida** | Mais rápida: o ECR mantém as imagens | Refazer a base e republicar as imagens (passo 2.4) |
+| **Efeito colateral** | Nenhum | Qualquer merge na `main` que mexa em `services/` ou nos workflows `_ci-*.yml` fica vermelho no job de imagem, porque a role do CI deixa de existir |
+
+#### Opção A — desligar só o NAT
 
 Volte `terraform/terraform.tfvars` para:
 
@@ -1249,9 +1476,22 @@ terraform -chdir=terraform apply -var enable_nat_gateway=false
 ```
 
 > ⚠️ Esquecer este passo custa **US$ 0,045/h só pela hora do NAT** — perto de
-> US$ 0,050/h somando o IPv4 público —, porque a camada base nunca é destruída. Uma
-> semana esquecida são cerca de US$ 8, e um mês inteiro fica entre US$ 33 e US$ 36,
-> com nada rodando.
+> US$ 0,050/h somando o IPv4 público. Uma semana esquecida são cerca de US$ 8, e um mês
+> inteiro fica entre US$ 33 e US$ 36, com nada rodando.
+
+#### Opção B — destruir a base
+
+```bash
+terraform -chdir=terraform destroy
+```
+
+Medido: cerca de 2 minutos. **Leia o resumo antes do `yes`:** os repositórios ECR usam
+`force_delete`, então as imagens vão junto.
+
+> ℹ️ Se a conta reaproveita um provedor OIDC de outro projeto
+> (`create_github_oidc_provider = false`), o resumo **não pode** listar
+> `aws_iam_openid_connect_provider` para destruição — ele é só lido, nunca apagado. Se
+> aparecer, pare e confira o `terraform.tfvars`.
 
 ### 6.4 Conferir que não sobrou nada caro
 
@@ -1273,10 +1513,15 @@ aws elasticache describe-replication-groups --region us-east-2 --query "Replicat
 aws ec2 describe-nat-gateways --region us-east-2 --query "NatGateways[?State=='available'].NatGatewayId"
 ```
 
-**As quatro saídas precisam vir vazias.**
+```bash
+aws ec2 describe-addresses --region us-east-2 --query "Addresses[].PublicIp"
+```
 
-O que pode continuar de pé sem problema: VPC, subnets, ECR, SQS, DynamoDB e IAM —
-nenhum deles cobra parado, e é justamente por isso que ficam na camada permanente.
+**As cinco saídas precisam vir vazias.** Um endereço IPv4 público solto também cobra.
+
+Com a opção A, continuam de pé VPC, subnets, ECR, SQS, DynamoDB e IAM — nenhum deles
+cobra parado. Com a opção B, não sobra nada disso; confira com
+`aws ecr describe-repositories --region us-east-2`, que deve voltar sem repositórios.
 
 ---
 
@@ -1284,21 +1529,33 @@ nenhum deles cobra parado, e é justamente por isso que ficam na camada permanen
 
 | Onde | Sintoma | Causa | Correção |
 |---|---|---|---|
-| AWS | Pod em `ImagePullBackOff` | NAT Gateway desligado, ou tag de imagem inexistente no ECR | Seção 2.3; confirmar que o pipeline publicou a imagem daquela tag |
+| AWS | Apply da base para com `EntityAlreadyExists` no provedor OIDC | A conta já tem o provedor `token.actions.githubusercontent.com`, criado por outro projeto | `create_github_oidc_provider = false` no `terraform.tfvars` (pré-voo 2.1) |
+| AWS | `plan` da base falha no data source do provedor OIDC | `create_github_oidc_provider = false`, mas a conta não tem mais o provedor | Voltar para `true` e aplicar a base |
+| AWS | Todos os pods em `ImagePullBackOff` logo depois de recriar a base | O ECR recriado nasce vazio; as tags do overlay não existem | Passo 2.4: republicar as imagens |
+| AWS | Pod em `ImagePullBackOff` mesmo com a imagem já no ECR | A imagem chegou com a mesma tag depois de o pod nascer; o Kubernetes espera o próximo ciclo, de até 5 minutos | `kubectl delete pod -n togglemaster <nome>` (fim do passo 2.9) |
+| AWS | Pods em `ImagePullBackOff` com as imagens no ECR e a base antiga | NAT Gateway desligado | Passo 2.3: `enable_nat_gateway = true` |
+| CI | Job `Imagem Docker e push no ECR` falha em `Could not assume role with OIDC` | A role `togglemaster-github-actions` não existe: base destruída ou apply ainda em andamento | Terminar o apply da base e rodar `gh run rerun <id>` (passo 2.4) |
+| CI | SCA ou scan da imagem vermelho por CVE crítica nova, sem mudança no código | Imagem base de tag flutuante (`python:3.12-slim`, `alpine:3.20`) ou dependência ganhou CVE | Na `dev`: registrar a CVE em `.trivyignore`, com data e justificativa, **e** tocar um comentário no `_ci-*.yml` da stack; depois pull request e merge (caminho B do passo 2.4). Re-run não resolve: ele usa o `.trivyignore` do commit antigo |
+| CI | Disparar o workflow pela aba Actions não publica imagem | `workflow_dispatch` não satisfaz a condição dos jobs de imagem e GitOps | Re-run de um run de push na `main`, ou commit (passo 2.4) |
+| CI | Merge na `main` não dispara o pipeline do serviço | O pull request não deixou mudança líquida em `services/<svc>/` nem no workflow — por exemplo, um commit que insere e outro que remove a mesma linha | Conferir `git diff --stat origin/main dev -- services/<svc>` antes do merge |
+| CI | O run aparece como `cancelled` | Novo push na mesma branch antes de o anterior terminar; fora da `main`, o run antigo é cancelado | Esperar o run terminar (`gh run watch <id>`) antes do próximo push |
 | AWS | Pod em `CreateContainerConfigError` | Secret faltando ou com nome divergente | `kubectl get secrets -n togglemaster` e conferir `gitops/SECRETS-CONTRATO.md` |
-| AWS | `services "auth-service" not found` no port-forward | ArgoCD ainda não sincronizou a base | Fim da seção 2.8: esperar a primeira reconciliação (30 s a 2 min) |
+| AWS | `pod is not running` ou `services "auth-service" not found` no port-forward | O ArgoCD ainda não sincronizou, ou os pods não ficaram prontos | Fim do passo 2.9: todos os pods em `READY 1/1` |
 | AWS | PVC em `Pending` | StorageClass ausente ou com nome divergente | `kubectl get storageclass`; o nome tem que ser `gp3` nos dois lados |
 | AWS | `password authentication failed` só no targeting | Senha do pod do banco divergiu da do serviço | Ambas vêm da mesma senha gerada; recriar os dois Secrets juntos |
-| AWS | `no matches for kind "Application"` | Apply da camada k8s feito num comando só, em cluster novo | Seção 2.6: rodar a etapa A com `-target=helm_release.argocd` primeiro |
-| AWS | ArgoCD em `Unknown`, com `authentication required` | Repositório privado sem credencial configurada | Seção 2.9 |
+| AWS | `no matches for kind "Application"` | Apply da camada k8s feito num comando só, em cluster novo | Passo 2.7: rodar a etapa A com `-target=helm_release.argocd` primeiro |
+| AWS | ArgoCD em `Unknown`, com `authentication required` | Repositório privado sem credencial configurada | Seção 2.10 |
 | AWS | `kubectl get nodes` responde `Unauthorized` | Usuário IAM diferente do que criou o cluster | `aws sts get-caller-identity` e trocar o perfil ativo |
 | AWS | HPA com `targets: <unknown>` | Metrics Server ainda inicializando | Aguardar cerca de 2 minutos; é addon gerenciado e se resolve sozinho |
 | AWS | `QueueDeletedRecently` | Fila SQS recriada em menos de 60 segundos | Esperar 1 minuto e repetir |
-| AWS | Erro de conexão no Redis logo no boot | Esquema da URL divergente da configuração de TLS | `redis://` com TLS desligado, `rediss://` com TLS ligado |
+| AWS | `evaluation-service` em `CrashLoopBackOff` logo na partida, sem conectar no Redis | `REDIS_URL` do overlay diferente do endpoint criado, ou esquema da URL divergente da configuração de TLS | Passo 2.9; `redis://` com TLS desligado, `rediss://` com TLS ligado |
 | AWS | Serviço responde `/health` com 200 e falha no primeiro INSERT | Schema nunca aplicado no RDS | Seção 3. Health verde não prova banco pronto |
+| AWS | `/evaluate` responde 502 e o log do pod mostra 401 | O `SERVICE_API_KEY` do Secret não foi trocado pela chave real | Passo 5.2: conferir a saída `configured` antes do `rollout restart` |
+| AWS | `terraform output` responde `Warning: No outputs found` | O estado da camada está vazio: ela ainda não foi aplicada | Não é erro. No pré-voo, significa base do zero (2.1) |
 | AWS | `terraform output` falha logo no pré-voo | Diretório sem `.terraform/`, estado remoto no S3 | Rodar `terraform -chdir=<pasta> init` antes de qualquer `output` |
-| AWS | `terraform plan` reclama de "Too many command line arguments" | PowerShell interpretando `-out=arquivo` | Usar o token `--%` antes dos parâmetros, ou rodar em Git Bash |
-| AWS | Comando com `<` falha com erro de sintaxe | `<` não é redirecionamento no PowerShell | Rodar em Git Bash/WSL, ou usar `Get-Content ... \|` |
+| Shell | `terraform plan` reclama de "Too many command line arguments" | PowerShell interpretando `-out=arquivo` | Usar o token `--%` antes dos parâmetros, ou rodar em Git Bash |
+| Shell | Erro de parser com `&&`, ou `\` tratado como argumento | O PowerShell 5.1 não aceita `&&` e não usa `\` para continuar linha | Rodar o bloco no Git Bash, ou usar a versão PowerShell ao lado |
+| Shell | Comando com `<` falha com erro de sintaxe | `<` não é redirecionamento no PowerShell | Rodar em Git Bash/WSL, ou usar `Get-Content ... \|` |
 | Local | `/evaluate` retorna 502 e o log mostra 401 | `SERVICE_API_KEY` do `.env` não existe no banco atual | Criar outra chave, atualizar o `.env` e recriar o evaluation-service |
 | Local | Nada funciona depois de `docker compose down -v` | Os bancos foram apagados, e com eles a chave | Refazer os passos 1.4 e 1.5 |
 | Local | Container não sobe por porta ocupada | Alguma das portas 8000–8005, 5433, 5434 ou 6379 em uso | As portas **8001–8005** são ajustáveis no `.env`; **8000, 5433, 5434 e 6379** estão fixas no `docker-compose.yaml` e só mudam editando o arquivo, ou encerrando o programa que as ocupa |
@@ -1336,27 +1593,35 @@ convertidos de mês (730 horas) para hora.
 
 ### Quanto custa uma sessão de trabalho
 
+Tempos medidos na sessão de 11/09, com as versões do estado no S3 e o CloudTrail como
+fonte:
+
 | Fase | Tempo | Observação |
 |---|---|---|
 | Pré-voo (seção 2.1) | 5 min | custo zero |
-| Subir (seções 2.3 a 2.8) | 35–45 min | o relógio começa ao ligar o NAT |
+| Base só ligando o NAT (passo 2.3) | 2m24s | o relógio começa ao ligar o NAT |
+| Base do zero (passo 2.3) | não medido — reserve 10 min | VPC, 5 ECR, SQS, DynamoDB e IAM |
+| Republicar as imagens (passo 2.4) | 2 a 4 min | em paralelo com o cluster |
+| Cluster (passo 2.5) | 15m42s | reserve de 20 a 30 min |
+| Camada k8s (passo 2.7) | 4m44s | as duas etapas somadas |
 | Schemas e seed (seções 3 e 5.1–5.3) | 15 min | **refazer a cada sessão** |
 | Uso e verificação (seção 5) | variável | |
-| Derrubar (seção 6) | 20–25 min | nenhum passo é opcional |
+| Derrubar as três camadas (seção 6) | ~13 min | k8s ~1m30s, cluster ~8 min, base ~2 min |
 
 Uma sessão de **2 horas** custa cerca de **US$ 0,77**; uma de **3 horas**, cerca de
-**US$ 1,15**.
+**US$ 1,15**. Em 11/09, do NAT ligado ao fim do destroy, foram 3h17m.
 
 ### O que continua cobrando depois do destroy
 
-Com a camada de cluster destruída, sobra a camada base. Com o NAT desligado, ela
-custa praticamente zero: VPC, subnets, ECR, SQS, DynamoDB e IAM não cobram parados —
-o DynamoDB está em cobrança por requisição, e o ECR só cobra armazenamento de
-imagens, que é centavos.
+Com a opção A da seção 6.3 — base mantida e NAT desligado —, a camada base custa
+praticamente zero: VPC, subnets, ECR, SQS, DynamoDB e IAM não cobram parados. O DynamoDB
+está em cobrança por requisição, e o ECR só cobra armazenamento de imagens, que é
+centavos. Com a opção B — base destruída —, não sobra nada do projeto além do bucket de
+estado, que custa frações de centavo.
 
 **Com o NAT esquecido ligado, são US$ 0,045/h — entre US$ 33 e US$ 36 por mês,
-somando o IPv4 público, com nada rodando.** É o único item da camada permanente que
-cobra sozinho, e por isso o passo 6.3 existe.
+somando o IPv4 público, com nada rodando.** É o único item da camada base que cobra
+sozinho, e por isso a seção 6.3 existe.
 
 ---
 

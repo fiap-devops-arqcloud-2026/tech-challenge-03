@@ -140,4 +140,8 @@ module "iam_ci" {
   # na conta inteira. O Terraform tambem usa essa referencia para saber
   # que o ECR precisa ser criado ANTES da policy.
   ecr_repository_arns = module.ecr.repository_arns
+
+  # Criar o provedor OIDC do GitHub ou reaproveitar o que ja existe na
+  # conta. A explicacao dos dois modos esta em modules/iam-ci/main.tf.
+  create_oidc_provider = var.create_github_oidc_provider
 }

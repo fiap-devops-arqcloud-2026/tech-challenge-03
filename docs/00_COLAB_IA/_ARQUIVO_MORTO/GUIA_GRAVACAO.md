@@ -1,5 +1,10 @@
 # Guia de gravação — o que a FIAP quer ver e como mostrar
 
+> **Substituído em 14/09/2026 por [`PLANO_GRAVACAO_2026-09-15.md`](../PLANO_GRAVACAO_2026-09-15.md).**
+> Este guia descreve a gravação de 11/09 e tem cenas que não funcionam com a conta
+> recriada do zero: o `plan` do cluster antes da base, a fala de que a base é
+> permanente e a cena do ArgoCD trocando réplicas em vez de versão.
+
 Criado em 2026-09-11, Claude. Complementa o [roteiro resumido](ROTEIRO_VIDEO.md)
 e o [runbook da sessão](RUNBOOK-SESSAO.md).
 

@@ -66,3 +66,14 @@ ecr_images_to_keep = 10
 
 # Unico repositorio autorizado a assumir a role do CI via OIDC.
 github_repository = "fiap-devops-arqcloud-2026/tech-challenge-03"
+
+# ------------------------------------------------------------
+# Provedor OIDC do GitHub
+# ------------------------------------------------------------
+# A AWS permite um unico provedor OIDC por endereco em cada conta.
+#   true  = esta camada cria o provedor (conta sem OIDC do GitHub).
+#   false = reaproveita um provedor que outro projeto ja criou.
+# Descubra o seu caso com:
+#   aws iam list-open-id-connect-providers
+# Se a lista mostrar token.actions.githubusercontent.com, use false.
+create_github_oidc_provider = true

@@ -20,3 +20,11 @@ variable "ecr_repository_arns" {
   # Recebido de module.ecr.repository_arns em main.tf. E o que garante que a
   # permissao acompanhe automaticamente os repositorios que existem de fato.
 }
+
+variable "create_oidc_provider" {
+  description = "true cria o provedor OIDC do GitHub nesta conta; false reaproveita um provedor que ja existe. A AWS aceita um unico provedor por endereco, entao true falha com EntityAlreadyExists se outro projeto ja o criou."
+  type        = bool
+  # true preserva o comportamento original para quem aplica o projeto
+  # numa conta nova, sem nenhum outro uso de OIDC do GitHub.
+  default = true
+}

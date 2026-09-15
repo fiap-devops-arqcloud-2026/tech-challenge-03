@@ -16,10 +16,31 @@
 # Provedor de identidade
 # ------------------------------------------------------------
 # Registra o GitHub como emissor de identidade confiavel para esta conta
-# AWS. Recurso global: existe um por conta, nao um por regiao.
+# AWS. Recurso global: existe UM por conta, nao um por regiao - e a AWS
+# recusa um segundo provedor com o mesmo endereco (EntityAlreadyExists).
+#
+# Por isso ha dois modos, escolhidos por var.create_oidc_provider:
+#
+#   true  -> este modulo CRIA o provedor e passa a ser dono dele. Um
+#            terraform destroy desta camada o apaga junto. E o modo
+#            certo para uma conta onde nenhum outro projeto usa OIDC
+#            do GitHub.
+#
+#   false -> este modulo apenas LE o provedor que ja existe na conta.
+#            Nao cria, nao altera e nao apaga. E o modo certo quando
+#            outro projeto ja registrou o GitHub - como aconteceu nesta
+#            conta em 2026-09-14. Importar o provedor para este estado
+#            seria pior: o destroy do ToggleMaster derrubaria junto o CI
+#            do outro projeto.
+#
+# A role do CI, mais abaixo, funciona igual nos dois modos: ela so
+# precisa do ARN, que tem o mesmo formato venha de onde vier.
 # ------------------------------------------------------------
 
+# Modo "criar". O count 1 ou 0 liga e desliga o recurso sem duplicar codigo.
 resource "aws_iam_openid_connect_provider" "github" {
+  # Existe somente quando este modulo e o dono do provedor.
+  count = var.create_oidc_provider ? 1 : 0
 
   # Endereco fixo do emissor de tokens do GitHub Actions. Nao muda e nao
   # deve ser parametrizado.
@@ -36,6 +57,34 @@ resource "aws_iam_openid_connect_provider" "github" {
     "6938fd4d98bab03faadb97b34396831e3780aea1",
     "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
   ]
+}
+
+# Modo "reaproveitar". Data source so CONSULTA a AWS, nunca escreve nada.
+# Se o provedor nao existir, o plan falha aqui mesmo, com mensagem clara,
+# antes de gastar um centavo - e a correcao e usar o modo "criar".
+data "aws_iam_openid_connect_provider" "github" {
+  # Existe somente quando o provedor pertence a outro dono.
+  count = var.create_oidc_provider ? 0 : 1
+
+  # Busca pelo endereco do emissor, que e unico dentro da conta.
+  url = "https://token.actions.githubusercontent.com"
+}
+
+locals {
+  # ARN do provedor, venha do recurso criado aqui ou da consulta acima.
+  # O indice [0] e obrigatorio porque os dois blocos usam count.
+  github_oidc_provider_arn = var.create_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
+}
+
+# Antes desta mudanca o recurso nao tinha count, entao um estado ja
+# aplicado o guarda sem indice. Este bloco avisa ao Terraform que e o
+# mesmo objeto, agora na posicao [0] - sem ele, o plan tentaria apagar o
+# provedor antigo e criar um novo, derrubando o CI por alguns segundos.
+moved {
+  # Endereco antigo, de quando o recurso nao tinha count.
+  from = aws_iam_openid_connect_provider.github
+  # Endereco novo, com o indice que o count exige.
+  to = aws_iam_openid_connect_provider.github[0]
 }
 
 # ------------------------------------------------------------
@@ -62,8 +111,9 @@ data "aws_iam_policy_document" "trust" {
       # "Federated" = identidade externa, nao um usuario IAM da conta.
       type = "Federated"
 
-      # Referencia o provedor criado acima.
-      identifiers = [aws_iam_openid_connect_provider.github.arn]
+      # ARN do provedor OIDC - criado por este modulo ou reaproveitado da
+      # conta, conforme var.create_oidc_provider (ver o topo do arquivo).
+      identifiers = [local.github_oidc_provider_arn]
     }
 
     # Confere se o campo "aud" do token e o esperado. Protege contra token

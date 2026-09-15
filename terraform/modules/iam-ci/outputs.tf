@@ -13,6 +13,7 @@ output "role_name" {
 }
 
 output "oidc_provider_arn" {
-  description = "ARN do provedor OIDC do GitHub. A Etapa 2 nao usa este valor - o EKS cria o proprio provedor OIDC, separado deste, para o IRSA dos pods."
-  value       = aws_iam_openid_connect_provider.github.arn
+  description = "ARN do provedor OIDC do GitHub, criado por este modulo ou reaproveitado da conta. A camada cluster nao usa este valor - o EKS cria o proprio provedor OIDC, separado deste, para o IRSA dos pods."
+  # Vem do local que escolhe entre o recurso e a consulta (ver main.tf).
+  value = local.github_oidc_provider_arn
 }

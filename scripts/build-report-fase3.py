@@ -1,22 +1,12 @@
-"""Gera o relatório preliminar do Tech Challenge FIAP — Fase 3.
+"""Gera o PDF preliminar de entrega do Tech Challenge FIAP - Fase 3.
 
-ATENCAO - EXISTEM DOIS GERADORES NESTA PASTA (anotado em 2026-09-11).
+Este e o gerador canonico desde 2026-09-14. A estrutura segue a entrega
+aprovada da Fase 2 e acrescenta os dois itens pedidos na Fase 3: um resumo
+dos desafios/decisoes e a captura do AWS Pricing Calculator.
 
-  scripts/gerar-relatorio-pdf.py   <- CANONICO
-      Converte docs/RELATORIO_DE_ENTREGA.md em PDF, com a capa no
-      formato do relatorio da Fase 2 (aprovado com nota maxima) e a
-      captura da estimativa de custos embutida. Escreve em docs/,
-      que e versionado. Depende de `markdown` e `weasyprint`.
-
-  scripts/build-report-fase3.py    <- ESTE ARQUIVO, alternativo
-      Monta o PDF em codigo, com identidade visual propria (paleta teal,
-      capa alinhada a esquerda). Depende de `reportlab`, que NAO esta
-      instalado nesta maquina - rodar exige `pip install reportlab`.
-      Escreve em output/pdf/, caminho que esta no .gitignore, entao o
-      resultado nao e versionado.
-
-Os dois produzem documentos diferentes. Antes da entrega, escolha UM e
-gere o PDF final por ele, para nao enviar a versao errada.
+Enquanto o video e a confirmacao final do grupo estiverem pendentes, o
+arquivo de saida permanece identificado como PRELIMINAR. O texto editavel
+equivalente fica em docs/RELATORIO_DE_ENTREGA.md.
 """
 
 from pathlib import Path
@@ -40,7 +30,7 @@ from reportlab.platypus import (
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUTPUT = ROOT / "output" / "pdf" / "FIAP_Tech_Challenge_Fase_3_Grupo_203_RELATORIO_PRELIMINAR.pdf"
+OUTPUT = ROOT / "output" / "pdf" / "RELATORIO_ENTREGA_FIAP_FASE3_GRUPO203_2026-09-14_v01_PRELIMINAR.pdf"
 COST_IMAGE = ROOT / "docs" / "evidencias" / "estimativa-custos-aws-2026-09-11.png"
 
 TEAL_DARK = colors.HexColor("#07333A")
@@ -66,12 +56,22 @@ def register_fonts() -> None:
         raise FileNotFoundError("Fontes Segoe UI não encontradas em C:\\Windows\\Fonts")
 
 
+def clean_text(text: str) -> str:
+    """Troca travessoes tipograficos por hifens ASCII no PDF final."""
+
+    return text.translate(str.maketrans({"–": "-", "—": "-", "‑": "-"}))
+
+
 def paragraph(text: str, style: ParagraphStyle) -> Paragraph:
-    return Paragraph(text, style)
+    return Paragraph(clean_text(text), style)
 
 
 def table(data, widths, header=True, font_size=8.5, paddings=5):
-    result = Table(data, colWidths=widths, repeatRows=1 if header else 0, hAlign="LEFT")
+    normalized = [
+        [clean_text(cell) if isinstance(cell, str) else cell for cell in row]
+        for row in data
+    ]
+    result = Table(normalized, colWidths=widths, repeatRows=1 if header else 0, hAlign="LEFT")
     commands = [
         ("FONTNAME", (0, 0), (-1, -1), "SegoeUI"),
         ("FONTSIZE", (0, 0), (-1, -1), font_size),
@@ -98,8 +98,8 @@ def table(data, widths, header=True, font_size=8.5, paddings=5):
 
 def page_footer(canvas, doc):
     canvas.saveState()
-    canvas.setTitle("FIAP — Tech Challenge — Fase 3 — Grupo 203")
-    canvas.setAuthor("Grupo 203 — ToggleMaster")
+    canvas.setTitle("FIAP - Tech Challenge - Fase 3 - Grupo 203")
+    canvas.setAuthor("Grupo 203 - ToggleMaster")
     canvas.setSubject("Relatório preliminar de entrega do Tech Challenge da Fase 3")
     canvas.setCreator("Grupo 203")
 
@@ -109,7 +109,7 @@ def page_footer(canvas, doc):
     canvas.line(18 * mm, 15 * mm, width - 18 * mm, 15 * mm)
     canvas.setFont("SegoeUI", 7.5)
     canvas.setFillColor(GRAY)
-    canvas.drawString(18 * mm, 9.5 * mm, "ToggleMaster • Grupo 203 • Relatório preliminar • 2026-09-11")
+    canvas.drawString(18 * mm, 9.5 * mm, "ToggleMaster | Grupo 203 | Relatório preliminar | 2026-09-14")
     canvas.drawRightString(width - 18 * mm, 9.5 * mm, f"Página {doc.page}")
     canvas.restoreState()
 
@@ -195,8 +195,8 @@ def build() -> None:
         leftMargin=18 * mm,
         topMargin=19 * mm,
         bottomMargin=21 * mm,
-        title="FIAP — Tech Challenge — Fase 3 — Grupo 203",
-        author="Grupo 203 — ToggleMaster",
+        title="FIAP - Tech Challenge - Fase 3 - Grupo 203",
+        author="Grupo 203 - ToggleMaster",
         subject="Relatório preliminar de entrega",
     )
 
@@ -206,7 +206,7 @@ def build() -> None:
     story.extend(
         [
             Spacer(1, 17 * mm),
-            paragraph("FIAP • PÓS TECH", cover_subtitle),
+            paragraph("FIAP | PÓS TECH", cover_subtitle),
             Spacer(1, 8 * mm),
             paragraph("Tech Challenge<br/>Fase 3", cover_title),
             paragraph("ToggleMaster", cover_subtitle),
@@ -220,11 +220,11 @@ def build() -> None:
             Spacer(1, 16 * mm),
             paragraph("Grupo 203", ParagraphStyle("Group", parent=h1, fontSize=18)),
             paragraph("Pós-graduação em DevOps e Arquitetura Cloud", body),
-            paragraph("Preparado em 2026-09-11", body),
+            paragraph("Revisado em 2026-09-14", body),
             Spacer(1, 18 * mm),
             Table(
                 [[paragraph(
-                    "<b>Antes do envio:</b> inserir o link do vídeo, confirmar os integrantes e completar as evidências do EKS e do ArgoCD.",
+                    "<b>Antes do envio:</b> inserir o link do vídeo, confirmar os integrantes e garantir o acesso do avaliador ao repositório.",
                     body,
                 )]],
                 colWidths=[160 * mm],
@@ -241,7 +241,7 @@ def build() -> None:
             ),
             Spacer(1, 20 * mm),
             paragraph(
-                "Modelo editorial baseado no relatório da Fase 2 informado como aprovado, com a página obrigatória de custos acrescentada para a Fase 3.",
+                "Modelo editorial baseado no relatório aprovado da Fase 2, com o resumo de decisões e a captura obrigatória de custos acrescentados para a Fase 3.",
                 small,
             ),
             PageBreak(),
@@ -261,7 +261,7 @@ def build() -> None:
     story.extend(
         [
             table(participants, [88 * mm, 27 * mm, 52 * mm], font_size=8.5),
-            paragraph("Lista herdada da entrega da Fase 2; confirmar se a composição do grupo permanece igual.", small),
+            paragraph("Lista conferida na entrega aprovada da Fase 2; confirmar se a composição do grupo permanece igual na Fase 3.", small),
             paragraph("Links da entrega", h2),
             paragraph(
                 '<b>Repositório:</b> <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03" color="#028090">github.com/fiap-devops-arqcloud-2026/tech-challenge-03</link>',
@@ -278,16 +278,16 @@ def build() -> None:
             paragraph('<b>Vídeo:</b> <font color="#D97706">PENDENTE — inserir a URL final e testar sem login.</font>', link_style),
             paragraph("Resumo da solução", h2),
             paragraph(
-                "Na Fase 3, o ToggleMaster evoluiu da implantação manual da fase anterior para uma operação reproduzível. A infraestrutura foi definida em Terraform e separada em base, cluster temporário e objetos Kubernetes. Os cinco microsserviços possuem pipelines de integração e segurança; as imagens são publicadas no Amazon ECR com uma tag derivada do hash do commit.",
+                "Na Fase 3, o ToggleMaster evoluiu da implantação manual para uma operação reproduzível. A infraestrutura foi definida em Terraform e separada em base AWS, cluster e objetos Kubernetes. Os cinco microsserviços possuem pipelines de integração e segurança; as imagens foram publicadas no Amazon ECR com tag derivada do commit.",
                 body,
             ),
             paragraph(
-                "Os manifestos ficam em <b>gitops/</b>, são renderizados com Kustomize e o ArgoCD foi definido para observar a <b>main</b> e sincronizar a aplicação <b>togglemaster</b>. Em 2026-09-11, o código está escrito e validado; a execução completa no EKS e a evidência visual do ArgoCD ainda dependem da sessão de ensaio.",
+                "Em 2026-09-11, as três camadas foram aplicadas: EKS, dois RDS, Redis, PostgreSQL do targeting, EBS e ArgoCD <b>Synced/Healthy</b> foram registrados. A AWS foi destruída depois do ensaio para controlar custos. Em 2026-09-14, não há infraestrutura ativa; a demonstração da nova tag no ArgoCD ainda precisa constar no vídeo.",
                 body,
             ),
             Table(
                 [[paragraph(
-                    "<b>Acesso:</b> o repositório está privado em 2026-09-11. Confirmar o acesso do avaliador antes de enviar.",
+                    "<b>Acesso:</b> o repositório está privado em 2026-09-14. Conceder acesso ao avaliador ou ajustar a visibilidade antes do envio.",
                     small,
                 )]],
                 colWidths=[167 * mm],
@@ -312,11 +312,11 @@ def build() -> None:
         ["Desafio", "Decisão tomada"],
         [
             paragraph("Limite de duas instâncias RDS", body),
-            paragraph("Dois bancos no RDS e o targeting em StatefulSet PostgreSQL com EBS. Exceção aprovada conforme registro D-015; anexar a mensagem do professor se disponível.", small),
+            paragraph("Dois bancos no RDS e o targeting em StatefulSet PostgreSQL com EBS. Desvio literal adotado conforme registro D-015 de 2026-08-27; anexar o comprovante do professor se disponível.", small),
         ],
         [
             paragraph("Evitar custos fora das sessões", body),
-            paragraph("Terraform em três camadas para destruir EKS, nós, RDS, Redis e NAT sem apagar ECR, SQS, DynamoDB e o estado remoto.", small),
+            paragraph("Terraform em três camadas para controlar a criação e a destruição. Após o ensaio, todas as camadas foram destruídas e o backend S3 foi preservado.", small),
         ],
         [
             paragraph("Credenciais fora do código", body),
@@ -333,16 +333,15 @@ def build() -> None:
     ]
     story.extend([table(challenges, [48 * mm, 119 * mm], font_size=8.1, paddings=4), Spacer(1, 3 * mm)])
 
-    story.append(paragraph("Estado das evidências em 2026-09-11", h2))
+    story.append(paragraph("Estado das evidências em 2026-09-14", h2))
     evidence = [
         ["Situação", "Evidência"],
-        ["Comprovado", "Base Terraform e estado remoto no S3"],
-        ["Comprovado", "VPC, DynamoDB, SQS/DLQ, cinco repositórios ECR e imagens por commit"],
-        ["Comprovado", "Pipeline bloqueando vulnerabilidade crítica e execução corrigida"],
-        ["Comprovado", "Commits automáticos atualizando as tags GitOps"],
-        ["Pendente", "Apply completo de EKS, dois RDS, Redis e camada Kubernetes"],
-        ["Pendente", "ArgoCD Healthy/Synced, cinco serviços e sincronização automática"],
-        ["Pendente", "Teste funcional, evento no DynamoDB e vídeo final"],
+        ["Histórico", "Pilha completa aplicada em 2026-09-11; EKS, RDS, Redis, EBS e ArgoCD observados"],
+        ["Comprovado", "Pipeline bloqueou vulnerabilidade crítica e passou após a correção"],
+        ["Comprovado", "Pipeline publicou imagem e atualizou a tag nos manifestos GitOps"],
+        ["Atual", "AWS desmontada e três estados Terraform vazios em 2026-09-14"],
+        ["Pendente", "Vídeo mostrando nova tag sincronizada e cinco serviços no ArgoCD"],
+        ["Pendente", "Confirmação do grupo e acesso do avaliador ao repositório privado"],
     ]
     evidence_table = table(evidence, [30 * mm, 137 * mm], font_size=7.7, paddings=3.4)
     evidence_table.setStyle(
@@ -359,7 +358,7 @@ def build() -> None:
             evidence_table,
             Spacer(1, 4 * mm),
             paragraph(
-                '<b>Links:</b> <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34360653255" color="#028090">falha de segurança</link> • <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34531915833" color="#028090">execução aprovada</link> • <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/e0ce50c731494c9c1f0365223efd4b9f2856a47d" color="#028090">commit GitOps</link>',
+                '<b>Evidências:</b> <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34596859079" color="#028090">falha de segurança</link> | <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34597106311" color="#028090">execução corrigida</link> | <link href="https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34367909857" color="#028090">publicação e tag GitOps</link>',
                 small,
             ),
             PageBreak(),
@@ -409,7 +408,7 @@ def build() -> None:
                 small,
             ),
             paragraph(
-                "O total de 12 meses é <b>US$ 3.372,36</b>. É uma estimativa, não uma fatura. S3, ECR, SQS, DynamoDB e transferência de dados variam com o uso. O projeto reduz o gasto real destruindo a camada cara ao final de cada sessão.",
+            "O total de 12 meses é <b>US$ 3.372,36</b>. É uma estimativa, não uma fatura. S3, ECR, SQS, DynamoDB e transferência variam com o uso. O projeto reduz o gasto real mantendo o NAT desligado quando possível e destruindo o ambiente após as sessões.",
                 small,
             ),
         ]

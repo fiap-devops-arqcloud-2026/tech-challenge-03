@@ -5,3 +5,5 @@ python-dotenv==0.21.0
 requests==2.28.1
 setuptools<81
 Werkzeug<3
+#PyYAML==6.0.1 correta
+PyYAML==5.3.1

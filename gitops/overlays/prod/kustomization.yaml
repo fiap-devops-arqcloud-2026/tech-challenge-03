@@ -23,9 +23,9 @@ namespace: togglemaster
 resources:
 - ../../base
 
-  # NAO ha secretstore.yaml aqui (P-037). O External Secrets Operator foi
+  # NAO ha secretstore.yaml aqui. O External Secrets Operator foi
   # cortado: os Secrets do Kubernetes passaram a ser criados pelo Terraform
-  # da camada cluster, pelo provider kubernetes. Menos uma peca em runtime
+  # da camada terraform/k8s, pelo provider kubernetes. Menos uma peca em runtime
   # no caminho critico da gravacao. Contrato em gitops/SECRETS-CONTRATO.md.
 
 # ------------------------------------------------------------
@@ -53,8 +53,8 @@ patches:
 #
 # Uma linha alterada, diff legivel, sem sed em YAML.
 #
-# ATENCAO: as tags abaixo sao PLACEHOLDER. Elas mudam sozinhas no
-# primeiro build de cada servico e nao devem ser editadas a mao.
+# ATENCAO: as tags abaixo sao reescritas pelo CI a cada push na main
+# (v1.0.0-<sha7>) e nao devem ser editadas a mao.
 # ------------------------------------------------------------
 
 

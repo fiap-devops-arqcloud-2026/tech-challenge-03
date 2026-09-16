@@ -1,8 +1,9 @@
 # ============================================================
-# BACKEND REMOTO E VERSOES - CAMADA BASE (permanente)
+# BACKEND REMOTO E VERSOES - CAMADA BASE (preservavel entre sessoes)
 # ============================================================
 # O terraform.tfstate NAO fica local (O-09). Ele vive no bucket S3
-# criado uma unica vez pelo procedimento de BOOTSTRAP-BACKEND-S3.md.
+# criado uma unica vez pelo procedimento de docs/GUIA_DE_REPRODUCAO.md,
+# secao 3 (Bucket de estado do Terraform).
 #
 # Por que isso importa: o estado guarda o mapa de tudo que foi criado,
 # incluindo senhas de banco em texto puro. Se ficasse no notebook de
@@ -54,7 +55,8 @@ terraform {
   backend "s3" {
 
     # Bucket criado manualmente pelo bootstrap (a unica excecao do projeto
-    # a regra "se nao esta no codigo, nao existe" - ver BOOTSTRAP-BACKEND-S3.md).
+    # a regra "se nao esta no codigo, nao existe" - ver docs/GUIA_DE_REPRODUCAO.md,
+    # secao 3 (Bucket de estado do Terraform)).
     bucket = "togglemaster-tfstate-891376952395-us-east-2-an"
 
     # Caminho do arquivo de estado DENTRO do bucket.
@@ -73,7 +75,7 @@ terraform {
     encrypt = true
 
     # Lock nativo do S3 (atende R-03). Durante o apply, o Terraform cria um
-    # arquivo prod/terraform.tfstate.tflock ao lado do estado. Se outra pessoa
+    # arquivo prod/base.tfstate.tflock ao lado do estado. Se outra pessoa
     # tentar aplicar ao mesmo tempo, ela recebe erro em vez de corromper o
     # estado. Substitui a antiga tabela DynamoDB de lock, hoje depreciada.
     use_lockfile = true

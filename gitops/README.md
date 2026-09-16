@@ -1,94 +1,73 @@
-# GitOps - manifestos do ToggleMaster
+# GitOps do ToggleMaster
 
-TL;DR: esta pasta e a fonte da verdade do que roda no cluster. Ninguem faz `kubectl apply` daqui: o ArgoCD observa este diretorio e ajusta o EKS sozinho. Derivada de `infra/k8s/` da Fase 2 (D-014), com Kustomize (D-008) e ambiente unico `prod` (D-011).
-
-## Por que esta pasta existe
-
-A primeira queixa do enunciado e literal:
-
-> "Os desenvolvedores estao rodando kubectl apply de suas maquinas locais, gerando conflitos de versao."
-
-Com GitOps isso acaba. O estado desejado vive no Git; o ArgoCD reconcilia o cluster com ele. Se alguem mexer no cluster na mao, o ArgoCD desfaz.
+O Git descreve o que deve rodar no cluster; o ArgoCD lê esta pasta na `main` e copia o estado para o EKS sozinho. Ninguém faz `kubectl apply` daqui. Tecnicamente, são manifestos Kustomize derivados da Fase 2, com uma base comum e um único overlay `prod`.
 
 ## Estrutura
 
 ```text
 gitops/
-├── base/                       # o que NAO muda entre ambientes
-│   ├── kustomization.yaml      # indice de todos os manifestos
+├── base/                      # o que não depende da conta AWS
+│   ├── kustomization.yaml     # índice dos manifestos e rótulos comuns
 │   ├── namespace.yaml
-│   ├── auth-service/           # deployment, service, configmap
+│   ├── auth-service/          # deployment, service, configmap
 │   ├── flag-service/
 │   ├── targeting-service/
-│   ├── evaluation-service/     # + hpa, serviceaccount (IRSA)
-│   ├── analytics-service/      # + hpa, serviceaccount (IRSA), sem segredo
-│   └── postgres-targeting/     # o 3o banco, em pod (D-015)
-└── overlays/prod/              # o que depende da AWS
-    ├── kustomization.yaml      # images: <- alterado pelo CI (O-24)
-    └── patches/
-        ├── irsa.yaml           # ARNs das roles IAM
-        └── endpoints.yaml      # REDIS_URL e AWS_SQS_URL
+│   ├── evaluation-service/    # + hpa e serviceaccount (IRSA)
+│   ├── analytics-service/     # + hpa e serviceaccount (IRSA), sem segredo
+│   └── postgres-targeting/    # banco do targeting em StatefulSet
+├── overlays/prod/
+│   ├── kustomization.yaml     # bloco images: (registro e tag de cada serviço)
+│   └── patches/
+│       ├── irsa.yaml          # ARN da role IAM de cada ServiceAccount
+│       └── endpoints.yaml     # REDIS_URL e AWS_SQS_URL
+└── SECRETS-CONTRATO.md        # nomes e chaves dos Secrets esperados
 ```
 
-**Nao ha nenhum arquivo de Secret aqui, e isso e intencional.** Os 5
-Secrets sao criados por `terraform/k8s/secrets.tf` (D-018). O acoplamento
-entre os dois lados - nome do Secret, nome da chave, e quais valores
-precisam coincidir - esta escrito em
-[`SECRETS-CONTRATO.md`](SECRETS-CONTRATO.md). Leia antes de renomear
-qualquer coisa: o erro tipico e o pod parar em
-`CreateContainerConfigError` sem o ArgoCD acusar nada, porque do ponto
-de vista dele o manifesto foi aplicado com sucesso.
+## Quem altera o quê
 
-Conferir o resultado renderizado, sem aplicar nada:
+| O quê | Arquivo | Quem altera | Quando |
+|---|---|---|---|
+| `newTag` das 5 imagens | `overlays/prod/kustomization.yaml` | O robô do CI, com `kustomize edit set image` e commit `[skip ci]` na `main` | A cada push na `main` que publica imagem |
+| `newName` (registro ECR) | `overlays/prod/kustomization.yaml` | Uma pessoa | Ao trocar de conta ou região |
+| `AWS_SQS_URL` | `patches/endpoints.yaml` | Uma pessoa | Uma vez por conta; o valor é previsível pelo ID da conta |
+| `eks.amazonaws.com/role-arn` | `patches/irsa.yaml` | Uma pessoa | Uma vez por conta; o valor é previsível pelo ID da conta |
+| `REDIS_URL` | `patches/endpoints.yaml` | Uma pessoa | Depois do apply do cluster, com `terraform -chdir=terraform/cluster output -raw redis_url` |
+
+Os valores de outra conta estão na [seção 2 do guia](../docs/GUIA_DE_REPRODUCAO.md#2-valores-fixos-a-trocar-em-outra-conta), e o `REDIS_URL`, na [seção 6](../docs/GUIA_DE_REPRODUCAO.md#6-camada-cluster-e-endpoints-do-overlay). O ArgoCD lê do Git, não do disco: a alteração só vale depois de chegar à `main`.
+
+## O que NÃO está aqui
+
+- **Secrets.** Nenhum valor secreto é versionado. Os 5 Secrets são criados por `terraform/k8s/secrets.tf`; os nomes e as chaves que precisam coincidir estão em [SECRETS-CONTRATO.md](SECRETS-CONTRATO.md).
+- **Ingress.** Não há Ingress nem Load Balancer; os Services são ClusterIP e o acesso é por `kubectl port-forward`.
+- **Application do ArgoCD.** Ela é criada pelo Terraform em `terraform/k8s/argocd.tf`, apontando para `gitops/overlays/prod` na `main`.
+
+## Fase 2 x Fase 3 (visão de manifesto)
+
+| Item | Fase 2 | Fase 3 | Motivo |
+|---|---|---|---|
+| Tag da imagem | `:latest` fixa no deployment | nome lógico na base e bloco `images:` no overlay | o CI troca a tag com `kustomize edit set image` |
+| `imagePullPolicy` | `Always` | removido dos 5 serviços | cada commit gera uma tag nova (`v1.0.0-<sha7>`) |
+| Segredos | `secret.yaml` versionado com placeholder | criados por `terraform/k8s/secrets.tf` | nenhum valor no Git |
+| Acesso à AWS | `AWS_ACCESS_KEY_ID` em Secret | IRSA na ServiceAccount | credencial temporária, nada a vazar |
+| `AWS_SQS_URL` | dentro do Secret | ConfigMap | URL de fila não é segredo |
+| Ingress | nginx com 5 rotas | removido | o enunciado não pede exposição externa |
+| Disco do banco em pod | sem StorageClass definida | `storageClassName: gp3` declarado no StatefulSet | a classe `gp3` nasce na camada `terraform/k8s` |
+
+## Conferir localmente
+
+O `kubectl kustomize` renderiza o overlay sem aplicar nada. O resultado tem 23 objetos.
 
 ```bash
+# Renderiza o overlay prod na tela, sem tocar em nenhum cluster
 kubectl kustomize gitops/overlays/prod
+# Conta os objetos renderizados (linhas kind: no primeiro nível)
+kubectl kustomize gitops/overlays/prod | grep -c '^kind:'
 ```
 
-## O que mudou em relacao a Fase 2
+O `kubectl` não tem o subcomando `kustomize edit`. O CI instala o `kustomize` autônomo (5.4.3) só para alterar o bloco `images:`.
 
-| Item | Fase 2 | Aqui | Motivo |
-|---|---|---|---|
-| Tag da imagem | `:latest` fixa no deployment | nome logico + bloco `images:` no overlay | permite `kustomize edit set image` no CI (O-24) |
-| `imagePullPolicy` | `Always` | removido | era muleta do `:latest`; tag por commit e imutavel |
-| Segredos | `secret.yaml` versionado com placeholder | criados por `terraform/k8s/secrets.tf` | nenhum valor no Git (D-018) |
-| Acesso a AWS | `AWS_ACCESS_KEY_ID` em Secret do K8s | IRSA na ServiceAccount | credencial temporaria, nada a vazar (S-06) |
-| `AWS_SQS_URL` | dentro do Secret | ConfigMap | URL de fila nao e segredo |
-| Ingress | nginx com 5 rotas | removido | enunciado nao exige (F-018), economiza ~US$ 16-20/mes |
-| Namespace | repetido em cada arquivo | uma vez no `kustomization.yaml` | forma idiomatica do Kustomize |
+## Links
 
-O `analytics-service` ficou **sem nenhum segredo**. Depois do IRSA, tudo que ele precisa e configuracao publica.
-
-## Ordem de aplicacao
-
-Esta pasta so pode ser sincronizada depois que o cluster existir. A
-ordem, e o motivo de cada passo:
-
-1. **Camada base** (`terraform/`) - **aplicada** em 2026-09-07: ECR, SQS, DynamoDB, rede, OIDC.
-2. **Camada cluster** (`terraform/cluster/`): EKS, node group, 2 RDS, ElastiCache e as roles de IRSA. Sem ela nao ha para onde sincronizar.
-3. **Camada k8s** (`terraform/k8s/`), em duas etapas: instala o ArgoCD, cria os 5 Secrets e a StorageClass `gp3`, e por fim a `Application` apontando para `gitops/overlays/prod`.
-4. Preencher os placeholders em `overlays/prod/patches/` com os `terraform output` da sessao e levar isso ate a `main` por PR - o ArgoCD le do Git, nao do disco.
-
-A partir dai o ArgoCD assume: qualquer commit em `gitops/` na `main`
-vira mudanca no cluster, sem `kubectl apply` de ninguem (O-26).
-
-> **Nota historica:** ate 2026-09-08 o plano era usar o External Secrets
-> Operator lendo o AWS Secrets Manager (D-013). O ESO foi cortado em
-> D-018 para tirar uma peca de runtime do caminho critico a uma semana
-> da entrega. Se voce encontrar mencao a `ExternalSecret` ou
-> `ClusterSecretStore` em algum documento antigo, ela esta desatualizada.
-
-## Placeholders a preencher
-
-| Arquivo | Chave | De onde vem |
-|---|---|---|
-| `patches/irsa.yaml` | ARNs das duas roles | `terraform -chdir=terraform/cluster output irsa_role_arns` |
-| `patches/endpoints.yaml` | `REDIS_URL` | `terraform -chdir=terraform/cluster output redis_url` — hoje contem a palavra `PREENCHER`; o passo 1.5 do runbook tem o comando que troca sozinho |
-| `patches/endpoints.yaml` | `AWS_SQS_URL` | `terraform -chdir=terraform output sqs_queue_url` (camada base, ja aplicada) |
-| `overlays/prod/kustomization.yaml` | `newTag` das 5 imagens | preenchido sozinho pelo CI |
-
-## Armadilhas conhecidas
-
-- **PVC Pending.** O `volumeClaimTemplates` do `postgres-targeting` nao declara `storageClassName`, entao depende de haver uma StorageClass default. Na Fase 2 nao havia e o deploy travou (F-025). A Etapa 2 do Terraform resolve isso por codigo (P-035).
-- **HPA sem metrica.** Os dois HPAs precisam do Metrics Server instalado, senao ficam com `<unknown>` e nunca escalam.
-- **Senha divergente.** O `targeting-service` e o `postgres-targeting` leem o **mesmo** segredo da AWS (`togglemaster/targeting-db`), de proposito. Nao criar dois segredos separados.
+- Guia: [seção 6, cluster e endpoints](../docs/GUIA_DE_REPRODUCAO.md#6-camada-cluster-e-endpoints-do-overlay) e [seção 7, camada k8s e ArgoCD](../docs/GUIA_DE_REPRODUCAO.md#7-camada-k8s-e-argocd)
+- Como o GitOps funciona e por quê: [README, seção 4.3](../README.md#4-como-funciona-cada-frente)
+- Probes, recursos, HPAs e objetos em detalhe: [docs/ARQUITETURA.md, seção 3](../docs/ARQUITETURA.md)

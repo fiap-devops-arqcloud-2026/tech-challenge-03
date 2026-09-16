@@ -5,16 +5,16 @@
 # da role IAM que cada pod deve assumir.
 #
 # POR QUE FICA NO OVERLAY: o ARN so existe depois do `terraform apply`
-# da Etapa 2 e contem o numero da conta. E dado de ambiente, nao de
-# aplicacao.
+# da camada terraform/cluster e contem o numero da conta. E dado de
+# ambiente, nao de aplicacao.
 #
 # ------------------------------------------------------------
-# PREENCHER APOS O APPLY DA ETAPA 2
+# VALOR PREVISIVEL: arn:aws:iam::<conta>:role/togglemaster-<svc>-irsa
 # ------------------------------------------------------------
 # Os ARNs abaixo estao no formato final e sao previsiveis, porque o
-# Terraform nomeia as roles deterministicamente. Ainda assim, confira
-# com:
-#   terraform -chdir=terraform output irsa_role_arns
+# Terraform nomeia as roles deterministicamente (conta nova: ver
+# docs/GUIA_DE_REPRODUCAO.md, secao 2). Ainda assim, confira com:
+#   terraform -chdir=terraform/cluster output irsa_role_arns
 # ============================================================
 
 # Documento 1: ServiceAccount do evaluation-service.

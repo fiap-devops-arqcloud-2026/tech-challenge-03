@@ -1,755 +1,444 @@
-<div align="center">
-
-# 🚩 ToggleMaster — Fase 3
-
-### Infraestrutura como Código, CI/CD, DevSecOps e GitOps
-
-*A mesma plataforma de feature flags da Fase 2 — só que agora nada nasce de um clique no console, e ninguém dá deploy pela própria máquina.*
+# ToggleMaster, Tech Challenge Fase 3 (FIAP POSTECH, Grupo 203)
 
 [![Terraform](https://img.shields.io/badge/Terraform-1.16-7B42BC?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
 [![Trivy](https://img.shields.io/badge/Trivy-DevSecOps-1904DA?logo=aquasecurity&logoColor=white)](https://trivy.dev/)
 [![Argo CD](https://img.shields.io/badge/Argo_CD-GitOps-EF7B4D?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-EKS%201.34-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
-[![AWS](https://img.shields.io/badge/AWS-EKS%20%7C%20RDS%20%7C%20ECR%20%7C%20SQS%20%7C%20DynamoDB-FF9900?logo=amazonaws&logoColor=white)](https://aws.amazon.com/)
 
----
+O ToggleMaster é uma plataforma de *feature flags*: interruptores que ligam e desligam funcionalidades de um aplicativo em tempo real, sem novo deploy. Nesta fase, o ambiente da aplicação deixa de ser montado à mão: a infraestrutura vira código Terraform, cada versão passa por um pipeline com checagens de segurança, e o cluster se atualiza sozinho a partir do Git (GitOps). Projeto entregue. Em 2026-09-15 o ambiente AWS foi recriado do zero, demonstrado e destruído; tudo pode ser recriado pelo [guia de reprodução](docs/GUIA_DE_REPRODUCAO.md).
 
-**Tech Challenge — Fase 3 | POSTECH FIAP | Grupo 203**
+## Links da entrega
 
-<!-- ANTES DE PUBLICAR: trocar PREENCHER_URL_DO_VIDEO pela URL do vídeo no YouTube,
-     e preencher o mesmo link em docs/RELATORIO_DE_ENTREGA.md. -->
-
-[🎥 Vídeo da entrega](PREENCHER_URL_DO_VIDEO) · [📄 Relatório preliminar](./docs/RELATORIO_DE_ENTREGA.md) · [🗂️ PDF preliminar](./output/pdf/RELATORIO_ENTREGA_FIAP_FASE3_GRUPO203_2026-09-14_v01_PRELIMINAR.pdf) · [📋 Enunciado](./docs/POSTECH%20-%20Tech%20Challenge%20-%20Fase%203.pdf) · [🏗️ Terraform](./terraform/) · [⚙️ Pipelines](./.github/workflows/) · [☸️ GitOps](./gitops/) · [📦 Fase 2](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-02)
-
-</div>
-
----
-
-> **Estado verificado em 2026-09-14:** a infraestrutura foi aplicada e observada em 2026-09-11 e depois desmontada para encerrar os custos. O código e as evidências históricas permanecem no repositório. A entrega ainda depende do vídeo e da liberação de acesso ao avaliador.
-
-## 📑 Índice
-
-- [O problema que a Fase 3 resolve](#-o-problema-que-a-fase-3-resolve)
-- [O que mudou da Fase 2 para cá](#-o-que-mudou-da-fase-2-para-cá)
-- [Arquitetura](#️-arquitetura)
-- [Infraestrutura como código](#-infraestrutura-como-código)
-- [O pipeline de CI e DevSecOps](#️-o-pipeline-de-ci-e-devsecops)
-- [GitOps e Argo CD](#-gitops-e-argo-cd)
-- [Segurança](#-segurança)
-- [Pré-requisitos](#-pré-requisitos)
-- [Como reproduzir](#-como-reproduzir)
-- [Provando que a esteira funciona](#-provando-que-a-esteira-funciona)
-- [Problemas enfrentados e como resolvemos](#️-problemas-enfrentados-e-como-resolvemos)
-- [Escopo e desvios conscientes](#️-escopo-e-desvios-conscientes)
-- [Custo](#-custo)
-- [Estrutura do repositório](#-estrutura-do-repositório)
-- [Time](#-time)
-
----
-
-## 💡 O problema que a Fase 3 resolve
-
-Imagine uma equipe que já tem o sistema no ar. Funciona. Os usuários usam. E, ainda assim, ninguém dorme tranquilo — porque **o ambiente que sustenta esse sistema existe só na memória de quem o criou**. O cluster foi montado clicando no console. O banco também. As filas, idem. Se aquilo tudo cair numa sexta-feira à noite, remontar leva dias, e provavelmente sai diferente.
-
-Era exatamente a situação em que a Fase 2 deste projeto terminou: o ToggleMaster rodando na AWS, mas colocado lá **na mão**.
-
-O enunciado da Fase 3 descreve essa dor em quatro sintomas bem concretos, e cada um tem uma resposta neste repositório:
-
-| Sintoma descrito no enunciado | A resposta aqui |
+| Item | Onde |
 |---|---|
-| *"Os desenvolvedores estão rodando `kubectl apply` de suas máquinas locais, gerando conflitos de versão"* | **GitOps com Argo CD.** Ninguém aplica nada: o Git é a fonte da verdade e o cluster se ajusta sozinho ao que está escrito lá |
-| *"As credenciais do banco de dados estão sendo passadas em arquivos de texto sem segurança"* | **Nenhum segredo versionado.** As senhas são geradas pelo Terraform; o CI entra na AWS por identidade federada e os pods por identidade de conta de serviço — sem chave estática em lugar nenhum |
-| *"Recentemente, uma vulnerabilidade em uma biblioteca Go passou despercebida e foi para produção"* | **Pipeline DevSecOps.** Análise de dependências, análise estática e varredura da imagem. Vulnerabilidade crítica **impede a imagem de ser construída** |
-| *"Recriar o ambiente de homologação leva dias porque foi feito manualmente no console"* | **Terraform.** Um comando levanta tudo, outro apaga tudo, e o resultado é igual todas as vezes |
+| Repositório | https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03 |
+| Vídeo da entrega | PREENCHER_URL_DO_VIDEO |
+| Relatório de entrega | [docs/RELATORIO_DE_ENTREGA.md](docs/RELATORIO_DE_ENTREGA.md) |
+| Enunciado | [docs/POSTECH - Tech Challenge - Fase 3.pdf](docs/POSTECH%20-%20Tech%20Challenge%20-%20Fase%203.pdf) |
+| Guia de reprodução (comandos, tempos, armadilhas) | [docs/GUIA_DE_REPRODUCAO.md](docs/GUIA_DE_REPRODUCAO.md) |
+| Referência técnica (portas, IRSA, Secrets, versões) | [docs/ARQUITETURA.md](docs/ARQUITETURA.md) |
+| Estimativa de custo (captura de 2026-09-11) | [docs/evidencias/estimativa-custos-aws-2026-09-11.png](docs/evidencias/estimativa-custos-aws-2026-09-11.png) |
+| Evidências sem AWS (2026-09-15) | Falha de segurança: [run 34985289399](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34985289399) · correção verde: [run 34985477955](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34985477955) · [PR #16](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/pull/16) · publicação na main: [run 34997028995](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34997028995) · commit do robô: [a0c7b8e](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/a0c7b8e06f9e12da5bc838d64ead841e1f91072f) |
 
-A frase que organiza a fase inteira é simples: **"se não está no código, não existe"**.
+O ambiente não está no ar; a prova é o vídeo mais os runs e commits acima.
 
-> 💡 **E o que é o ToggleMaster?** Uma plataforma de *feature flags* — interruptores que ligam e desligam funcionalidades de um aplicativo em tempo real, sem novo deploy. São cinco microsserviços: `auth`, `flag`, `targeting`, `evaluation` e `analytics`. A aplicação em si é herança da Fase 2 e não é o entregável desta fase; a explicação completa dela está no [repositório da Fase 2](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-02).
+## 1. O problema e o intuito do projeto
 
----
+Na Fase 2 o ToggleMaster já rodava na AWS, mas o ambiente tinha sido montado clicando no console. Se caísse, remontar levaria dias e sairia diferente. A Fase 3 resolve isso: tudo o que sustenta a aplicação passa a existir como código revisável.
 
-## 🔁 O que mudou da Fase 2 para cá
+A aplicação tem cinco microsserviços: `auth`, `flag`, `targeting`, `evaluation` e `analytics`. Ela é herança da Fase 2 e não é o entregável desta fase; a explicação completa está no [repositório da Fase 2](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-02).
 
-Na Fase 2, a seção *Melhorias futuras* do README era uma promessa: *"hoje a gente cria o cluster, os bancos, os repositórios de imagem e as filas clicando no console da AWS; com o Terraform, tudo isso vira texto"*. Esta fase é essa promessa cumprida, linha por linha.
+O enunciado descreve quatro sintomas, e cada um tem uma resposta aqui:
 
-| O que | Fase 2 — na mão | Fase 3 — automatizado |
+| Sintoma descrito no enunciado | A resposta neste repositório |
+|---|---|
+| Desenvolvedores rodando `kubectl apply` das próprias máquinas, gerando conflitos de versão | **GitOps com ArgoCD.** Ninguém aplica nada à mão: o Git é a fonte da verdade e o cluster se ajusta ao que está escrito lá |
+| Credenciais do banco passadas em arquivos de texto sem segurança | **Nenhum segredo versionado.** As senhas são geradas pelo Terraform; o CI entra na AWS por identidade federada (OIDC) e os pods por identidade de conta de serviço (IRSA), sem chave estática de nuvem |
+| Uma vulnerabilidade em biblioteca Go passou despercebida e foi para produção | **Pipeline DevSecOps.** Análise de dependências, análise estática e varredura da imagem; vulnerabilidade crítica impede a publicação da imagem |
+| Recriar o ambiente de homologação leva dias, porque foi feito no console | **Terraform.** Três camadas recriam o ambiente igual todas as vezes, e o destroy apaga tudo |
+
+A frase que organiza a fase inteira: **"se não está no código, não existe"**.
+
+| O que | Fase 2, na mão | Fase 3, automatizado |
 |---|---|---|
-| Montar o ambiente | Dezenas de cliques no console, e cada pessoa monta de um jeito 😰 | `terraform apply` em três camadas, reproduzível ✅ |
-| Derrubar no fim do dia | Apagar node group, bancos, cache e rede um por um 😱 | `terraform destroy` da camada que cobra por hora ✅ |
-| Publicar uma versão nova | Alguém lembra de construir e enviar as cinco imagens 🤯 | Nasce sozinho do `git push` ✅ |
-| Levar a versão ao cluster | `kubectl apply` do notebook de quem estava com o terminal aberto 😵 | Ninguém aplica: o Argo CD reconcilia o que está no Git ✅ |
-| Credenciais da AWS | Chave estática dentro de um Secret e nos segredos do GitHub | Identidade federada no CI e identidade de conta de serviço nos pods ✅ |
-| Biblioteca com falha crítica | Só se alguém reparasse | O pipeline barra **antes** de a imagem existir ✅ |
-| Disco do banco em pod | Travava esperando alguém configurar a classe de armazenamento | Classe `gp3` e driver de disco nascem do Terraform ✅ |
+| Montar o ambiente | Dezenas de cliques no console | `terraform apply` em três camadas, reproduzível |
+| Derrubar no fim do dia | Apagar node group, bancos, cache e rede um por um | `terraform destroy` na ordem inversa |
+| Publicar uma versão nova | Alguém lembra de construir e enviar as cinco imagens | Nasce do push na `main`, depois das checagens |
+| Levar a versão ao cluster | `kubectl apply` do notebook de alguém | O ArgoCD reconcilia o que está no Git |
+| Credenciais da AWS | Chave estática num Secret | OIDC no CI e IRSA nos pods |
+| Biblioteca com falha crítica | Só se alguém reparasse | O pipeline barra antes de a imagem ser publicada |
 
-A aplicação não mudou. **O que mudou é tudo que está em volta dela.**
+A aplicação não mudou. O que mudou é tudo o que está em volta dela.
 
----
+## 2. Arquitetura
 
-## 🏗️ Arquitetura
+### 2.1 A esteira, do commit ao pod
 
-### A esteira, do commit ao pod
-
-Este é o diagrama que define a fase. Repare que **não existe seta saindo de uma máquina de desenvolvedor para o cluster** — esse caminho foi removido de propósito.
+Não existe seta saindo da máquina de um desenvolvedor para o cluster: esse caminho foi removido de propósito. Na `dev` e em Pull Requests rodam só as quatro verificações; imagem e GitOps só acontecem no push na `main`.
 
 ```mermaid
-flowchart TB
-    DEV["👩‍💻 Desenvolvedor<br/>git push na branch dev"]
-    PR["🔀 Pull Request para main"]
-    CI["⚙️ GitHub Actions<br/>1 workflow por microsserviço"]
-    GATE{"🛡️ build, linter, SAST e SCA<br/>passaram?"}
-    SKIP["⛔ job da imagem: skipped<br/>nada é publicado"]
-    IMG["🐳 Build da imagem<br/>+ varredura antes do push"]
-    ECR["📦 Amazon ECR<br/>tag v1.0.0 + hash do commit"]
-    BOT["🤖 Último passo do CI<br/>kustomize edit set image<br/>commit chore-gitops na main"]
-    GIT["📘 gitops/overlays/prod<br/>fonte da verdade"]
-    ARGO["🔄 Argo CD<br/>reconcilia a cada 30s"]
-    EKS["☸️ Amazon EKS<br/>6 pods no namespace togglemaster"]
-
-    DEV --> PR --> CI --> GATE
-    GATE -- "não" --> SKIP
-    GATE -- "sim" --> IMG --> ECR
-    IMG --> BOT --> GIT
-    ARGO -- "observa" --> GIT
-    ARGO -- "aplica" --> EKS
-    ECR -. "de onde o pod puxa a imagem" .-> EKS
+flowchart TD
+    DEV["Push na dev ou Pull Request"] --> CHK["4 verificações em paralelo: build, lint, SAST e SCA (Trivy no código)"]
+    MAIN["Push na main (merge do PR)"] --> CHK
+    CHK -- "alguma falhou" --> SKIP["Jobs image e gitops: skipped"]
+    CHK -- "passaram, mas não é push na main" --> FIM["Fim: nada é publicado"]
+    CHK -- "passaram e é push na main" --> BUILD["docker build com a tag :scan"]
+    BUILD --> SCAN["Trivy na imagem, antes de qualquer push"]
+    SCAN -- "achou CRITICAL" --> FALHA["Job falha: nada é publicado"]
+    SCAN -- "sem CRITICAL" --> OIDC["OIDC: assume a role do CI na AWS"]
+    OIDC --> ECR["Push no ECR: v1.0.0-sha7 e latest"]
+    ECR --> BOT["Job gitops: kustomize edit set image e commit [skip ci] na main"]
+    BOT --> GIT["gitops/overlays/prod na main"]
+    ARGO["ArgoCD no EKS: consulta a main a cada 30s"] -- "lê" --> GIT
+    ARGO -- "sincroniza com prune e selfHeal" --> PODS["Pods no namespace togglemaster"]
+    ECR -. "imagem puxada pelos nós" .-> PODS
 ```
 
-> ⚠️ **A regra que mais vale nota está no losango.** O job que constrói a imagem depende dos quatro jobs de qualidade e segurança. Se qualquer um falha, ele **não é agendado** — aparece como `skipped` na interface do GitHub. A imagem vulnerável nunca chega a existir, quanto mais a ser publicada.
+Só vulnerabilidade **CRITICAL** bloqueia. HIGH e abaixo aparecem no log, mas não derrubam o pipeline.
 
-### O que roda na AWS
+### 2.2 O que roda na AWS
 
-```mermaid
-flowchart TB
-    subgraph AWS["AWS · região us-east-2"]
-        subgraph VPC["VPC 10.0.0.0/16 · 2 sub-redes públicas e 2 privadas"]
-            subgraph EKS["Amazon EKS 1.34 · 2 nós c7i-flex.large"]
-                AUTH["🔐 auth-service · Go"]
-                FLAG["🚩 flag-service · Python"]
-                TGT["🎯 targeting-service · Python"]
-                EVAL["⚡ evaluation-service · Go"]
-                ANA["📊 analytics-service · Python"]
-                PG["🐘 postgres-targeting<br/>StatefulSet + disco gp3"]
-            end
-            RDS1[("RDS auth_db")]
-            RDS2[("RDS flags_db")]
-            REDIS[("ElastiCache Redis")]
-        end
-        SQS["SQS togglemaster-events + DLQ"]
-        DDB[("DynamoDB ToggleMasterAnalytics")]
-        ECR["5 repositórios ECR"]
-    end
-
-    AUTH --> RDS1
-    FLAG --> RDS2
-    TGT --> PG
-    EVAL --> REDIS
-    EVAL -- "publica evento" --> SQS
-    SQS -- "worker consome" --> ANA
-    ANA --> DDB
-    EKS -. "puxa imagens" .-> ECR
-```
-
-Tudo isso — rede, cluster, nós, bancos, cache, fila, tabela, repositórios de imagem e as permissões IAM — nasce de `terraform apply`. O detalhamento da arquitetura, com o mapa das camadas e a postura de segurança, está em [`docs/ARQUITETURA.md`](./docs/ARQUITETURA.md).
-
-> ℹ️ **Não há Ingress nem Load Balancer.** Os serviços conversam entre si dentro do cluster; o acesso externo, quando necessário, é por `kubectl port-forward`. O porquê está em [escopo e desvios conscientes](#️-escopo-e-desvios-conscientes).
-
----
-
-## 🧱 Infraestrutura como código
-
-O Terraform está dividido em **três camadas com estados independentes**, todas no mesmo bucket do S3. Essa divisão não é estética: ela existe porque o ambiente é efêmero, e um estado único destruiria os repositórios de imagem junto com o cluster toda vez que a conta fosse desligada.
+Tudo é criado por Terraform, em três camadas. Cada camada lê as saídas da anterior pelo estado remoto.
 
 ```mermaid
 flowchart LR
-    BASE["🧱 terraform/<br/>base — permanente"]
-    CLUSTER["⚡ terraform/cluster/<br/>efêmera — cobra por hora"]
-    K8S["🔐 terraform/k8s/<br/>objetos dentro do cluster"]
-
-    BASE --> CLUSTER --> K8S
-    BASE -. "estado remoto" .-> CLUSTER
-    BASE -. "estado remoto" .-> K8S
-    CLUSTER -. "estado remoto" .-> K8S
+    subgraph BASE["terraform/ (base)"]
+        VPC["VPC 10.0.0.0/16: 2 sub-redes públicas, 2 privadas e 1 NAT"]
+        ECRR["5 repositórios ECR"]
+        SQS["SQS togglemaster-events com DLQ"]
+        DDB["DynamoDB ToggleMasterAnalytics"]
+        CI["Provedor OIDC do GitHub e role do CI"]
+    end
+    subgraph CLUSTER["terraform/cluster/"]
+        EKS["EKS 1.34: 2 nós c7i-flex.large e 5 addons"]
+        RDS["2 RDS PostgreSQL 16: auth_db e flags_db"]
+        REDIS["ElastiCache Redis (redis7)"]
+        IRSA["2 roles IRSA: evaluation e analytics"]
+    end
+    subgraph K8S["terraform/k8s/"]
+        ARGO["ArgoCD via Helm (chart 7.7.11) e a Application"]
+        SEC["2 namespaces e 5 Secrets"]
+        SC["StorageClass gp3"]
+    end
+    BASE -- "terraform_remote_state" --> CLUSTER
+    BASE -- "terraform_remote_state" --> K8S
+    CLUSTER -- "terraform_remote_state" --> K8S
 ```
 
-### 🧱 `terraform/` — O Alicerce
-
-**Estado:** `prod/base.tfstate` · **Ciclo:** permanente · **Custo com o NAT desligado:** próximo de zero
-
-Rede e tudo que precisa sobreviver entre uma sessão e outra: VPC `10.0.0.0/16` com duas sub-redes públicas e duas privadas em zonas diferentes, os cinco repositórios ECR (varredura no push, criptografia AES256, retenção das dez últimas imagens), a fila SQS `togglemaster-events` com sua fila de mensagens mortas, a tabela DynamoDB `ToggleMasterAnalytics` sob demanda, e a federação de identidade que permite ao GitHub Actions entrar na conta sem chave.
-
-É aqui que ficam as imagens já publicadas. Por isso esta camada **nunca é destruída**.
-
-### ⚡ `terraform/cluster/` — O Motor
-
-**Estado:** `prod/cluster.tfstate` · **Ciclo:** sobe para a sessão, é destruída ao fim · **Custo:** é esta camada que aparece na fatura
-
-Cluster EKS **1.34** com endpoint público e privado, node group de dois `c7i-flex.large` (mínimo 1, desejado 2, máximo 4) e cinco addons gerenciados, incluindo o driver de disco EBS e o coletor de métricas. Mais duas instâncias RDS PostgreSQL 16 `db.t3.micro` com 20 GB criptografados e sem acesso público, uma instância ElastiCache Redis `cache.t3.micro`, e as duas permissões de conta de serviço que dão acesso à fila e à tabela.
-
-### 🔐 `terraform/k8s/` — O Cofre e o Sincronizador
-
-**Estado:** `prod/k8s.tfstate` · **Ciclo:** acompanha a camada do meio
-
-O que vive *dentro* do cluster: o namespace, os cinco Secrets com senhas geradas na hora, a classe de armazenamento `gp3` criptografada, e o Argo CD instalado por Helm (chart fixado na versão `7.7.11`) junto com a Application que aponta para a pasta GitOps.
-
-> ⚠️ **O primeiro `apply` desta camada são dois comandos, não um.** O recurso que cria a Application valida o tipo dela contra o cluster ainda no planejamento, e esse tipo só existe depois que o Argo CD é instalado. A ordem está explicada em [como reproduzir](#-como-reproduzir).
-
-### Decisões que valem para as três
-
-| Decisão | Por quê |
-|---|---|
-| Estado remoto no S3 com **bloqueio nativo por arquivo de lock** | Dispensa a tabela DynamoDB que a abordagem antiga exigia. Requer Terraform 1.11 ou superior — o CI usa a 1.16.0 |
-| **7 módulos próprios** (`ecr`, `eks`, `elasticache`, `iam-ci`, `irsa`, `messaging`, `rds`) e **um único módulo da comunidade**, o de VPC | Rede tem armadilha demais para escrever do zero; o resto é simples e ficou autoral, o que torna o código legível na correção |
-| Restrição do provider AWS como `>= 5.46`, **sem teto**, com `.terraform.lock.hcl` versionado | Um teto rígido conflitava com a restrição interna do módulo de VPC. A reprodutibilidade fica no arquivo de lock, que é o lugar dela |
-| Etiquetas `project = fiap` e `phase = 3`, **em minúsculas**, aplicadas uma vez só pela configuração padrão do provider | A chave de etiqueta na AWS diferencia maiúscula de minúscula: divergir partiria o relatório de custos em dois grupos |
-
-→ [Ver a documentação completa das camadas](./terraform/README.md)
-
----
-
-## 🛡️ O pipeline de CI e DevSecOps
-
-São **nove workflows**: cinco chamadores (um por microsserviço), dois reutilizáveis (um para Go, outro para Python), um que valida o Terraform e um que roda o teste de integração com Docker Compose.
-
-Cada pipeline de serviço dispara em `push` nas branches `main` e `dev`, em Pull Request para qualquer uma das duas, e manualmente. Os filtros de caminho garantem que só o serviço alterado roda — e, de propósito, **`gitops/**` não está na lista de gatilhos**, o que impede o commit automático de tag de disparar o pipeline de novo, em laço.
-
-### Os seis jobs
-
-| Job | Go (`auth`, `evaluation`) | Python (`flag`, `targeting`, `analytics`) |
-|---|---|---|
-| **Build e testes** | `go build -v ./...` e `go test -count=1 -v ./...` | `python -m compileall -q .` e busca por suíte em `tests/` |
-| **Linter** | golangci-lint `v2.13.2` | flake8 (erros de sintaxe bloqueiam; estilo é informativo) e pylint com `.pylintrc` versionado |
-| **SAST** | gosec `v2.29.0`, com `-severity high -confidence medium` | bandit `-r . -ll` |
-| **SCA** | Trivy no código-fonte do serviço | idem |
-| **Imagem** | build multi-stage, varredura, e só então push no ECR | idem |
-| **GitOps** | grava a tag nova no overlay e comita | idem |
-
-> ⚠️ **Honestidade sobre os testes:** o passo existe e roda, mas **hoje não há nenhum arquivo de teste unitário no repositório** — nenhum `*_test.go`, nenhum `test_*.py`. O job de build compila e, no caso do Python, avisa que não encontrou suíte. O que existe de verificação automatizada de comportamento é o teste de integração ponta a ponta em `scripts/integration/`, disparado pelo workflow `compose-integration.yml`. A lacuna de teste unitário está listada em [escopo e desvios conscientes](#️-escopo-e-desvios-conscientes) como lacuna assumida, não como capacidade entregue.
-
-### A regra de bloqueio — o coração da fase
-
-O bloqueio não é um script que interpreta saída de ferramenta. É uma dependência declarada entre jobs, e é isso que o torna à prova de descuido:
-
-```yaml
-  image:
-    name: Imagem Docker e push no ECR
-    # Os quatro jobs de qualidade e segurança precisam ter terminado com sucesso.
-    # Se UM falhar, este job nem chega a ser agendado: aparece como "skipped".
-    needs: [build, lint, sast, sca]
-    # E mesmo passando, só publica no push para a main — PR não publica imagem.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-```
-
-```yaml
-  gitops:
-    name: Atualizar tag no GitOps
-    # Sem imagem publicada não existe tag nova para escrever no overlay.
-    needs: [image]
-    # Mesma trava do job anterior: o overlay que o Argo CD lê vive na main.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-```
-
-O efeito em cadeia é: **falha de segurança → sem imagem → sem tag nova → o cluster continua na versão anterior**. O caminho até produção fecha sozinho.
-
-### Como o Trivy está configurado
-
-Cada pipeline roda duas varreduras do Trivy — uma no código-fonte, outra na imagem — com a mesma configuração:
-
-```yaml
-      # Action fixada pelo hash do commit, não por tag: uma tag pode ser movida
-      # por baixo do pipeline; um hash, não.
-      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-      with:
-        severity: CRITICAL        # só o que é crítico derruba o build
-        exit-code: "1"            # achou crítico, o job falha de verdade
-        ignore-unfixed: false     # falha sem correção publicada TAMBÉM conta
-        trivyignores: .trivyignore
-```
-
-A varredura da imagem acontece **antes de qualquer `docker push`**: o job constrói localmente com a tag `:scan`, varre, e só depois faz o login federado e envia. Uma imagem reprovada nunca chega ao registro.
-
-> 💡 **Por que `ignore-unfixed: false`?** Ligar essa opção apagaria, em silêncio e para sempre, uma classe inteira de achados — inclusive os futuros. Em vez disso, as exceções são nominais: o [`.trivyignore`](./.trivyignore) tem **exatamente três CVEs**, todos do pacote `perl-base` da imagem base do Python, cada um com justificativa escrita e data de revisão. Qualquer crítico fora dessa lista continua derrubando o pipeline, e cada exceção nova aparece no diff de um Pull Request.
-
-### A prova de que o controle não é decorativo
-
-Quando a regra foi implementada ao pé da letra, o pipeline **quebrou na hora**: o Trivy acusou o `CVE-2026-56854`, crítico, na biblioteca `golang.org/x/crypto` v0.20.0, dependência do `auth-service`. A vulnerabilidade estava no projeto havia semanas, publicada e invisível, porque os passos de varredura eram tolerantes a falha e apenas imprimiam o achado.
-
-A biblioteca foi atualizada para a v0.55.0 e o pipeline voltou ao verde. Fica o aprendizado, que vale mais que o conserto: **pipeline verde não prova que o código é seguro — prova que ninguém configurou o pipeline para reclamar.**
-
----
-
-## 🔄 GitOps e Argo CD
-
-O princípio: **o cluster não recebe ordens, ele persegue um estado escrito**. O que está em `gitops/overlays/prod` na branch `main` é o que deve existir no cluster. Se alguém alterar um objeto à mão, o Argo CD desfaz.
+Dentro do cluster, os serviços conversam assim:
 
 ```mermaid
-sequenceDiagram
-    participant CI as GitHub Actions
-    participant ECR as Amazon ECR
-    participant Git as gitops/overlays/prod
-    participant Argo as Argo CD
-    participant K8s as Cluster EKS
-
-    CI->>ECR: push da imagem com a tag do commit
-    CI->>Git: kustomize edit set image + commit chore-gitops
-    Argo->>Git: consulta a cada 30 segundos
-    Git-->>Argo: a tag mudou
-    Argo->>K8s: aplica o que está no Git
-    K8s-->>Argo: recursos sincronizados e saudáveis
-    Note over Argo,K8s: prune e self-heal ligados:<br/>o que sai do Git sai do cluster
+flowchart LR
+    subgraph NS["EKS, namespace togglemaster"]
+        AUTH["auth-service (Go) :8001"]
+        FLAG["flag-service (Python) :8002"]
+        TARG["targeting-service (Python) :8003"]
+        EVAL["evaluation-service (Go) :8004, HPA 1 a 2"]
+        ANA["analytics-service (Python) :8005, HPA 1 a 2"]
+        PG[("postgres-targeting: StatefulSet com PVC gp3 de 5Gi")]
+    end
+    FLAG -- "valida a chave" --> AUTH
+    TARG -- "valida a chave" --> AUTH
+    EVAL -- "busca a flag" --> FLAG
+    EVAL -- "busca a regra" --> TARG
+    TARG --> PG
+    AUTH --> RDSA[("RDS auth_db")]
+    FLAG --> RDSF[("RDS flags_db")]
+    EVAL -- "cache de 30s" --> REDIS[("ElastiCache Redis")]
+    EVAL -- "IRSA: sqs:SendMessage" --> Q["SQS togglemaster-events"]
+    Q -- "IRSA: ReceiveMessage e DeleteMessage" --> ANA
+    ANA -- "IRSA: PutItem" --> TAB[("DynamoDB ToggleMasterAnalytics")]
 ```
 
-### O que está declarado
+Não há Ingress nem Load Balancer. Todos os Services são `ClusterIP`, e o acesso de fora, quando necessário, é por `kubectl port-forward`. O motivo está em [Decisões e o porquê](#5-decisões-e-o-porquê).
 
-`kubectl kustomize gitops/overlays/prod` renderiza **23 objetos**: 6 Services, 6 ConfigMaps, 5 Deployments, 2 ServiceAccounts, 2 HorizontalPodAutoscalers, 1 StatefulSet e 1 Namespace. Os cinco serviços sobem com uma réplica; os dois que têm escala automática — `evaluation` e `analytics` — vão de 1 a 2 réplicas a 70% de CPU. Todos os pods têm sondas de prontidão e de vida em `/health`; o banco em pod é verificado com `pg_isready`.
+## 3. Tecnologias
 
-Há **um único overlay**, chamado `prod`. Ele guarda as três coisas que dependem do ambiente: as tags das imagens, os endereços do Redis e da fila, e as anotações de identidade dos dois serviços que falam com a AWS.
-
-### Como a tag chega ao Git sem um humano no meio
-
-O último job do pipeline não faz `sed` em YAML nem `git pull --rebase` — as duas coisas quebraram na prática, com cinco pipelines escrevendo no mesmo arquivo ao mesmo tempo. O que existe hoje é um laço de até cinco tentativas que, a cada volta:
-
-```bash
-git fetch origin main                     # busca o estado mais recente
-git reset --hard origin/main              # descarta a tentativa anterior por inteiro
-kustomize edit set image "<serviço>=<registro>/<serviço>:<tag>"   # reescreve UMA linha
-git diff --quiet && exit 0                # se já está igual, nada a fazer
-git commit -m "chore(gitops): <serviço> para <tag> [skip ci]"
-git push origin HEAD:main                 # se for rejeitado, espera e recomeça
-```
-
-Sem merge não existe conflito possível, e a operação passa a ser idempotente. Os cinco commits automáticos saem limpos na mesma execução.
-
-### O Argo CD
-
-Instalado pelo Terraform via Helm, com o chart fixado em `7.7.11` e o supérfluo desligado (autenticação externa, gerador de Applications e notificações ficam fora). A Application `togglemaster` aponta para `gitops/overlays/prod` na branch `main`, com sincronização automática, `prune` e `selfHeal` ligados, e nova tentativa com espera progressiva em caso de falha.
-
-Um detalhe que costuma passar batido: o intervalo de reconciliação foi baixado de 180 para **30 segundos**. Como não há Ingress nem Load Balancer, não existe webhook do GitHub chegando no Argo CD — ele descobre a mudança perguntando, e perguntar de meio em meio minuto é o que torna a demonstração assistível.
-
-→ [Ver a documentação do GitOps](./gitops/README.md) · [Contrato de Secrets entre Terraform e manifestos](./gitops/SECRETS-CONTRATO.md)
-
----
-
-## 🔐 Segurança
-
-O enunciado reclama de credenciais em arquivo de texto. A resposta deste projeto é mais radical que guardar melhor: **não existe chave estática da AWS em lugar nenhum** — nem no repositório, nem nos segredos do GitHub, nem dentro do cluster.
-
-| Onde | Como se autentica | Escopo |
+| Camada | Tecnologia | Versão principal |
 |---|---|---|
-| **GitHub Actions → AWS** | Identidade federada (OIDC). A política de confiança só aceita pedidos vindos deste repositório | Push apenas nos ARNs dos cinco repositórios ECR — não é `ecr:*` na conta |
-| **Pods → AWS** | Identidade de conta de serviço (IRSA), com credencial temporária | `evaluation` só publica na fila; `analytics` só consome da fila e escreve na tabela. Sem curinga em nenhuma das duas |
+| Infraestrutura como código | Terraform, estado no S3 com `use_lockfile` | `>= 1.11` (CI com 1.16.0) |
+| Rede | Módulo `terraform-aws-modules/vpc/aws` (único módulo da comunidade) | `~> 5.0` |
+| Cluster | Amazon EKS com node group `c7i-flex.large` | Kubernetes 1.34 |
+| Bancos | RDS PostgreSQL `db.t3.micro` (2 instâncias) e PostgreSQL em pod | 16 |
+| Cache, fila e tabela | ElastiCache `redis7`; SQS com DLQ; DynamoDB sob demanda | — |
+| Imagens | Amazon ECR (5 repositórios) | — |
+| GitOps | ArgoCD instalado por Helm; Kustomize | chart 7.7.11; Kustomize 5.4.3 |
+| CI/CD | GitHub Actions: 5 workflows chamadores e 2 reutilizáveis, mais Terraform Check e Compose Integration | — |
+| Linguagens | Go (auth e evaluation); Python (flag, targeting e analytics) | Go 1.25; Python 3.12 |
+| Qualidade e segurança | golangci-lint e gosec (Go); flake8, pylint e bandit (Python); Trivy com a action fixada por SHA | golangci-lint v2.13.2; gosec v2.29.0; trivy-action v0.36.0 |
+| Teste local | Docker Compose, com o simulador Moto para SQS e DynamoDB | Moto 5.2.2 |
 
-### Onde ficam os segredos
+Versões de providers e as ferramentas sem pino (flake8, pylint, bandit e docker do runner): ver [ARQUITETURA, seção 5](docs/ARQUITETURA.md).
 
-| Segredo | Onde nasce | Onde vive |
+## 4. Como funciona cada frente
+
+### 4.1 Infraestrutura como código
+
+O Terraform está dividido em três camadas com estados independentes, no mesmo bucket S3. Assim dá para destruir o que cobra por hora sem perder o resto, e cada camada só é aplicada quando a anterior existe.
+
+| Pasta | O que cria | Chave de estado |
 |---|---|---|
-| Senhas das duas instâncias RDS | Geradas na camada `cluster` | Guardadas no AWS Secrets Manager e, em paralelo, entregues aos Secrets do namespace pela camada `k8s` |
-| Senha do banco em pod, 24 caracteres | Gerada na camada `k8s` | Secret do Kubernetes |
-| `MASTER_KEY`, 32 caracteres | Gerada na camada `k8s` | Secret do Kubernetes |
-| `SERVICE_API_KEY`, 32 caracteres | Valor de bootstrap na camada `k8s` | Secret marcado para **ignorar alterações**, para não brigar com o valor real definido na carga inicial |
+| `terraform/` (base) | VPC, NAT, 5 ECR, SQS e DLQ, DynamoDB, OIDC e role do CI | `prod/base.tfstate` |
+| `terraform/cluster/` | EKS, node group, 5 addons, 2 RDS, ElastiCache e roles IRSA | `prod/cluster.tfstate` |
+| `terraform/k8s/` | Namespaces, 5 Secrets, StorageClass `gp3`, ArgoCD e a Application | `prod/k8s.tfstate` |
 
-### Criptografia ligada explicitamente
+- O único passo manual é criar o bucket de estado, porque o Terraform não pode criar o lugar onde guarda a própria memória ([guia, seção 3](docs/GUIA_DE_REPRODUCAO.md#3-bucket-de-estado-do-terraform)).
+- A base é **preservável entre sessões**: ela pode ficar de pé enquanto o cluster sobe e desce. Em 2026-09-11 e em 2026-09-15 ela também foi destruída, para zerar os custos.
+- Ordem de subida: base, imagens no ECR, cluster, k8s. Destruição na ordem inversa, incluindo a k8s.
+- A primeira aplicação da camada k8s tem duas etapas, porque a Application do ArgoCD só pode ser planejada depois que o ArgoCD instala o tipo dela no cluster.
 
-Estado do Terraform no S3, imagens no ECR, fila e fila de mensagens mortas, tabela DynamoDB, discos das instâncias RDS, cache em repouso e a classe de armazenamento `gp3` do cluster.
+Detalhe técnico: [ARQUITETURA, seção 2](docs/ARQUITETURA.md) e [terraform/README.md](terraform/README.md).
 
-> ⚠️ **Uma exceção honesta:** a criptografia **em trânsito** do Redis está desligada por padrão. Ligá-la sem trocar o endereço de `redis://` para `rediss://` derruba o `evaluation-service` na inicialização. Há uma variável pronta para ativar as duas coisas juntas; enquanto isso, o tráfego fica dentro da VPC, em sub-rede privada, liberado só pelo grupo de segurança do cluster.
+### 4.2 CI e DevSecOps
 
-A política de segurança do repositório está em [`SECURITY.md`](./SECURITY.md).
+Cada serviço tem seu pipeline, que só roda quando a pasta dele (ou o workflow da linguagem) muda. Quatro verificações rodam em paralelo; a imagem só é construída se todas passarem.
 
----
+- **Só CRITICAL bloqueia.** O Trivy roda com `severity: CRITICAL`, `exit-code: "1"` e `ignore-unfixed: false`. As exceções são nominais: o [`.trivyignore`](.trivyignore) tem três CVEs do `perl-base` da imagem Python, com justificativa e revisão marcada para 2026-10-15.
+- **Falhou, não publica.** O job `image` declara `needs: [build, lint, sast, sca]`; se um falhar, ele aparece como `skipped`.
+- **Scan antes do push.** A imagem é construída com a tag `:scan`, varrida, e só então vêm o login OIDC e o push com a tag `v1.0.0-<sha7>`.
+- **Só a `main` publica.** `image` e `gitops` exigem push na `main`. Push na `dev`, Pull Request e disparo manual (`workflow_dispatch`) rodam só as verificações.
+- **Testes:** não há arquivos de teste unitário no repositório (nenhum `*_test.go` nem `test_*.py`). A verificação de comportamento é o teste de integração ponta a ponta com Docker Compose, em `scripts/integration/`.
 
-## 📋 Pré-requisitos
+Detalhe técnico: [ARQUITETURA, seção 5](docs/ARQUITETURA.md).
 
-| Ferramenta | Versão | Para quê |
-|---|---|---|
-| [Terraform](https://developer.hashicorp.com/terraform/downloads) | 1.11 ou superior | O bloqueio de estado por arquivo de lock exige essa versão. O CI usa 1.16.0 |
-| [AWS CLI](https://aws.amazon.com/cli/) | v2 | Autenticar e apontar o `kubectl` para o cluster |
-| [kubectl](https://kubernetes.io/docs/tasks/tools/) | compatível com 1.34 | Conferir o cluster e renderizar os manifestos |
-| [Docker](https://www.docker.com/products/docker-desktop/) | Desktop atual, com Compose v2 | Só se você quiser rodar a aplicação localmente |
-| Conta AWS própria | — | Região `us-east-2` (Ohio). Não é conta de laboratório acadêmico |
-| Bucket de estado | — | `togglemaster-tfstate-891376952395-us-east-2-an`, criado uma única vez fora do Terraform |
+### 4.3 GitOps e fluxo Git
 
-> ⚠️ **Isto custa dinheiro de verdade.** Diferente da Fase 2, aqui `terraform apply` cria um cluster EKS, dois bancos gerenciados, um cache e um NAT Gateway. Com tudo de pé, são cerca de **US$ 0,385 por hora**. Não suba a camada do cluster sem ler [custo](#-custo) e sem se comprometer com o `terraform destroy` no fim. O passo 7 de [como reproduzir](#-como-reproduzir) não é opcional.
+O cluster não recebe ordens: ele persegue o estado escrito em `gitops/overlays/prod` na `main`. Se alguém alterar um objeto à mão, o ArgoCD desfaz.
 
-> 💡 **Quer só ver a aplicação funcionando, sem AWS?** Dá, e não é preciso nenhuma credencial real:
->
-> *Linux / macOS:*
-> ```bash
-> cp .env.example .env
-> docker compose up --build -d
-> ```
->
-> *Windows (PowerShell):*
-> ```powershell
-> Copy-Item .env.example .env
-> docker compose up --build -d
-> ```
->
-> Isso sobe os cinco serviços, os bancos PostgreSQL, o Redis e o DynamoDB Local. **A fila fica desativada neste modo** — o `.env.example` entrega `AWS_SQS_URL` vazia de propósito. Para exercitar também a fila, existe um simulador completo, descrito em [`docs/OPERACAO.md`](./docs/OPERACAO.md) e em [provando que a esteira funciona](#-provando-que-a-esteira-funciona).
-
----
-
-## 🚀 Como reproduzir
-
-A ordem importa: cada camada lê o estado da anterior.
-
-**Passo 0 — o bucket de estado, uma única vez**
-
-Ele não pode ser criado pelo próprio Terraform, porque é onde o Terraform guarda o estado. O passo a passo está em [`terraform/BOOTSTRAP-BACKEND-S3.md`](./terraform/BOOTSTRAP-BACKEND-S3.md).
-
-**Passo 1 — autentique-se na conta**
-
-*Linux / macOS:*
-```bash
-export AWS_PROFILE=togglemaster        # perfil configurado no aws configure
-aws sts get-caller-identity            # confirma em qual conta você está
-```
-
-*Windows (PowerShell):*
-```powershell
-$env:AWS_PROFILE = "togglemaster"      # perfil configurado no aws configure
-aws sts get-caller-identity            # confirma em qual conta você está
-```
-
-**Passos 2 a 7 — as camadas, na ordem**
+- **Base e overlay.** `gitops/base` descreve os 5 serviços e o banco em pod; o overlay `prod` guarda o que depende do ambiente: tags das imagens, endereços do Redis e da fila, e as anotações IRSA. Ele renderiza 23 objetos.
+- **O robô grava a tag.** O último job do pipeline faz, em até 5 tentativas: `fetch`, `reset --hard origin/main`, `kustomize edit set image`, commit `chore(gitops): <serviço> para <tag> [skip ci]` e push na `main`. Sem merge não há conflito.
+- **O ArgoCD aplica.** A Application `togglemaster` tem sincronização automática com `prune` e `selfHeal`. Sem Ingress não há webhook, então o intervalo de consulta foi reduzido de 180 para 30 segundos.
+- **Fluxo Git.** Trabalho humano parte da `dev` e chega à `main` por Pull Request. A única exceção é o commit do robô, que vai direto para a `main`, porque é dela que o ArgoCD lê. Por isso a `main` anda sozinha, e a `dev` precisa ser sincronizada antes de começar:
 
 ```bash
-# 2. CAMADA BASE — permanente, custo próximo de zero com o NAT desligado.
-#    Cria VPC, os 5 repositórios ECR, a fila SQS com a DLQ, a tabela
-#    DynamoDB e a federação de identidade do CI.
-terraform -chdir=terraform init
-terraform -chdir=terraform apply
-
-# 3. CAMADA CLUSTER — efêmera. É ELA que cobra por hora.
-#    Cria EKS, node group, as 2 instâncias RDS, o Redis e as permissões
-#    de conta de serviço. Leva de 20 a 40 minutos.
-terraform -chdir=terraform/cluster init
-terraform -chdir=terraform/cluster apply
-
-# 4. Aponte o kubectl para o cluster recém-criado.
-aws eks update-kubeconfig --name togglemaster --region us-east-2
-
-# 5. CAMADA K8S — SÃO DOIS COMANDOS, e isso é proposital.
-#    O primeiro instala o Argo CD e, com ele, o tipo "Application".
-#    O segundo cria o restante, inclusive a Application em si — que só
-#    pode ser planejada depois que o tipo dela existe no cluster.
-terraform -chdir=terraform/k8s init
-terraform -chdir=terraform/k8s apply -target=helm_release.argocd
-terraform -chdir=terraform/k8s apply
-
-# 6. A partir daqui não se aplica mais nada à mão: o Argo CD assume.
-#    Confira o que ele vai encontrar no Git antes de ele encontrar.
-kubectl kustomize gitops/overlays/prod
-
-# 7. AO TERMINAR — DESTRUTIVO. Apaga cluster, nós, bancos e cache desta
-#    camada, com os dados dentro deles. Preserva os repositórios de
-#    imagem e tudo que já foi publicado neles, que vivem na camada base.
-terraform -chdir=terraform/cluster destroy
-```
-
-> ⚠️ **O NAT Gateway mora na camada base, que nunca é destruída.** Esquecido ligado, ele sozinho custa cerca de **US$ 33 por mês**. Existe a variável `enable_nat_gateway` justamente para isso: deixe-a como `false` fora das sessões de trabalho, e como `true` só enquanto o cluster estiver de pé.
-
-O guia operacional completo — subir, criar os esquemas dos bancos, semear dados, demonstrar e desligar — está em [`docs/OPERACAO.md`](./docs/OPERACAO.md).
-
-### Antes de abrir um Pull Request
-
-```bash
-# Reproduz localmente o essencial do que o CI faz: varredura de segredos,
-# fmt e validate nas três camadas do Terraform, render do Kustomize,
-# checagem de sintaxe dos 3 serviços Python e build + testes dos 2 em Go.
-# O script pula, com aviso, qualquer etapa cuja ferramenta não esteja
-# instalada. Erro barato pego aqui economiza uma volta inteira de pipeline.
-bash scripts/validate-all.sh
-```
-
-### Fluxo de trabalho no Git
-
-Todo trabalho humano parte da branch `dev` e chega à `main` por Pull Request. Existe **uma única exceção**, e ela é deliberada: o commit automático que atualiza a tag da imagem vai direto para a `main`, porque é de lá que o Argo CD lê o estado desejado. Fazer o robô abrir Pull Request para si mesmo criaria uma fila de aprovações no meio do caminho crítico do GitOps.
-
-A consequência prática é que **a `main` anda sozinha**. Sincronize antes de começar:
-
-```bash
+# Troca para a branch de trabalho humano
 git switch dev
+# Baixa os commits novos do remoto, inclusive os do robô na main
 git fetch origin
-git merge --ff-only origin/main     # traz os commits automáticos de tag
+# Traz para a dev os commits de tag feitos na main, sem criar merge
+git merge --ff-only origin/main
 ```
 
----
+Detalhe técnico: [ARQUITETURA, seções 3 e 4](docs/ARQUITETURA.md) e [gitops/README.md](gitops/README.md).
 
-## 🧪 Provando que a esteira funciona
+### 4.4 Segurança
 
-O que se pode verificar sem subir nada:
+Não existe chave estática de nuvem no repositório, nos segredos do GitHub nem no cluster.
 
-```bash
-# 1. Os manifestos renderizam? Devem sair 23 objetos.
-kubectl kustomize gitops/overlays/prod | grep -c "^kind:"
-```
-```
-23
-```
+- **CI na AWS por OIDC.** A role do CI só faz push nos 5 repositórios ECR. **Pods por IRSA:** `evaluation` só publica na fila; `analytics` só consome a fila e grava na tabela.
+- **Senhas geradas pelo Terraform.** As dos 2 RDS nascem na camada cluster e ficam também no Secrets Manager; a do banco em pod, a `MASTER_KEY` e a `SERVICE_API_KEY` nascem na camada k8s e ficam só no Secret do Kubernetes e no estado. Nada disso vai para o Git.
+- **Ressalvas conhecidas:**
+  - o Redis não usa TLS em trânsito (o tráfego fica na sub-rede privada);
+  - a confiança da role do CI aceita qualquer branch ou PR deste repositório, e quem limita a publicação à `main` é a condição do workflow;
+  - as tags do ECR são `MUTABLE`;
+  - `MASTER_KEY` e `SERVICE_API_KEY` são segredos estáticos de aplicação, guardados em Secret.
 
-```powershell
-# Windows (PowerShell) — mesma verificação
-(kubectl kustomize gitops/overlays/prod | Select-String "^kind:").Count
-```
+Detalhe: [SECURITY.md](SECURITY.md), [gitops/SECRETS-CONTRATO.md](gitops/SECRETS-CONTRATO.md) e [ARQUITETURA, seção 6](docs/ARQUITETURA.md).
 
-```bash
-# 2. O robô do CI realmente escreve no repositório?
-git log --all --oneline --grep "chore(gitops)" | wc -l
-```
-```
-21
-```
+## 5. Decisões e o porquê
 
-> ℹ️ Esse número é uma fotografia do momento em que este texto foi escrito, e **cresce sozinho**: cada push na `main` que gera imagem nova acrescenta um commit automático. O que importa não é o total, e sim que ele seja maior que zero e que o autor de cada um desses commits seja `github-actions[bot]`.
-
-```bash
-# 3. O overlay aponta para imagens imutáveis, com o hash do commit?
-grep "newTag" gitops/overlays/prod/kustomization.yaml
-```
-```
-  newTag: v1.0.0-ff441a1
-  newTag: v1.0.0-7ab0602
-  newTag: v1.0.0-7ab0602
-  newTag: v1.0.0-9712392
-  newTag: v1.0.0-ff441a1
-```
-
-> 💡 **As cinco tags não são iguais, e isso é o comportamento correto.** Cada serviço tem seu próprio pipeline, disparado só quando a pasta dele muda. Um serviço que não mudou não ganha imagem nova — continua na versão que já estava validada.
-
-```bash
-# 4. A aplicação inteira funciona ponta a ponta, sem nenhuma conta AWS?
-#    Sobe os 5 serviços, os bancos, o Redis e o Moto — simulador local de
-#    SQS e DynamoDB — e executa o fluxo completo: login, criação de flag,
-#    regra de segmentação, avaliação, cache com TTL, evento na fila e
-#    gravação na tabela.
-#    Requer Linux ou WSL, Docker Compose v2 e Python 3.
-#    Usa as portas 8000-8005, 5433, 5434 e 6379.
-bash scripts/test-compose.sh
-```
-
-O script **não derruba o ambiente no fim**, de propósito: com os containers de pé você consegue inspecionar logs e bancos depois que o teste passa. Para encerrar e descartar **somente** os dados desse projeto de teste (o `-v` apaga os volumes):
-
-```bash
-docker compose --env-file .env.example -p tc03-integration \
-  -f docker-compose.yaml -f docker-compose.integration.yaml down -v
-```
-
-Com o cluster no ar, a verificação é o próprio Argo CD:
-
-```bash
-kubectl get applications -n argocd
-```
-
-Saída esperada:
-
-```
-NAME           SYNC STATUS   HEALTH STATUS
-togglemaster   Synced        Healthy
-```
-
-```bash
-# Seis pods: os cinco microsserviços e o banco do targeting.
-kubectl get pods -n togglemaster
-```
-
-A lista de evidências que aparecem no vídeo e no relatório está em [`docs/RELATORIO_DE_ENTREGA.md`](./docs/RELATORIO_DE_ENTREGA.md).
-
----
-
-## ⚠️ Problemas enfrentados e como resolvemos
-
-### 1. O pipeline passava verde escondendo uma vulnerabilidade real
-
-Os cinco pipelines vinham verdes, mas os passos de varredura eram tolerantes a falha: imprimiam o achado e devolviam sucesso. Ao implementar a regra de bloqueio ao pé da letra, o Trivy acusou uma vulnerabilidade crítica na biblioteca `golang.org/x/crypto`, usada pelo `auth-service`, que estava no projeto havia semanas.
-
-**Como resolvemos:** tolerância a falha removida e o job da imagem passou a depender dos quatro jobs de qualidade. A biblioteca foi atualizada. O aprendizado vale mais que o conserto — pipeline verde prova que ninguém configurou o pipeline para reclamar.
-
-### 2. Corrigir uma dependência arrastou o toolchain inteiro
-
-A atualização da biblioteca elevou a versão de Go declarada nos módulos e quebrou três coisas em sequência: o Dockerfile, a versão fixada no job de análise estática, e o linter, que se recusa a analisar um módulo compilado com versão maior que a dele.
-
-**Como resolvemos:** Dockerfiles, job de segurança e linter atualizados juntos. A lição prática: uma atualização de segurança arrasta a versão da linguagem, e **todo lugar que fixa versão precisa ser revisado no mesmo commit**.
-
-### 3. Três vulnerabilidades críticas sem correção publicada na imagem base
-
-Com o rigor literal, a varredura passou a acusar três falhas críticas no pacote `perl-base` da imagem base do Python. Nenhuma tem correção publicada, e o pacote é essencial — remover quebra a imagem.
-
-**Como resolvemos:** em vez de ligar a opção que ignora achados sem correção — o que apagaria uma classe inteira de alertas, em silêncio e para sempre —, registramos os três nominalmente no `.trivyignore`, com justificativa individual e data de revisão. Antes de mudar qualquer coisa, o efeito foi **medido nas imagens reais**: a imagem base dos serviços em Go não traz nenhum crítico, e por isso não tem exceção nenhuma.
-
-### 4. Um estado único do Terraform apagaria as imagens junto com o ambiente
-
-Como o ambiente é destruído ao fim de cada sessão, um `destroy` levaria junto os cinco repositórios de imagem — e, com a exclusão forçada ligada, as imagens já publicadas. O CI teria de reconstruir tudo antes de cada sessão.
-
-**Como resolvemos:** três camadas com estados independentes. Só a que cobra por hora sobe e desce.
-
-### 5. A conta recusou o terceiro banco e o tipo de máquina planejado
-
-Duas recusas da API, não alertas de orçamento. A terceira instância RDS voltou com `maximum number of instances available with free plan accounts`; o `t3.medium` previsto para os nós voltou com `The specified instance type is not eligible for Free Tier`. Descer para a máquina menor não era saída: cabem cerca de quatro pods por nó, contando os componentes do próprio Kubernetes.
-
-**Como resolvemos:** duas instâncias ficaram no serviço gerenciado e o terceiro banco roda como StatefulSet dentro do cluster, com disco persistente — mesmo arranjo da Fase 2, confirmado com o professor. Os nós passaram a usar `c7i-flex.large`, equivalente direto e aceito pela conta, com o dimensionamento feito medindo os recursos reais pedidos pelos cinco serviços.
-
-### 6. A versão do Kubernetes escolhida custava seis vezes mais
-
-O planejamento apontava a versão 1.31, que era o padrão do módulo. Uma consulta à API mostrou que ela já havia saído do suporte padrão — o que leva o control plane de **US$ 0,10/h para US$ 0,60/h**, sem nenhum ganho para o projeto.
-
-**Como resolvemos:** subimos para a **1.34**, em suporte padrão até dezembro de 2026. Valor padrão de módulo envelhece, e nesse caso o preço envelhece junto.
-
-### 7. O Terraform não conseguia instalar o Argo CD de primeira
-
-O recurso que cria a Application valida o tipo dela contra o cluster ainda no planejamento — mas esse tipo só passa a existir depois que o Argo CD é instalado, o que acontece na aplicação. Declarar dependência entre recursos não resolve, porque o problema é de ordem entre planejar e aplicar.
-
-**Como resolvemos:** o primeiro `apply` dessa camada é documentado em duas etapas. Duas alternativas foram avaliadas e descartadas: trazer um provider de terceiros para o projeto, e criar a Application fora do Terraform — o que tiraria do código justamente o objeto que demonstra o GitOps.
-
-### 8. Cinco pipelines gravando no mesmo arquivo se atropelaram
-
-O bloco de concorrência do GitHub não enfileira: mantém um em execução e um pendente, cancelando o pendente anterior a cada novo. E a estratégia de `rebase` conflitava no arquivo de tags, deixando o repositório travado no meio de um rebase.
-
-**Como resolvemos:** o laço que busca, descarta, reescreve e empurra a cada tentativa. Sem merge não há conflito possível.
-
-### 9. Um merge resolvido "escolhendo um lado" apagou código em silêncio
-
-Uma implementação paralela na branch principal tinha os mesmos nomes de arquivo dos nossos workflows. Resolver os trinta arquivos conflitantes dando prioridade a um dos lados descartou, sem aviso, o que o outro lado tinha de exclusivo: o suporte aos endpoints locais de fila e de tabela.
-
-**Como resolvemos:** a perda apareceu porque o teste de integração ficou vermelho logo em seguida, e o suporte foi restaurado no commit seguinte. Antes do merge havia sido criada uma tag de backup no remoto, o que tornava o erro reversível. **Quem mostra o que sumiu é o teste, não o diff.**
-
-### 10. "Está escrito" não é o mesmo que "funciona"
-
-Uma revisão encontrou falhas que o acompanhamento não mostrava, porque itens escritos estavam marcados igual a itens comprovados. Ao cortar do plano o operador que sincronizaria os segredos, o código substituto nunca foi escrito: os cinco Secrets referenciados pelos pods não eram criados por nada, e todos os serviços subiriam com erro de configuração de container.
-
-**Como resolvemos:** os Secrets passaram a nascer de um arquivo Terraform próprio, o Argo CD virou código de verdade, e o acoplamento invisível entre as duas partes virou um [contrato escrito de nomes e chaves](./gitops/SECRETS-CONTRATO.md).
-
-### Os menores, em uma linha cada
-
-| O que aconteceu | Como resolvemos |
-|---|---|
-| `kubectl kustomize` renderiza, mas não tem o subcomando `edit` que o CI usa | O runner instala o binário `kustomize` autônomo antes desse passo |
-| Uma versão da action de varredura nunca foi publicada; uma versão do analisador estático não compilava com o toolchain atual | Action fixada por hash de commit; analisador atualizado e com a versão de linguagem fixada no job |
-| Etiquetas com caixa diferente partiriam o relatório de custos em dois grupos | `project` e `phase` em minúsculas, aplicadas uma vez só pela configuração padrão do provider |
-| O disco do banco em pod travava esperando uma classe de armazenamento padrão | Driver de disco e classe `gp3` nascem do Terraform, e o StatefulSet pede a classe pelo nome |
-| Teto rígido no provider AWS conflitava com o módulo de rede da comunidade | Restrição sem teto e reprodutibilidade garantida pelo arquivo de lock versionado |
-| Analisadores reprovaram os cinco serviços na primeira execução | Achados reais corrigidos no código; falsos positivos com exceção pontual e justificativa na própria linha; nota do analisador subiu de 4,84–5,66 para 7,59–8,26 |
-| Documentação herdada mandava cadastrar chave estática da AWS nos segredos do GitHub | Reescrita: é exatamente a prática que esta fase eliminou |
-
----
-
-## ⚖️ Escopo e desvios conscientes
-
-Esta seção existe para o avaliador não precisar caçar o que falta: o escopo está delimitado, e cada desvio tem motivo verificável.
-
-**Legenda:** ✅ entregue · 🟡 desvio consciente, com justificativa · 💡 fora do escopo desta fase
-
-| Item | Situação | Justificativa |
+| Decisão | Por quê | Custo da escolha |
 |---|---|---|
-| Infraestrutura inteira em Terraform, estado remoto | ✅ | Três camadas, sete módulos próprios, estado no S3 com bloqueio |
-| Workflow por microsserviço com build, linter, SAST, SCA e varredura de imagem | ✅ | Nove workflows; a falha crítica impede a construção da imagem |
-| Imagens no ECR com a tag do commit | ✅ | `v1.0.0-<commit>`, e o overlay referencia só a tag imutável |
-| CD por GitOps, sem `kubectl apply` no pipeline | ✅ | Argo CD com sincronização automática, `prune` e `selfHeal` |
-| Três instâncias RDS | 🟡 | A conta **recusa** a terceira. Duas ficam no serviço gerenciado e a terceira roda como StatefulSet no cluster, com disco persistente — mesmo arranjo da Fase 2, confirmado com o professor |
-| Testes unitários | 🟡 | O passo existe no pipeline, mas **não há nenhum arquivo de teste unitário no repositório**. Existe teste de integração ponta a ponta em `scripts/integration/`, executado por workflow próprio — o que não substitui teste unitário. É a lacuna mais visível e está assumida como tal |
-| Criptografia em trânsito no Redis | 🟡 | Desligada por padrão: ligá-la sem trocar o esquema do endereço derruba o serviço na inicialização. Tráfego confinado à sub-rede privada |
-| `securityContext` nos manifestos | 🟡 | Não há. O não-root existe nos cinco Dockerfiles, via `USER app`, mas **não está declarado no Kubernetes** |
-| Ingress e Load Balancer | 💡 | O enunciado não menciona exposição externa em nenhuma das sete páginas. Um balanceador custaria US$ 16 a 20 por mês ligado. O acesso na demonstração é por encaminhamento de porta |
-| Múltiplos ambientes | 💡 | Um só, chamado `prod`. Cada ambiente extra multiplicaria o custo de cluster, bancos e cache |
-| Operador de sincronização de segredos | 💡 | Cortado. Os Secrets nascem direto do Terraform, o que entrega o mesmo resultado com uma peça a menos em execução |
-| Observabilidade, política como código, entrega progressiva | 💡 | Degraus naturais seguintes, fora do escopo desta entrega |
+| Três estados de Terraform | O destroy do cluster não pode levar ECR, imagens, fila e tabela junto; e os providers da camada k8s dependem do endpoint que o cluster cria | Ordem de aplicação a respeitar e valores literais repetidos nos `backend.tf` e `data.tf` |
+| 2 RDS e o banco do targeting em pod | O plano gratuito da conta recusa a terceira instância RDS | Um banco sem gerenciamento da AWS; exige driver EBS e StorageClass |
+| Sem Ingress nem Load Balancer | O enunciado não pede exposição externa, e um balanceador custaria cerca de US$ 16 a 20 por mês | Acesso por `port-forward` e ArgoCD sem webhook (consulta a cada 30s) |
+| OIDC no CI e IRSA nos pods | Ataca direto a dor das credenciais em texto; a Fase 2 tinha chave estática num Secret | Mais peças de IAM para entender |
+| Kustomize para as aplicações; Helm só para o ArgoCD | É nativo do kubectl e do ArgoCD, e o CI altera um único campo com diff auditável | Sem empacotamento parametrizável das aplicações |
+| Monorepo com a pasta `gitops/` | O commit de tag acontece no próprio repositório, sem token cruzado | O robô comita na `main` do repositório de código |
+| EKS 1.34 | A 1.31, padrão antigo, estava em suporte estendido: control plane de US$ 0,60/h contra US$ 0,10/h | Suporte padrão da 1.34 termina em 2026-12-01 |
+| Nós `c7i-flex.large` | O `t3.medium` foi recusado pela conta; o `t3.micro` comporta cerca de 4 pods por nó | Custo por nó maior que o previsto |
+| NAT desligável (`enable_nat_gateway`) | O NAT fica na base e custa US$ 0,045/h mesmo sem cluster | Sem NAT, os nós não baixam imagens |
+| External Secrets Operator cortado | Seria uma peça nova em execução no caminho crítico; o Terraform cria os Secrets direto | O Secret nasce fora do GitOps e não há rotação sincronizada |
+| `dev` → PR → `main`, com exceção do robô | Rastreabilidade do trabalho humano; um PR automático travaria a sincronização | Sincronizar a `dev` antes de começar |
+| Variável `create_github_oidc_provider` | A conta já tinha o provedor OIDC do GitHub, criado por outro projeto; com `false` ele só é lido, nunca destruído | Um valor a conferir em cada conta |
 
----
+## 6. Dificuldades e como superamos
 
-## 💰 Custo
+### 6.1 Pipeline verde com CVE crítico escondido
 
-Estimativa oficial levantada no AWS Pricing Calculator em **2026-09-11**, região `us-east-2`, com o ambiente **ligado o mês inteiro** — o cenário que o projeto deliberadamente evita:
+- **Sintoma:** os pipelines passavam verdes. Ao aplicar a regra de bloqueio ao pé da letra, o Trivy barrou o `CVE-2026-56854` (CRITICAL) em `golang.org/x/crypto` v0.20.0, no `auth-service`.
+- **Causa:** os passos de varredura usavam `continue-on-error: true`: registravam o achado e seguiam.
+- **Solução:** biblioteca atualizada para a v0.55.0 e job de imagem dependente das quatro verificações.
+- **Lição:** pipeline verde não prova que o código é seguro; prova só que ninguém configurou o pipeline para reclamar.
+- **Evidência:** [run 34360653255](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34360653255) e commit [0d6ad34](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/0d6ad34b2447858e23084243aea1edc6eb3939fc).
+
+### 6.2 O plano gratuito recusou o terceiro RDS e o `t3.medium`
+
+- **Sintoma:** a API respondeu `maximum number of instances available with free plan accounts` e `The specified instance type is not eligible for Free Tier`.
+- **Causa:** a conta está no plano gratuito, que aceita no máximo 2 instâncias RDS e só tipos elegíveis. É recusa da API, não alerta de custo.
+- **Solução:** 2 RDS e o banco do targeting como StatefulSet com disco EBS; nós `c7i-flex.large`. Combinado com o professor em 2026-08-27; comprovante escrito não localizado.
+- **Lição:** desvio literal do enunciado precisa de motivo verificável.
+- **Evidência:** commit [c7b28cf](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/c7b28cffe05ee9ff62477a87431f5d293767c4e6).
+
+### 6.3 A versão padrão do EKS custaria 6 vezes mais
+
+- **Sintoma:** o padrão estava em Kubernetes 1.31.
+- **Causa:** a 1.31 já estava em suporte estendido, com control plane a US$ 0,60/h em vez de US$ 0,10/h.
+- **Solução:** 1.34, conferida com `aws eks describe-cluster-versions`, em suporte padrão até 2026-12-01.
+- **Lição:** valor padrão de módulo envelhece, e o preço envelhece junto.
+- **Evidência:** commit [bdaecf1](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/bdaecf1a1be0684345d1caa553ab331d2e22b625).
+
+### 6.4 CVEs sem correção contra a regra literal
+
+- **Sintoma:** com `ignore-unfixed: false`, apareceram 3 CRITICAL sem correção no `perl-base` da imagem `python:3.12-slim`.
+- **Causa:** a opção `ignore-unfixed: true` escondia essa classe inteira de achados, inclusive os futuros.
+- **Solução:** medir antes de endurecer: Trivy nas imagens reais (Python com 3 CRITICAL, `alpine:3.20` com zero). Depois, `ignore-unfixed: false` nos 4 scans e as 3 exceções nominais no `.trivyignore`.
+- **Lição:** exceção nominal aparece no diff; opção global some em silêncio.
+- **Evidência:** [PR #6](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/pull/6), com os 5 serviços verdes na `main` já com a regra estrita.
+- **Complemento:** observado localmente em 2026-09-15: o Trivy 0.74 não leu pacotes listados depois de `setuptools<81` e `Werkzeug<3`. O CI (Trivy v0.70.0) detectou a PyYAML 5.3.1 mesmo com a linha no fim do arquivo ([run 34985289399](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34985289399)). Por precaução, o guia insere a linha na primeira posição.
+
+### 6.5 Cinco pipelines disputando o mesmo arquivo de tags
+
+- **Sintoma:** na primeira execução na `main`, 4 serviços falharam no job GitOps e um foi cancelado.
+- **Causa:** `concurrency` não forma fila (cancela o pendente anterior), e o `git pull --rebase` conflitava no `kustomization.yaml`.
+- **Solução:** o laço de 5 tentativas com `fetch`, `reset --hard`, `kustomize edit`, commit e push.
+- **Lição:** sem merge não há conflito, e a operação fica idempotente.
+- **Evidência:** commit [122174a](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/122174a802bb652807e716ca82a0eb6b3ca94d79).
+
+### 6.6 Um merge que "escolheu um lado" apagou código
+
+- **Sintoma:** depois do merge da `dev` na `main`, o Compose Integration falhou com "Analytics events missing".
+- **Causa:** resolver 30 conflitos com `-X theirs` descartou a leitura de `SQS_ENDPOINT` e `DYNAMODB_ENDPOINT`.
+- **Solução:** leitura restaurada no commit seguinte; a tag remota `backup/main-antes-do-hibrido` tornava o erro reversível.
+- **Lição:** quem mostra o que sumiu é o teste, não o diff.
+- **Evidência:** commit [364556a](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/364556a128994aaa5a3faafd1bd9694caa023273).
+
+### 6.7 "Escrito" não é o mesmo que "funciona"
+
+- **Sintoma:** uma revisão em 2026-09-09 achou itens marcados como prontos que nunca rodariam.
+- **Causa:** ao cortar o External Secrets Operator, os 5 Secrets não eram criados por nada; o ArgoCD existia só em comentário; os RDS nasceriam sem tabelas.
+- **Solução:** `terraform/k8s/secrets.tf` e `argocd.tf`, o contrato [SECRETS-CONTRATO.md](gitops/SECRETS-CONTRATO.md), `storageClassName` explícito e o passo de schema documentado.
+- **Lição:** acompanhamento precisa separar "escrito" de "comprovado".
+- **Evidência:** commits [f442057](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/f442057357822780080a9b0e897394bdb57c5d4e) e [8779af4](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/8779af438528cd995f35c7656dafa703aed21e60).
+
+### 6.8 O CRD do ArgoCD exige aplicar em duas etapas
+
+- **Sintoma:** o primeiro `plan` da camada k8s falhava.
+- **Causa:** o recurso da Application valida o tipo contra o cluster já no planejamento, e o tipo só existe depois que o chart é instalado. `depends_on` não resolve ordem entre `plan` e `apply`.
+- **Solução:** etapa A com `-target=helm_release.argocd`, depois o plano completo. Um provider de terceiros e criar a Application fora do Terraform foram descartados.
+- **Lição:** dependência entre recursos não resolve o que o plano precisa ler do cluster.
+- **Evidência:** [`terraform/k8s/argocd.tf`](terraform/k8s/argocd.tf) e [guia, seção 7](docs/GUIA_DE_REPRODUCAO.md#7-camada-k8s-e-argocd).
+
+### 6.9 Provedor OIDC de outro projeto na mesma conta
+
+- **Sintoma:** em 2026-09-14, antes da recriação, a conta já tinha o provedor `token.actions.githubusercontent.com`, criado por outro projeto.
+- **Causa:** criar outro falharia com `EntityAlreadyExists`, e o `plan` não avisa, porque só compara com o estado.
+- **Solução:** a variável `create_github_oidc_provider`; com `false`, um data source só lê o provedor. Importar faria o destroy apagar o provedor alheio.
+- **Lição:** `plan` limpo não garante `apply` limpo quando há recursos fora do estado.
+- **Evidência:** commit [b78f6bd](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/b78f6bd4d0620e4ba07fe2ba9ff6b09cadb26d41) e [PR #15](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/pull/15).
+
+### 6.10 A recriação do zero em 2026-09-15
+
+- **Sintoma:** o ECR nasceu vazio e as tags do overlay apontavam para imagens inexistentes; depois, o `kubectl` falava com o endpoint do cluster antigo.
+- **Causa:** a base, e com ela o ECR, tinha sido destruída em 2026-09-11; o kubeconfig local ainda guardava o cluster anterior.
+- **Solução:** imagens republicadas com `gh run rerun` dos últimos runs de push na `main`; ordem base, imagens, cluster, k8s; `aws eks update-kubeconfig` antes do `kubectl`. Aplicar a k8s antes das imagens deixaria os pods em `ImagePullBackOff`.
+- **Lição:** a ordem de subida faz parte do código de infraestrutura, e precisa estar escrita.
+- **Evidência:** commit do robô [3a193c4](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/3a193c43fecb9cf892148ae829a94b4439deb627); demonstração completa no [PR #16](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/pull/16) e no commit [a0c7b8e](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/a0c7b8e06f9e12da5bc838d64ead841e1f91072f), que o ArgoCD sincronizou sozinho.
+
+### Menores, em uma linha cada
+
+| O que aconteceu | Como foi resolvido |
+|---|---|
+| A correção do `x/crypto` elevou o Go para 1.25 e quebrou Dockerfile, SAST e linter em cascata | Todos os pontos que fixam versão atualizados juntos ([cc80c4e](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/cc80c4e30fd2f71cbfe4db35c2bfac781dbe864f)) |
+| A primeira execução dos pipelines falhou: `trivy-action@0.28.0` não existe, gosec antigo não compilava, achados reais | Action fixada por SHA, gosec v2.29.0, achados corrigidos; nota do pylint de 4,84–5,66 para 7,59–8,26 |
+| Recursos da Fase 2 com os mesmos nomes colidiram no primeiro apply da base (`RepositoryAlreadyExists`) | Recursos antigos apagados; o apply seguinte criou só o que faltava |
+| Sincronização do ArgoCD lenta demais para a demonstração (180s) | Intervalo reduzido para 30s ([2b6bbea](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/2b6bbea9f68a29a36593b5a689f1fc26732cfcf9)) |
+| O PowerShell 5.1 não aceita `&&` nem barra invertida de continuação | Comandos executados no Git Bash |
+| Colar um bloco com `terraform apply` interativo fez a linha seguinte virar a resposta do "yes" | Sempre `plan -out` e `apply` do arquivo |
+| Um `git add` de tudo levou arquivos não revisados e a trava do PowerPoint para a `main` ([06f97c6](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/06f97c6831f4967ede1d780f3bf18deca8fa1aeb)) | Adicionar só caminhos revisados |
+| A gravação de 2026-09-11 saiu sem áudio | Nova gravação em 2026-09-15 |
+| Destruir a camada k8s fez o driver EBS apagar o disco de 5 GB do PVC | Comportamento esperado: o disco não pertence a nenhum estado e precisa sumir |
+
+## 7. Escopo e desvios conscientes
+
+O escopo está delimitado, e cada desvio tem motivo verificável.
+
+| Requisito ou tema | Como foi atendido | Status |
+|---|---|---|
+| Infraestrutura em Terraform, com módulos e estado remoto | Três camadas, 7 módulos próprios e o de VPC da comunidade; S3 com `use_lockfile` | ✅ |
+| VPC, EKS, node group, ElastiCache, DynamoDB, SQS e ECR | Criados pelas camadas base e cluster | ✅ |
+| 3 instâncias RDS PostgreSQL | 2 RDS e o terceiro banco como StatefulSet; combinado com o professor em 2026-08-27; comprovante escrito não localizado | ⚠️ |
+| Workflow por serviço com build, linter, SAST e SCA | 5 chamadores e 2 reutilizáveis, com filtro de caminho | ✅ |
+| Testes unitários | O passo existe, mas não há arquivos de teste unitário; há integração ponta a ponta | ⚠️ |
+| Bloqueio de vulnerabilidade crítica | `exit-code 1`, `needs` e imagem `skipped` | ✅ |
+| Imagem varrida e publicada no ECR com a tag do commit | Scan antes do push; tag `v1.0.0-<sha7>` | ✅ |
+| CI atualiza a tag no repositório GitOps | O robô altera o `kustomization.yaml` do overlay, não o `deployment.yaml`; o efeito é o mesmo | ⚠️ |
+| ArgoCD via Terraform com sincronização automática | Helm pelo Terraform; `prune` e `selfHeal`; demonstrado em 2026-09-15 | ✅ |
+| Exposição externa | Sem Ingress nem Load Balancer; acesso por `port-forward` | ⚠️ |
+| Sincronização de segredos por operador | External Secrets Operator cortado; Secrets criados pelo Terraform | ⚠️ |
+| Criptografia em trânsito no Redis | Desligada; ligar exige trocar `redis://` por `rediss://` junto | ⚠️ |
+| `securityContext` nos manifestos | Não há; o não-root existe só nos Dockerfiles (`USER app`) | ⚠️ |
+
+## 8. Custo
+
+Manter o ambiente ligado o mês inteiro custa caro; por isso ele sobe para a sessão e é destruído em seguida. Estimativa oficial do AWS Pricing Calculator em 2026-09-11, região `us-east-2`, ambiente ligado 730 horas:
 
 | Serviço | Configuração | Mensal |
 |---|---|---:|
-| Amazon EKS | 1 cluster Kubernetes 1.34, suporte padrão | US$ 73,00 |
-| Amazon EC2 | 2 × `c7i-flex.large`, sob demanda, 20 GB por nó | US$ 126,99 |
-| Amazon RDS PostgreSQL | 2 × `db.t3.micro`, zona única, 20 GB gp3 | US$ 30,88 |
-| Amazon ElastiCache | 1 × Redis `cache.t3.micro` | US$ 12,41 |
-| Amazon VPC | 1 NAT Gateway, 1 IP público, 1 GB processado | US$ 36,54 |
+| Amazon EKS | 1 cluster, suporte padrão | US$ 73,00 |
+| Amazon EC2 | 2 × `c7i-flex.large`, sob demanda | US$ 126,99 |
+| Amazon RDS PostgreSQL | 2 × `db.t3.micro`, 20 GB gp3 | US$ 30,88 |
+| Amazon ElastiCache | 1 × `cache.t3.micro` | US$ 12,41 |
+| Amazon VPC | 1 NAT Gateway e 1 IP público | US$ 36,54 |
 | Amazon EBS | 1 volume gp3 de 5 GB | US$ 0,40 |
-| AWS Secrets Manager | 2 segredos e 1.000 chamadas | US$ 0,81 |
-| **Total mensal (730 horas)** | | **US$ 281,03** |
-| **Total em 12 meses** | sem desconto | **US$ 3.372,36** |
+| AWS Secrets Manager | 2 segredos | US$ 0,81 |
+| **Total** | | **US$ 281,03/mês** |
 
-📎 [Captura da estimativa](./docs/evidencias/estimativa-custos-aws-2026-09-11.png) · [Memória de cálculo](./docs/RELATORIO_DE_ENTREGA.md)
+Captura: [estimativa-custos-aws-2026-09-11.png](docs/evidencias/estimativa-custos-aws-2026-09-11.png).
 
-### Por que o ambiente é efêmero
+- **Por sessão:** cerca de US$ 0,39/h com tudo ligado (preços de 2026-09-11). O NAT Gateway sozinho custa US$ 0,045/h e já começa a cobrar no apply da base.
+- **Duas economias de decisão:** EKS 1.34 em suporte padrão e nenhum balanceador de carga.
+- **Destruição medida em 2026-09-15:** camada k8s com 13 recursos em 1m04s; cluster com 35 recursos (RDS cerca de 2 min, EKS cerca de 3 min, ElastiCache 4m17s); base com 35 recursos em 1m40s.
+- Em 2026-09-15, depois da destruição, restavam na conta só o bucket de estado e uma VPC da Fase 2, com exclusão pendente.
 
-US$ 281,03 divididos por 730 horas dão cerca de **US$ 0,385 por hora**. A conta tem crédito limitado, então a regra do projeto é direta: **a camada que cobra por hora sobe para a sessão de trabalho e é destruída em seguida**. Uma sessão de três horas custa cerca de **US$ 1,15** — dois centésimos de um mês inteiro ligado.
+## 9. Como reproduzir
 
-Ficam de pé permanentemente apenas os recursos de custo desprezível: repositórios de imagem, fila, tabela e o bucket de estado. **Com uma ressalva importante:** o NAT Gateway também vive na camada permanente e, esquecido ligado, custa cerca de US$ 33 por mês sozinho. Por isso ele tem uma variável dedicada, e o exemplo versionado já vem com ela desligada.
+A recriação completa, com comandos testados, está no [guia de reprodução](docs/GUIA_DE_REPRODUCAO.md). Em outra conta AWS não é preciso mudar código: basta trocar os valores fixos indicados na tabela do guia.
 
-> 💡 **Duas economias que saíram de decisão, não de sorte.** A versão 1.34 do Kubernetes mantém o control plane em US$ 0,10/h — fora do suporte padrão seriam US$ 0,60/h, seis vezes mais. E a ausência de balanceador de carga poupa outros US$ 16 a 20 por mês.
+1. [Caminho rápido](docs/GUIA_DE_REPRODUCAO.md#caminho-rápido): os passos em uma linha cada.
+2. [Antes de começar](docs/GUIA_DE_REPRODUCAO.md#0-antes-de-começar) e [pré-requisitos e sua cópia do repositório](docs/GUIA_DE_REPRODUCAO.md#1-pré-requisitos-e-sua-cópia-do-repositório).
+3. [Valores fixos a trocar em outra conta](docs/GUIA_DE_REPRODUCAO.md#2-valores-fixos-a-trocar-em-outra-conta).
+4. [Bucket de estado do Terraform](docs/GUIA_DE_REPRODUCAO.md#3-bucket-de-estado-do-terraform).
+5. [Camada base](docs/GUIA_DE_REPRODUCAO.md#4-camada-base).
+6. [Publicação das imagens no ECR](docs/GUIA_DE_REPRODUCAO.md#5-publicação-das-imagens-no-ecr).
+7. [Camada cluster e endpoints do overlay](docs/GUIA_DE_REPRODUCAO.md#6-camada-cluster-e-endpoints-do-overlay).
+8. [Camada k8s e ArgoCD](docs/GUIA_DE_REPRODUCAO.md#7-camada-k8s-e-argocd).
+9. [Schemas, chave de serviço e dados de exemplo](docs/GUIA_DE_REPRODUCAO.md#8-schemas-chave-de-serviço-e-dados-de-exemplo).
+10. [Verificação ponta a ponta](docs/GUIA_DE_REPRODUCAO.md#9-verificação-ponta-a-ponta).
+11. [Destruição e checagem de custo](docs/GUIA_DE_REPRODUCAO.md#10-destruição-e-checagem-de-custo).
 
----
+Para ver a aplicação sem AWS, basta Docker Compose (detalhes no [Apêndice A do guia](docs/GUIA_DE_REPRODUCAO.md#apêndice-a-execução-local-com-docker-compose)):
 
-## 📁 Estrutura do repositório
+```bash
+# Copia o modelo de variáveis locais, que só tem valores fictícios
+cp .env.example .env
+# Constrói as 5 imagens e sobe os serviços, os bancos, o Redis e o DynamoDB Local
+docker compose up --build -d
+# Confere se os contêineres ficaram saudáveis
+docker compose ps
+# Pergunta ao auth-service se ele está respondendo
+curl http://localhost:8001/health
+# Roda o fluxo ponta a ponta com o simulador Moto para SQS e DynamoDB (Linux ou WSL)
+bash scripts/test-compose.sh
+# Derruba o projeto de integração e apaga só os volumes dele
+docker compose --env-file .env.example -p tc03-integration -f docker-compose.yaml -f docker-compose.integration.yaml down -v
+```
+
+Os `README.md` dentro de `services/` são herança da Fase 2 e estão desatualizados. Em caso de divergência, o guia prevalece.
+
+## 10. Estrutura do repositório
 
 ```text
 tech-challenge-03/
-│
-├── 📂 .github/workflows/           # ⚙️ CI, DevSecOps e validação — 9 arquivos
-│   ├── 📄 _ci-go.yml               #    esteira reutilizável: 6 jobs, serviços em Go
-│   ├── 📄 _ci-python.yml           #    esteira reutilizável: 6 jobs, serviços em Python
-│   ├── 📄 auth-service.yml         #    1 chamador por microsserviço (5 no total),
-│   │                               #    com filtro de caminho para não rodar à toa
-│   ├── 📄 terraform-check.yml      #    fmt e validate nas três camadas
-│   └── 📄 compose-integration.yml  #    fluxo ponta a ponta dos 5 serviços, sem AWS
-│
-├── 📂 terraform/                   # 🧱 camada BASE — permanente
-│   ├── 📄 backend.tf               #    estado em prod/base.tfstate, no S3
-│   ├── 📄 main.tf                  #    composição: VPC, ECR, fila, tabela, federação
-│   ├── 📂 modules/                 #    7 módulos próprios: ecr, eks, elasticache,
-│   │                               #    iam-ci, irsa, messaging, rds
-│   ├── 📂 cluster/                 # ⚡ camada CLUSTER — efêmera: EKS, nós, RDS, Redis
-│   ├── 📂 k8s/                     # 🔐 camada K8S — Secrets, StorageClass, Argo CD
-│   ├── 📄 README.md                #    as três camadas explicadas em detalhe
-│   └── 📄 BOOTSTRAP-BACKEND-S3.md  #    como o bucket de estado foi criado
-│
-├── 📂 gitops/                      # ☸️ o que o Argo CD observa
-│   ├── 📂 base/                    #    o que não muda: 5 serviços + o banco em pod
-│   ├── 📂 overlays/prod/           #    tags das imagens, endereços e identidades
-│   ├── 📄 README.md                #    índice da pasta e como a tag chega aqui
-│   └── 📄 SECRETS-CONTRATO.md      #    nomes e chaves que ligam Terraform e manifestos
-│
-├── 📂 services/                    # 🔧 os 5 microsserviços — herdados da Fase 2
-│   ├── 📂 auth-service/            #    🚀 Go · porta 8001 · banco gerenciado
-│   ├── 📂 flag-service/            #    🐍 Python · porta 8002 · banco gerenciado
-│   ├── 📂 targeting-service/       #    🐍 Python · porta 8003 · banco em pod
-│   ├── 📂 evaluation-service/      #    🚀 Go · porta 8004 · cache e fila
-│   └── 📂 analytics-service/       #    🐍 Python · porta 8005 · fila e tabela
-│
-├── 📂 scripts/                     # 🧰 validação local, varredura de segredos,
-│   └── 📂 integration/             #    teste ponta a ponta e geração do relatório
-│
-├── 📂 infra/postgres-app/          #    inicialização dos bancos no ambiente local
-│
-├── 📂 docs/
-│   ├── 📄 ARQUITETURA.md           # 🏛️ diagramas, decisões e o porquê de cada uma
-│   ├── 📄 OPERACAO.md              # 🛠️ subir, semear, verificar e derrubar o ambiente
-│   ├── 📄 RELATORIO_DE_ENTREGA.md  # 📄 fonte do relatório preliminar exigido
-│   ├── 📂 evidencias/              # 🖼️ captura da estimativa de custos
-│   ├── 📄 POSTECH - Tech Challenge - Fase 3.pdf   # o enunciado
-│   ├── 📂 01_ … 05_/               # 🎓 material das aulas que fundamentam a fase
-│   └── 📂 00_COLAB_IA/             # 🤝 registros de apoio à condução do projeto
-│
-├── 📂 output/pdf/                  # 🗂️ PDF preliminar pronto para revisão
-│
-├── 📄 docker-compose.yaml          # sobe os 5 serviços e os bancos na sua máquina
-├── 📄 docker-compose.integration.yaml  # acrescenta o simulador local de fila e tabela
-├── 📄 .env.example                 # modelo do .env — só valores locais e públicos
-├── 📄 .trivyignore                 # as 3 exceções de segurança, nominais e justificadas
-├── 📄 .pylintrc                    # regras de estilo desligadas, com motivo por regra
-└── 📄 SECURITY.md                  # o que nunca é versionado, e como autenticamos
+├── .github/workflows/       # 5 pipelines de serviço, 2 reutilizáveis, Terraform Check e Compose Integration
+├── terraform/               # camada base: VPC, ECR, SQS, DynamoDB, OIDC e role do CI
+│   ├── cluster/             # camada cluster: EKS, RDS, ElastiCache e IRSA
+│   ├── k8s/                 # camada k8s: Secrets, StorageClass e ArgoCD
+│   └── modules/             # ecr, eks, elasticache, iam-ci, irsa, messaging e rds
+├── gitops/                  # o que o ArgoCD observa
+│   ├── base/                # 5 serviços e o banco do targeting
+│   ├── overlays/prod/       # tags das imagens, endpoints e anotações IRSA
+│   └── SECRETS-CONTRATO.md  # nomes e chaves que ligam Terraform e manifestos
+├── services/                # os 5 microsserviços (Go e Python)
+├── scripts/                 # teste de integração, validação local e checagem de segredos
+├── infra/postgres-app/      # inicialização dos bancos no Docker Compose
+├── docs/
+│   ├── GUIA_DE_REPRODUCAO.md
+│   ├── ARQUITETURA.md
+│   ├── RELATORIO_DE_ENTREGA.md
+│   ├── POSTECH - Tech Challenge - Fase 3.pdf
+│   ├── evidencias/          # captura da estimativa de custo
+│   ├── apresentacao/        # slides do vídeo
+│   └── aulas-fiap/          # material das aulas da fase
+├── docker-compose.yaml      # execução local
+├── docker-compose.integration.yaml
+├── .env.example             # modelo do .env, só com valores locais
+├── .trivyignore             # as 3 exceções de segurança, com justificativa
+└── SECURITY.md              # política de credenciais
 ```
 
----
-
-## 👥 Time
-
-Projeto desenvolvido para a **Fase 3 do Tech Challenge** da pós-graduação em **DevOps e Arquitetura Cloud** — POSTECH FIAP.
+## Integrantes
 
 **Grupo 203:**
 
@@ -761,12 +450,4 @@ Projeto desenvolvido para a **Fase 3 do Tech Challenge** da pós-graduação em 
 | João Carlos da Silva Brito | RM371738 | [@Durmiand](https://github.com/Durmiand) |
 | João Gabriel da Cruz Sales | RM372444 | [@jgabrieldev1](https://github.com/jgabrieldev1) |
 
----
-
-<div align="center">
-
 **Se não está no código, não existe.**
-
-Feito com ☕, Terraform e muita leitura de log de pipeline.
-
-</div>

@@ -83,6 +83,11 @@ desktop.ini
 .vscode/
 *.swp
 *~
+# Travas temporarias do Microsoft Office (ex.: ~$Apresentacao.pptx). Contem
+# o nome do usuario e nao servem para nada fora da maquina de quem abriu.
+~$*
+# Saida de geradores locais (ex.: PDFs de rascunho). Nao e fonte do projeto.
+output/
 
 # Pasta de rascunho de execucao. Apareceu em 2026-09-11 com um script de
 # captura de tela dentro; o script foi promovido para scripts/ e a pasta

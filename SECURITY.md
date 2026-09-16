@@ -1,8 +1,13 @@
 # Política de segurança
 
 Este projeto foi construído sobre uma premissa: **nenhuma credencial estática
-existe em lugar nenhum** — nem no repositório, nem nos segredos do GitHub, nem
-dentro do cluster.
+de nuvem**. O pipeline de CI entra na AWS por OIDC e os pods, por IRSA. Não há
+chave de acesso da AWS no repositório, nos segredos do GitHub nem dentro do
+cluster.
+
+Os segredos de aplicação (`MASTER_KEY` e `SERVICE_API_KEY`) e as senhas dos
+bancos existem, mas são gerados pelo Terraform, entregues por Secret do
+Kubernetes e ficam guardados no estado do Terraform. Nunca vão para o Git.
 
 ## Como as credenciais funcionam aqui
 
@@ -12,8 +17,10 @@ dentro do cluster.
 | Os pods, para usar a fila e a tabela | Identidade de conta de serviço (IRSA): cada pod recebe credencial temporária ligada à sua própria conta de serviço | Chave de acesso dentro de um Secret do Kubernetes |
 | As aplicações, para falar com os bancos | Senhas geradas pelo Terraform, entregues por Secret do Kubernetes | Senha escrita à mão em arquivo |
 
-A política de confiança da role do CI é restrita a este repositório: um token
-vindo de qualquer outro repositório do GitHub é recusado.
+A política de confiança da role do CI aceita apenas tokens deste repositório:
+um token vindo de qualquer outro repositório do GitHub é recusado. Dentro do
+repositório, ela aceita qualquer branch ou pull request. Quem limita a
+publicação de imagens à `main` é a condição dos jobs no workflow, não a AWS.
 
 ## Nunca versionar
 
@@ -23,19 +30,20 @@ vindo de qualquer outro repositório do GitHub é recusado.
 - `.env`, `terraform.tfstate`, `*.tfvars`, kubeconfig, certificados ou tokens
 
 O arquivo de estado do Terraform merece atenção especial: ele guarda as senhas
-dos bancos **em texto puro**. É por isso que o estado vive num bucket S3 com
-criptografia e versionamento, e nunca no disco de quem aplica.
+dos bancos e os segredos de aplicação **em texto puro**. É por isso que o
+estado vive num bucket S3, e nunca no disco de quem aplica. O bucket é
+privado, versionado, criptografado e só aceita conexões TLS; a criação está em
+[`docs/GUIA_DE_REPRODUCAO.md`](docs/GUIA_DE_REPRODUCAO.md#3-bucket-de-estado-do-terraform).
 
 ## Antes de cada push
 
 ```bash
-# Varre os arquivos versionados atrás de chaves da AWS, chaves privadas e
-# atribuições suspeitas de segredo. Sai com erro se encontrar algo.
+# Varre os arquivos versionados atrás de chaves da AWS, chaves privadas e atribuições suspeitas de segredo; sai com erro se encontrar algo
 ./scripts/security-check.sh
 ```
 
 ```bash
-# Leia o que você está prestes a enviar. É a verificação mais barata que existe.
+# Mostra o que está prestes a ser enviado; é a verificação mais barata que existe
 git diff --cached
 ```
 

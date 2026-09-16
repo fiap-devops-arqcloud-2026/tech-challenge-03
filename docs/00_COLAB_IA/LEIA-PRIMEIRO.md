@@ -1,29 +1,39 @@
 # LEIA-PRIMEIRO
 
-TL;DR: leia este arquivo antes de qualquer acao no repo. O contexto compartilhado fica em `docs/00_COLAB_IA/`. Depois leia `PENDENCIAS_E_PROXIMOS_PASSOS.md`, o topo de `LOG_DE_TRABALHO.md` e apenas as secoes relevantes de `DOSSIE_CONTEXTO.md`/`DECISOES.md`.
+TL;DR: esta pasta é a memória de trabalho do projeto, usada por pessoas e assistentes de IA. Leia este arquivo antes de qualquer ação no repositório.
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Última atualização: 2026-09-15 19:03 -03:00, Claude.
+
+## Estado
+
+Projeto entregue. O ambiente AWS foi recriado do zero, demonstrado e destruído em 2026-09-15. A documentação pública foi consolidada no mesmo dia. O que segue aberto está em [PENDENCIAS_E_PROXIMOS_PASSOS.md](PENDENCIAS_E_PROXIMOS_PASSOS.md).
 
 ## Ordem de leitura
 
-1. `docs/00_COLAB_IA/LEIA-PRIMEIRO.md`
-2. `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`
-3. Topo de `docs/00_COLAB_IA/LOG_DE_TRABALHO.md`
-4. Secoes relevantes de `docs/00_COLAB_IA/DOSSIE_CONTEXTO.md`
-5. Decisoes relacionadas em `docs/00_COLAB_IA/DECISOES.md`
+1. [INSTRUCOES_ASSISTENTES.md](INSTRUCOES_ASSISTENTES.md): estado, regras permanentes, gatilhos de CI e mapa da documentação.
+2. [PENDENCIAS_E_PROXIMOS_PASSOS.md](PENDENCIAS_E_PROXIMOS_PASSOS.md): o que falta e quem decide.
+3. [DECISOES.md](DECISOES.md): decisões numeradas, a mais nova no topo (última: D-024).
+4. Topo de [LOG_DE_TRABALHO.md](LOG_DE_TRABALHO.md): o que foi feito, a entrada mais nova primeiro.
+5. [ORGANIZACAO_DE_PASTAS.md](ORGANIZACAO_DE_PASTAS.md): só quando for criar, mover ou arquivar arquivos.
 
-## Ritual de sessao
+## Documentos públicos centrais
 
-- Descobrir data e hora atuais antes de registrar qualquer fato temporal.
-- Conferir `git status --short` antes de editar.
-- Atualizar o log de forma incremental em tarefas nao triviais.
-- Ao terminar, atualizar pendencias, decisoes e dossie quando houver mudanca estrutural.
-- Fazer o teste de handoff: outro agente conseguiria continuar lendo apenas LOG + PENDENCIAS?
+| Documento | Responde |
+|---|---|
+| [README.md](../../README.md) | O quê e por quê: intuito, arquitetura, decisões, dificuldades, escopo, custo e integrantes |
+| [docs/GUIA_DE_REPRODUCAO.md](../GUIA_DE_REPRODUCAO.md) | Como: comandos, tempos medidos, valores a trocar em outra conta e armadilhas |
+| [docs/ARQUITETURA.md](../ARQUITETURA.md) | Referência técnica: serviços, recursos, pipeline, identidade e segredos |
+| [docs/RELATORIO_DE_ENTREGA.md](../RELATORIO_DE_ENTREGA.md) | Relatório exigido pela FIAP (só se alinha, não se reescreve) |
 
-## Protocolo de conflito
+Documento público nunca cita IA, assistentes, esta pasta nem códigos internos (D-0xx, P-0xx, F-0xx).
 
-Se encontrar contradicao entre arquivos, nao sobrescreva. Registre `CONFLITO`, descreva as duas versoes e pergunte ao usuario.
+## Arquivo morto
 
-## Regra de ouro
+[_ARQUIVO_MORTO/](_ARQUIVO_MORTO/) guarda versões substituídas, com a data no nome. O conteúdo arquivado é só leitura: não se edita, nem para consertar link quebrado. Para mudar algo, crie um documento novo fora dele e registre o de-para no LOG.
 
-Quem encerra a sessao deixa o projeto pronto para outro agente assumir sem pedir ao usuario informacoes ja conhecidas.
+## Ritual de sessão
+
+- Conferir data e hora antes de registrar fato temporal; todo número medido leva data.
+- Conferir `git status --short` e a branch antes de editar; sincronizar a `dev` com a `main`.
+- Se dois arquivos se contradizem, não sobrescrever: registrar `CONFLITO` e perguntar ao usuário.
+- Ao terminar, atualizar LOG, PENDENCIAS e, se houver decisão nova, DECISOES.

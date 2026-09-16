@@ -81,6 +81,10 @@ variable "gitops_repo_branch" {
   default     = "main"
 }
 
+# O passo a passo do token fine-grained (so para copia privada do
+# repositorio) esta em docs/GUIA_DE_REPRODUCAO.md, secao 7 (Camada k8s e
+# ArgoCD). Ele substitui o RUNBOOK-SESSAO.md citado na descricao abaixo;
+# o texto da descricao nao foi alterado para nao mudar codigo.
 variable "github_token" {
   description = <<-EOT
     Token de leitura do repositorio, para o ArgoCD conseguir clonar.

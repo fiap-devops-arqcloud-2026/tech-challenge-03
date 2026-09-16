@@ -1,171 +1,148 @@
-# Instrucoes para assistentes de IA
+# Instruções para assistentes de IA
 
-Este arquivo reune as instrucoes detalhadas que antes ficavam em `CLAUDE.md` e
-`AGENTS.md`, na raiz do repositorio. Elas foram movidas para ca em 2026-09-11
-durante a reorganizacao da documentacao. Em 2026-09-14, o repositorio continua
-privado. O `CLAUDE.md` curto da raiz apenas aponta para este arquivo.
+TL;DR: o projeto foi entregue e o ambiente AWS não existe mais. Qualquer trabalho agora é de documentação ou de manutenção leve. Antes de editar, confira a Parte 3: tocar em `services/**` ou `.github/workflows/**` dispara pipelines que falham sem a role da AWS.
 
-**Consequencia pratica:** o `CLAUDE.md` da raiz deve ser mantido, pois permite
-que o Claude Code encontre automaticamente estas instrucoes.
-
-A documentacao do projeto em si esta no [README](../../README.md), em
-[docs/ARQUITETURA.md](../ARQUITETURA.md) e em [docs/OPERACAO.md](../OPERACAO.md).
+Última atualização: 2026-09-15 19:03 -03:00, Claude. Substitui a versão de 2026-09-14, arquivada em [_ARQUIVO_MORTO/INSTRUCOES_ASSISTENTES_2026-09-14.md](_ARQUIVO_MORTO/INSTRUCOES_ASSISTENTES_2026-09-14.md) (lá estão os antigos `CLAUDE.md` e `AGENTS.md` fundidos). Não existem `CLAUDE.md` nem `AGENTS.md` na raiz.
 
 ---
 
-## Parte 1 - contexto de colaboracao (era o CLAUDE.md)
+## Parte 1. Estado em 2026-09-15
 
-## Estado atual - 2026-09-14 10:20 -03:00, Codex
+- **Entrega:** FIAP POSTECH, Tech Challenge Fase 3, Grupo 203, prazo 2026-09-15 (D-006). Repositório **público**: https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03
+- **Vídeo:** regravado em 2026-09-15 (a gravação de 2026-09-11 saiu sem áudio). O link ainda é o marcador `PREENCHER_URL_DO_VIDEO` no README e no relatório.
+- **Ambiente AWS:** recriado do zero e destruído em 2026-09-15, na ordem k8s, cluster, base. Os três estados do Terraform estão vazios.
+- **Sobras na conta, com exclusão pendente do usuário** (bloqueada por permissão no fim do dia 2026-09-15):
+  - bucket de estado `togglemaster-tfstate-891376952395-us-east-2-an`;
+  - uma VPC da Fase 2.
+- **Já limpos em 2026-09-15:** log groups de RDS da Fase 2 sem expiração, a VPC da Fase 1 e as roles IAM da Fase 2.
+- **Últimas evidências:** run 34985289399 (SCA falhou com CVE-2020-14343 CRITICAL), run 34985477955 (verde), PR #16, run 34997028995 (publicação na `main`) e commit do robô a0c7b8e (flag-service `v1.0.0-a509d67`). O ArgoCD sincronizou sozinho e o selfHeal reverteu um `kubectl scale`.
+- **Documentação:** consolidada em 2026-09-15 (D-024). Ver a Parte 4.
+- **Integrantes:** os 5 do Grupo 203 estão na tabela do README; a confirmação da composição segue pendente (P-103).
 
-TL;DR: trabalhar na `dev` e promover mudancas humanas por PR para a `main`
-(D-020). `dev` e `main` locais possuem a mesma arvore no commit de merge
-`c60e792`; `origin/dev` esta apenas um merge commit atras de `origin/main`.
-A AWS foi integralmente desmontada em 2026-09-11 e revalidada vazia em
-2026-09-14. O relatorio FIAP foi refeito como versao preliminar curta; faltam o
-video, a confirmacao dos participantes e o acesso do avaliador ao repo privado.
+### Fatos do projeto que valem para qualquer sessão
 
-O CI de integracao e a validacao Terraform estao verdes no conteudo atual. A
-ultima publicacao do `flag-service` falhou somente na autenticacao OIDC porque
-a role, o provedor e o ECR foram removidos no encerramento da AWS. Antes de um
-novo ensaio, recriar base, imagens, cluster e k8s, atualizar o endpoint Redis,
-executar schemas/seed e capturar a nova tag sendo sincronizada pelo ArgoCD.
+- **Serviços:** auth e evaluation em Go 1.25; flag, targeting e analytics em Python 3.12. Portas 8001 a 8005. Monorepo (D-007).
+- **Conta:** AWS pessoal (não AWS Academy), região `us-east-2`, tags `project=fiap` e `phase=3` em minúsculas via `default_tags` (D-009).
+- **Terraform em três camadas, estado no S3 com `use_lockfile`:**
+  - `terraform/` (base): VPC com 1 NAT, 5 ECR, SQS com DLQ, DynamoDB `ToggleMasterAnalytics`, OIDC e role do CI. Chave `prod/base.tfstate`.
+  - `terraform/cluster/`: EKS 1.34 com 2 `c7i-flex.large`, 2 RDS PostgreSQL 16, ElastiCache redis7, IRSA. Chave `prod/cluster.tfstate`.
+  - `terraform/k8s/`: ArgoCD (chart 7.7.11), Application, 5 Secrets, StorageClass gp3. Chave `prod/k8s.tfstate`.
+- **CI:** 5 workflows chamadores e 2 reutilizáveis. Só CRITICAL bloqueia (`exit-code 1`, `ignore-unfixed: false`, exceções nominais no `.trivyignore`). O scan da imagem vem antes do push. Tag `v1.0.0-<sha7>`. O robô grava a tag no overlay com `[skip ci]`, num laço de 5 tentativas.
+- **GitOps:** Kustomize com base e overlay `prod` (23 objetos). ArgoCD com `automated`, `prune` e `selfHeal`, reconciliação a cada 30 s. Sem Ingress: acesso por `port-forward`.
+- **Desvios conscientes:** 2 RDS e o banco do targeting em StatefulSet (D-015; combinado com o professor em 2026-08-27, comprovante escrito não localizado); sem Ingress (D-012); ESO cortado (D-018); sem testes unitários Python; Redis sem TLS em trânsito.
+- **Custo:** US$ 281,03/mês (730 h) na estimativa oficial de 2026-09-11; cerca de US$ 0,39/h por sessão; NAT Gateway a US$ 0,045/h.
 
-Os pushes automaticos de tags GitOps diretamente na `main` sao a excecao
-intencional D-021. O GitHub ainda nao possui protecao de branch; a disciplina
-dev -> PR -> main e processual, nao imposta pela plataforma.
+## Parte 2. Regras permanentes
 
-## Regra de trabalho vigente - 2026-09-09 18:09 -03:00, Codex
+**Escrita**
+- Português do Brasil, com acentuação. Primeiro explicação simples, depois o detalhe técnico.
+- Fora desta pasta, nada de IA, assistente, Claude, Codex, agente, "gerado por", nome da pasta `00_COLAB_IA` ou códigos internos (D-, F-, P-, O-, R-, S-). Aqui dentro pode.
+- Não inventar. Faltou confirmação, marque `[INCERTO]`. Número medido sempre com data.
+- Evidência pública com link completo para o GitHub.
 
-TL;DR: por instrucao explicita do usuario em 2026-09-09, trabalhar SOMENTE na dev; promocao para main por PR dev -> main e merge (D-020). Ler tambem AGENTS.md.
+**Código e comandos**
+- Todo código criado vem comentado linha a linha (o que a linha faz e por quê).
+- Todo comando mostrado ao usuário vem com uma linha de comentário acima dizendo o que faz. O usuário quer aprender.
+- Blocos em Git Bash: um comando por linha, sem `&&` e sem barra invertida de continuação. PowerShell 5.1 não aceita nenhum dos dois.
+- Terraform sempre com `plan -out=<arquivo>.tfplan` e `apply <arquivo>.tfplan`. Nunca `apply` interativo: colado em bloco, a linha seguinte vira a resposta do "yes".
+- Nunca segredo, token, senha ou chave em arquivo versionado nem em mensagem.
 
-Conferencia atual: main/dev/remotas em 5b8cd86, sem commits ou arquivos exclusivos; checkout ja transferido para dev, com documentos locais preservados. Os pushes automaticos GitOps ainda precisam ser adaptados (P-052); nenhuma mudanca de workflow/publicacao foi feita nesta analise.
+**Git**
+- Assistente não faz `git add`, `commit`, `push`, `mv`, `rm`, `stash` ou `checkout` sem pedido explícito do usuário.
+- Nunca `git add` de tudo (`git add .` ou `-A`). Em 2026-09-15 isso levou 13 arquivos não revisados e a trava `~$ToggleMaster_Fase3.pptx` para a `main` (commit 06f97c6). Adicione por caminho.
+- Trabalho humano só na `dev`, promovido por PR para a `main` (D-020). O robô do CI comita a tag direto na `main` de propósito (D-021). Por isso a `main` anda sozinha: sincronize a `dev` antes de começar.
 
+```bash
+# Muda para a branch de trabalho
+git switch dev
+# Baixa o que mudou no GitHub, inclusive os commits do robô na main
+git fetch origin
+# Avança a dev até a main sem criar merge; se recusar, pare e pergunte ao usuário
+git merge --ff-only origin/main
+# Confere se sobrou alguma alteração local antes de editar
+git status --short
+```
 
-## Revalidacao vigente - 2026-09-09 17:57 -03:00, Codex
+**AWS e escopo**
+- Nesta conta, `create_github_oidc_provider = false` (D-022). O provedor OIDC do GitHub pertence ao projeto rh-portfolio: o ToggleMaster só lê, nunca importa nem destrói.
+- Medir antes de endurecer regra de segurança no CI: rodar a ferramenta no artefato real e ver o efeito antes de mudar o pipeline (foi assim com o `.trivyignore`).
+- Entregar o básico que funciona. O alvo é o enunciado da FIAP. Extra só com justificativa direta e sem peça nova em runtime.
+- Sem pedido explícito: nada de `terraform init/plan/apply/destroy` com backend, `aws` com escrita, `gh run rerun`, `gh workflow run` ou `gh pr`. Leitura (`git grep`, `git log`, `terraform fmt -check`, `kubectl kustomize`, `gh run view`, `gh run list`) é livre.
 
-TL;DR: main/dev/origin sincronizadas em 5b8cd86; a nota das 13:31 abaixo e historica. EKS default corrigido para 1.34; parametros do seed corrigidos e schemas documentados. Persistem CI ignore-unfixed, bootstrap ArgoCD, Secret/chave, Redis placeholder e documentacao divergente. Ler [revalidacao](03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md) e topo atualizado de LOG/PENDENCIAS. Fluxo preferido D-019: dev -> PR -> main.
+## Parte 3. Mapa de gatilhos de CI
 
+Conferido nos filtros de caminho dos workflows em 2026-09-15.
 
-## Aviso de continuidade - auditoria 2026-09-09
+| Caminho editado | Push só na `dev` | PR para `main` ou `dev` | Merge (push na `main`) |
+|---|---|---|---|
+| `services/<svc>/**`, inclusive `README.md` | pipeline do serviço (build, lint, SAST, SCA) | idem | pipeline completo: **image e gitops tentam OIDC e falham sem a role** |
+| `.github/workflows/_ci-go.yml` ou `_ci-python.yml` | os pipelines daquela linguagem | idem | idem, com falha no OIDC |
+| `.github/workflows/<svc>.yml` | pipeline do serviço | idem | idem, com falha no OIDC |
+| `terraform/**` (inclusive `.md`) | nada | Terraform Check (fmt e validate, sem AWS) e Compose Integration | Terraform Check e Compose Integration |
+| `gitops/**` | nada | Compose Integration | Compose Integration |
+| `docs/**`, `README.md`, `SECURITY.md`, `.gitignore`, `.env.example`, `scripts/**` | nada | Compose Integration (sem AWS) | Compose Integration |
 
-TL;DR: o resumo historico abaixo esta desatualizado. Leia primeiro o topo de docs/00_COLAB_IA/LOG_DE_TRABALHO.md e PENDENCIAS_E_PROXIMOS_PASSOS.md, atualizados pela auditoria. Fonte: [parecer](03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
-Ultima atualizacao deste aviso: 2026-09-09 13:31 -03:00, Codex.
+Regras que saem da tabela:
+- Sem ambiente e sem role: **não editar `services/**` nem `.github/workflows/**`**. Registre em PENDENCIAS.
+- `workflow_dispatch` não publica imagem. Image e gitops só rodam em push na `main`.
+- O commit do robô leva `[skip ci]` e `gitops/**` não está em nenhum filtro, então não há laço.
+- Compose Integration roda em todo PR e em todo push na `main`, sem filtro de caminho, e usa o Moto no lugar da AWS.
 
-A implementacao principal e os workflows existem; falta corrigir bootstrap ArgoCD, schemas/seed e filtro CRITICAL, atualizar documentacao e ensaiar no EKS. Diretriz D-019: dev -> PR -> main; dev precisa receber os 19 commits que ja estao em main. Auditoria nao fez checkout, merge, commit, push ou apply. P-049 consolida os documentos antigos preservados abaixo.
+## Parte 4. Mapa da documentação
 
-## Contexto anterior preservado
+Regra: cada fato tem detalhe em um lugar só; nos outros aparece em uma frase com link.
 
+| Assunto | Onde fica o detalhe |
+|---|---|
+| Intuito, arquitetura em diagrama, decisões, dificuldades, escopo, custo, integrantes | [README.md](../../README.md) |
+| Comandos, tempos medidos, tabela de valores fixos para outra conta, bucket, destroy, armadilhas, Compose local, demonstração | [docs/GUIA_DE_REPRODUCAO.md](../GUIA_DE_REPRODUCAO.md) |
+| Portas, probes, IRSA, Secrets, criptografia, jobs, versões | [docs/ARQUITETURA.md](../ARQUITETURA.md) |
+| Relatório da FIAP | [docs/RELATORIO_DE_ENTREGA.md](../RELATORIO_DE_ENTREGA.md) |
+| Política de credenciais | [SECURITY.md](../../SECURITY.md) |
+| Camadas do Terraform, só a pasta | [terraform/README.md](../../terraform/README.md) |
+| Kustomize e quem altera o overlay | [gitops/README.md](../../gitops/README.md) |
+| Nomes e chaves dos Secrets | [gitops/SECRETS-CONTRATO.md](../../gitops/SECRETS-CONTRATO.md) |
+| Exceções do Trivy | [.trivyignore](../../.trivyignore) (revisão marcada para 2026-10-15) |
 
-Ultima atualizacao: 2026-08-27 14:05 -03:00, Claude.
+Onde registrar, nesta pasta:
 
-TL;DR: este repositorio e a base da terceira entrega do Tech Challenge. Os cinco modulos da Fase 3 ja foram estudados e possuem guias HTML, e o escopo esta mapeado em `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`. A entrega e em grupo e vence em 2026-09-15. A implementacao comecou: e um monorepo com os 5 microsservicos em `services/` (D-007) e GitOps em Kustomize (D-008). O bucket S3 de estado ja existe (`togglemaster-tfstate-891376952395-us-east-2-an`, `us-east-2`). O proximo passo e escrever o Terraform, aguardando o usuario aprovar o plano (P-025). Antes de trabalhar, leia `docs/00_COLAB_IA/LEIA-PRIMEIRO.md`.
+| O quê | Onde |
+|---|---|
+| O que foi feito na sessão | topo do [LOG_DE_TRABALHO.md](LOG_DE_TRABALHO.md), no formato existente |
+| Decisão com alternativa descartada | [DECISOES.md](DECISOES.md), próxima D-025, no topo |
+| Algo que ficou para depois | [PENDENCIAS_E_PROXIMOS_PASSOS.md](PENDENCIAS_E_PROXIMOS_PASSOS.md) |
+| Arquivo substituído | [_ARQUIVO_MORTO/](_ARQUIVO_MORTO/) com data no nome, e o de-para no LOG |
 
-## Regras essenciais
+Os READMEs de `services/` são herança da Fase 2 e estão desatualizados. Continuam assim por causa dos gatilhos de CI; o guia prevalece.
 
-- Idioma: portugues do Brasil.
-- Explicar primeiro de forma simples e depois tecnica.
-- **Comentar linha a linha todo codigo criado** (Terraform, YAML, workflows, scripts), explicando o que cada linha faz e por que esta ali. Padrao pedido pelo usuario em 2026-08-27 e ja usado nos manifestos da Fase 2.
-- Nao inventar: marque `[INCERTO]` quando faltar confirmacao.
-- Nao commitar segredos, credenciais ou dados sensiveis.
-- Entradas devem ser tratadas como somente leitura.
-- Registros de trabalho ficam em `docs/00_COLAB_IA/`.
-- Guias de estudo ficam dentro da pasta de cada modulo em `docs/`.
+## Parte 5. Armadilhas de operação
 
-## Estado atual - 2026-09-09
+Resumo do que já aconteceu. Sintoma, causa e prevenção completos em [GUIA_DE_REPRODUCAO.md, seção 11](../GUIA_DE_REPRODUCAO.md#11-armadilhas-conhecidas).
 
-**Placar:** 24 obrigatorios comprovados, 6 escritos e validados sem apply,
-9 nao iniciados - e os 9 sao, todos, video e relatorio. Nenhum requisito
-tecnico do enunciado esta em aberto. Detalhe item a item em
-`docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`.
+- **Ordem da subida:** base, imagens no ECR, cluster, k8s. A camada k8s antes das imagens deixa os pods em `ImagePullBackOff` (2026-09-15).
+- **ECR vazio:** a base destruída leva o ECR e as imagens (`force_delete`). Em 2026-09-15 as imagens voltaram com `gh run rerun` dos últimos runs de push na `main` (commit do robô 3a193c4).
+- **Provedor OIDC de outro projeto:** criar outro falha com `EntityAlreadyExists`, e o `plan` não avisa (D-022).
+- **kubeconfig antigo:** depois de recriar o cluster, rode `aws eks update-kubeconfig`; senão o kubectl fala com o endpoint antigo.
+- **kubectl Unauthorized:** só o principal IAM que criou o cluster o administra. Use o mesmo perfil em todas as camadas.
+- **Camada k8s em duas etapas:** `-target=helm_release.argocd` primeiro, porque o CRD da Application precisa existir no plan.
+- **Destroy da k8s antes do cluster:** o driver EBS apaga o disco de 5 GB do PVC. É o desejado; o disco não pertence a nenhum estado.
+- **`terraform.tfvars.example`:** vem com `enable_nat_gateway = false`. Copiado sem trocar, os nós ficam sem saída e sem imagem.
+- **Pods Healthy sem schema:** o `/health` não consulta o banco. Rodar os `init.sql` antes de testar.
+- **Trivy local diferente do CI:** observado localmente em 2026-09-15, o Trivy 0.74 não leu pacotes listados depois de `setuptools<81` e `Werkzeug<3`. O CI usa o Trivy v0.70.0 (fixado pelo SHA do trivy-action) e detectou normalmente.
+- **PowerShell 5.1:** sem `&&` e sem continuação de linha. Use o Git Bash.
 
-**Fatos que valem para qualquer sessao:**
+## Parte 6. Evidências para conferir antes de afirmar
 
-- Entrega em grupo, prazo final 2026-09-15 (D-006). Os 5 integrantes do
-  Grupo 203 estao na tabela do `README.md`; falta so o usuario confirmar
-  que a composicao nao mudou (P-018).
-- Monorepo (D-007): codigo em `services/`, infra em `terraform/`,
-  manifestos em `gitops/`, pipelines em `.github/workflows/`.
-- Microsservicos em duas stacks: Go (`auth`, `evaluation`) e Python
-  (`flag`, `targeting`, `analytics`).
-- Conta pessoal AWS, nao AWS Academy; regiao `us-east-2`; IAM criado por
-  Terraform (D-016, R-05). **Nao ha chave estatica em lugar nenhum**: o
-  CI usa OIDC (S-01) e os pods usam IRSA (S-06).
-- Bucket de estado: `togglemaster-tfstate-891376952395-us-east-2-an`.
-- Tags padrao de todo recurso: `project = fiap`, `phase = 3`, em
-  MINUSCULAS (D-009), via `default_tags`.
+Todo ID abaixo foi conferido com `gh run view` em 2026-09-15. Use estes links em vez de repetir o fato de memória; se precisar de um run novo, confira antes de escrever.
 
-**Terraform em TRES camadas com estado separado (D-017):**
+| O que prova | Onde |
+|---|---|
+| CVE crítico barrando o pipeline (PyYAML 5.3.1, `CVE-2020-14343`) | [run 34985289399](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34985289399) |
+| Correção para 6.0.1 deixando verde | [run 34985477955](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34985477955) |
+| Publicação da imagem e atualização da tag na `main` | [run 34997028995](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34997028995) |
+| Commit do robô que o ArgoCD sincronizou sozinho | [a0c7b8e](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/commit/a0c7b8e06f9e12da5bc838d64ead841e1f91072f) |
+| Bloqueio anterior por CVE em `golang.org/x/crypto` | [run 34360653255](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/actions/runs/34360653255) |
+| Reaproveitamento do provedor OIDC | [PR #15](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/pull/15), commit b78f6bd |
+| Demonstração completa da esteira, da `dev` à `main` | [PR #16](https://github.com/fiap-devops-arqcloud-2026/tech-challenge-03/pull/16), merge a509d67 |
 
-| Camada | Contem | Situacao |
-|---|---|---|
-| `terraform/` | VPC, 5 ECR, SQS + DLQ, DynamoDB, OIDC do CI | **aplicada** em 2026-09-07, 33 recursos |
-| `terraform/cluster/` | EKS, node group, 2 RDS, ElastiCache, IRSA | escrita e validada, `plan` com 35 recursos, apply pendente |
-| `terraform/k8s/` | 5 Secrets, StorageClass gp3, ArgoCD + Application | escrita e validada, apply pendente |
-
-**O que ja rodou de verdade:** os 5 pipelines verdes na main e na dev; as
-5 imagens no ECR com tag `v1.0.0-<commit>`; o bloqueio por CRITICAL
-testado na pratica (um CVE do `x/crypto` derrubou o pipeline e o job de
-imagem ficou `skipped`); e 5 commits `chore(gitops)` feitos pelo proprio
-pipeline atualizando a tag.
-
-**Correcoes desta rodada (2026-09-09):** `ignore-unfixed` desligado nos 4
-scans Trivy com excecoes nominais em `.trivyignore` (F-042); bootstrap do
-ArgoCD documentado em duas etapas por causa do CRD (F-043); disputa da
-`SERVICE_API_KEY` resolvida com `ignore_changes` (F-046); `REDIS_URL`
-com comando pronto no runbook (F-047); `security-check.sh` deixou de
-reprovar a conta atual, e por isso o `validate-all.sh` roda inteiro pela
-primeira vez; documentacao alinhada ao codigo (F-048).
-
-**Nos EKS:** 2 x `c7i-flex.large`. O `t3.medium` do plano original foi
-recusado pela conta como nao elegivel ao Free Tier (F-023). Versao do
-EKS: **1.34**, e nao 1.31 - fora do suporte padrao o preco vai de
-US$ 0,10/h para US$ 0,60/h.
-
-**Desvios conscientes que precisam constar no relatorio (O-38):** 2 RDS
-em vez de 3, com o terceiro banco em pod (D-015, liberado pelo
-professor); sem Ingress nem Load Balancer (D-012, F-018); External
-Secrets Operator cortado, com os Secrets criados por
-`terraform/k8s/secrets.tf` (D-018).
-
-**Fluxo de Git (D-020):** trabalho humano so na `dev`; promocao para a
-`main` por PR. A `main` tambem recebe commits do robo do CI, que atualiza
-a tag da imagem - por isso, **sincronize a `dev` antes de comecar**.
-
-Fonte principal da Fase 3: `docs/POSTECH - Tech Challenge - Fase 3.pdf`.
-
-## Ponteiros
-
-- Protocolo de sessao: `docs/00_COLAB_IA/LEIA-PRIMEIRO.md`
-- Checklist de requisitos: `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md`
-- Dossie do projeto: `docs/00_COLAB_IA/DOSSIE_CONTEXTO.md`
-- Decisoes: `docs/00_COLAB_IA/DECISOES.md`
-- Pendencias: `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md`
-- Log: `docs/00_COLAB_IA/LOG_DE_TRABALHO.md`
-- Organizacao: `docs/00_COLAB_IA/ORGANIZACAO_DE_PASTAS.md`
-- Bootstrap do backend S3: `terraform/BOOTSTRAP-BACKEND-S3.md`
-- Runbook da sessao (subir, semear, gravar, derrubar): `docs/OPERACAO.md`
-- Guia de gravacao (o que a FIAP quer ver e como mostrar): `docs/00_COLAB_IA/_ARQUIVO_MORTO/GUIA_GRAVACAO.md`
-- Relatorio de entrega (rascunho + PDF gerado): `docs/RELATORIO_DE_ENTREGA.md`
-- Contrato de Secrets entre Terraform e GitOps: `gitops/SECRETS-CONTRATO.md`
-- Excecoes de seguranca com justificativa: `.trivyignore`
-- Instrucoes para agentes (regra da branch dev): `AGENTS.md`
-
-
----
-
-## Parte 2 - regras de trabalho dos agentes (era o AGENTS.md)
-
-TL;DR: trabalhar somente na branch dev; promover para main apenas por PR dev -> main e merge.
-Ultima atualizacao: 2026-09-09 18:09 -03:00, Codex.
-Fonte: instrucao explicita do usuario em 2026-09-09; D-020 em docs/00_COLAB_IA/DECISOES.md.
-
-- Ler docs/00_COLAB_IA/LEIA-PRIMEIRO.md, topo de PENDENCIAS_E_PROXIMOS_PASSOS.md e LOG_DE_TRABALHO.md antes de trabalhar.
-- Antes de editar, conferir git status e a branch atual. Usar dev, preservando alteracoes locais; nao criar commits nem fazer push direto na main.
-- Promocao para main: validar dev, abrir PR dev -> main, revisar e fazer merge. Nao promover branches auxiliares diretamente para main sem nova instrucao do usuario.
-- A regra de fluxo nao e, por si so, uma ordem para publicar ou fazer merge nesta sessao.
-- Depois de um merge, conferir main/dev e sincronizar dev sem descartar trabalho.
-- CI GitOps ainda possui pushes diretos na main; isso esta pendente de adaptacao em P-052. Nao afirmar que a politica ja esta imposta pela configuracao remota.
-- A branch dev nao implica criar outro ambiente AWS: o ambiente de infraestrutura continua prod.
-- Preservar fontes, segredos fora do Git e registros anteriores. Documentar trabalho e verificar antes de encerrar.
-
-
+Três afirmações que parecem certas e estão erradas, conferidas nos workflows em 2026-09-15: `workflow_dispatch` **não** publica imagem (os jobs `image` e `gitops` exigem evento `push` na `main`); o scan da imagem acontece **antes** do login e do push no ECR; e a confiança da role do CI aceita `repo:<owner>/<repo>:*`, ou seja, qualquer branch ou PR — quem restringe à `main` é o `if` do workflow, não a AWS.

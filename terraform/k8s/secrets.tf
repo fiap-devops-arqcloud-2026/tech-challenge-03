@@ -233,7 +233,8 @@ resource "kubernetes_secret_v1" "evaluation" {
   #
   #   - o Terraform cria o Secret com um valor aleatorio, so para o pod
   #     conseguir subir com a variavel preenchida;
-  #   - o seed (runbook, passo 2.2) descobre a chave REAL - a que o
+  #   - o seed (docs/GUIA_DE_REPRODUCAO.md, secao 8 - Schemas, chave de
+  #     servico e dados de exemplo) descobre a chave REAL - a que o
   #     auth-service devolveu em POST /admin/keys - e sobrescreve o
   #     Secret com ela.
   #
@@ -248,8 +249,9 @@ resource "kubernetes_secret_v1" "evaluation" {
   # bootstrap que passa a ser gerido em tempo de execucao.
   #
   # Consequencia aceita: se alguem apagar o Secret na mao, o Terraform
-  # recria com o valor provisorio e o passo 2.2 do runbook precisa ser
-  # refeito. E o comportamento desejado - recriar e diferente de mexer.
+  # recria com o valor provisorio e a secao 8 de docs/GUIA_DE_REPRODUCAO.md
+  # (Schemas, chave de servico e dados de exemplo) precisa ser refeita.
+  # E o comportamento desejado - recriar e diferente de mexer.
   lifecycle {
     ignore_changes = [data]
   }

@@ -1,5 +1,97 @@
 # LOG_DE_TRABALHO
 
+## 2026-09-15 19:03 (-03:00) - Claude - Consolidação da documentação para o estado final
+
+TL;DR: documentação pública reorganizada em README (o quê e por quê), guia único de reprodução e ARQUITETURA (referência técnica); 19 caminhos movidos para o arquivo morto ou para `docs/aulas-fiap/`; nenhuma mudança de código além de comentários. Decisão em D-024. Última atualização: 2026-09-15 19:03 -03:00, Claude.
+
+Pedido: deixar a documentação no estado final do projeto entregue, com o ambiente destruído, e permitir que outra pessoa recrie tudo em outra conta sem mudar código.
+
+Método:
+- Cinco levantamentos a partir do código e do histórico, só leitura: u1 Terraform e reprodução; u2 CI/CD, DevSecOps e scripts; u3 GitOps, serviços e segurança; u4 auditoria da documentação; u5 história, dificuldades e decisões.
+- Plano com árvore, movimentos, outline por arquivo e dono, âncoras fixas e regras de estilo, revisado duas vezes. A Revisão 1 cobriu quem reproduz em outra conta: cópia do repositório, mesmo principal IAM, rerun com prazo, valores previsíveis, passo bloqueante do REDIS_URL, schemas. A Revisão 2 cobriu CI, links e histórico: link obrigatório do relatório, comentários inline dos patches, dois commits.
+- Escrita em paralelo por cinco donos com posse disjunta: W1 `README.md`; W2 `docs/GUIA_DE_REPRODUCAO.md`; W3 `docs/ARQUITETURA.md`; W4 relatório, SECURITY, READMEs de `terraform/` e `gitops/`, SECRETS-CONTRATO, `.gitignore`, `.env.example` e só comentários em `backend.tf`, `k8s/variables.tf`, `k8s/argocd.tf`, `k8s/secrets.tf`, `endpoints.yaml`, `irsa.yaml` e `kustomization.yaml`; W5 esta pasta.
+
+Análise de gatilhos de CI (filtros de caminho conferidos): `services/**`, inclusive os READMEs, e `.github/workflows/**` disparam os pipelines, e no merge para a `main` image e gitops falhariam no OIDC sem a role. Por isso ficaram intocados e foram para PENDENCIAS. `terraform/**` dispara só o Terraform Check (sem AWS); `gitops/**` não dispara nada; `docs/**` e a raiz disparam só o Compose Integration (sem AWS).
+
+Movimentos (commit 3317204, só `git mv` e `git rm`, antes das escritas):
+
+| Caminho antigo | Caminho novo |
+|---|---|
+| `docs/01_…` a `docs/05_…` (5 pastas de aula) | `docs/aulas-fiap/01_…` a `docs/aulas-fiap/05_…` |
+| `docs/OPERACAO.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/OPERACAO_2026-09-15.md` |
+| `terraform/BOOTSTRAP-BACKEND-S3.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/BOOTSTRAP-BACKEND-S3_2026-08-27.md` |
+| `scripts/build-report-fase3.py` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/build-report-fase3_2026-09-14.py` |
+| `scripts/capturar-estimativa-aws.cjs` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/capturar-estimativa-aws_2026-09-11.cjs` |
+| `docs/00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/PENDENCIAS_E_PROXIMOS_PASSOS_2026-09-11.md` |
+| `docs/00_COLAB_IA/DOSSIE_CONTEXTO.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/DOSSIE_CONTEXTO_2026-09-11.md` |
+| `docs/00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/CHECKLIST_REQUISITOS_FASE3_2026-09-09.md` |
+| `docs/00_COLAB_IA/PLANO_GRAVACAO_2026-09-15.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/PLANO_GRAVACAO_2026-09-15.md` |
+| `docs/00_COLAB_IA/ORGANIZACAO_DE_PASTAS.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/ORGANIZACAO_DE_PASTAS_2026-08-27.md` |
+| `docs/00_COLAB_IA/INSTRUCOES_ASSISTENTES.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/INSTRUCOES_ASSISTENTES_2026-09-14.md` |
+| `docs/00_COLAB_IA/02_TRABALHO/auditoria-2026-09-09/` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/auditoria-2026-09-09/` |
+| `docs/00_COLAB_IA/03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/AUDITORIA_FIAP_2026-09-09_v01.md` |
+| `docs/00_COLAB_IA/03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md` | `docs/00_COLAB_IA/_ARQUIVO_MORTO/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md` |
+| `docs/apresentacao/~$ToggleMaster_Fase3.pptx` | removido do Git |
+
+Trava do PowerPoint: 165 bytes, com nome de usuário. Tinha entrado no commit 06f97c6 por um `git add` de tudo e chegou à `main` pelo PR #16. O W4 acrescenta `~$*` e `output/` ao `.gitignore`.
+
+Arquivos desta pasta (W5): `LEIA-PRIMEIRO.md` reescrito; `INSTRUCOES_ASSISTENTES.md`, `ORGANIZACAO_DE_PASTAS.md` e `PENDENCIAS_E_PROXIMOS_PASSOS.md` novos (os antigos estão no arquivo morto); D-022 a D-024 e notas de superação em D-010, D-017 e D-018; três entradas novas neste LOG. Na entrada de 2026-09-14 09:46, nota de superação sobre a visibilidade do repositório. Nas entradas de 2026-08-27 15:55 e 2026-07-17 16:31, os caminhos locais foram generalizados para `C:\Users\<usuario>\...`, por privacidade, já que o repositório é público.
+
+Decisões/Por que: D-024. Os documentos novos saem de pastas abertas ao público e não podem citar IA nem códigos internos; esta pasta pode. O conteúdo arquivado não foi editado, nem para consertar links internos.
+
+Verificação (W5): links relativos e âncoras dos seis arquivos desta pasta conferidos; blocos bash extraídos e testados com `bash -n`. A prova de que o código não mudou fica com o orquestrador: `kubectl kustomize gitops/overlays/prod` (23 objetos, sha1 anterior começando por 460254785cc8), as assinaturas sem comentário dos `.tf`, `.yaml` de gitops e `.env.example`, e o `terraform fmt -check -recursive terraform`.
+
+Estado p/ o próximo agente: escritas de W1 a W5 prontas para o segundo commit na `dev`; commit, PR e merge ficam com o orquestrador. Depois do merge, sincronizar a `dev`. O que segue aberto está em PENDENCIAS (P-100 em diante).
+
+## 2026-09-15 - Claude - Recriação do zero, regravação do vídeo e destruição do ambiente
+
+TL;DR: ambiente recriado do zero na ordem base, imagens, cluster, k8s; demonstração DevSecOps e GitOps gravada (falha por CVE crítico, correção, PR, publicação, commit do robô, sync e selfHeal); tudo destruído no mesmo dia. Sobraram o bucket de estado e uma VPC da Fase 2, com exclusão bloqueada por permissão. Registro feito em 2026-09-15 19:03 -03:00 a partir dos fatos da sessão e dos runs conferidos com `gh`.
+
+Subida:
+- Base aplicada com `create_github_oidc_provider=false` (35 recursos; D-022).
+- **ECR nasceu vazio** (a base de 2026-09-11 levou as imagens). Republicação com `gh run rerun` dos últimos runs de push na `main`: auth e evaluation com `v1.0.0-7ab0602`, targeting e analytics com `v1.0.0-ff441a1`, flag-service com `v1.0.0-e6b144f` (run 34667081759, tentativa 2; commit do robô 3a193c4, 16:03:39Z).
+- Cluster aplicado. O kubeconfig ainda apontava para o endpoint do cluster antigo até `aws eks update-kubeconfig`.
+- Camada k8s em duas etapas (13 recursos, com `github_token` vazio).
+
+Demonstração DevSecOps (na `dev`):
+- Commit 06f97c6 (14:58:45Z) acrescentou `PyYAML==5.3.1` **no fim** do `services/flag-service/requirements.txt`. O run 34985289399 falhou no SCA com `CVE-2020-14343` CRITICAL, Trivy v0.70.0, e image e gitops ficaram `skipped`.
+- Observado localmente no mesmo dia: o Trivy 0.74 não leu pacotes listados depois de `setuptools<81` e `Werkzeug<3`, e não detectou. Por precaução, o guia passa a inserir a linha na primeira posição.
+- Commit 7a5dcb3 trocou para `PyYAML==6.0.1`, e o run 34985477955 ficou verde.
+
+Demonstração GitOps:
+- PR #16 da `dev` para a `main`, merge a509d67 (16:45:38Z).
+- Run 34997028995 na `main`: verificações, imagem e push no ECR (`v1.0.0-a509d67`) e atualização da tag, todos com sucesso.
+- Commit do robô a0c7b8e (16:47:35Z, `chore(gitops): flag-service para v1.0.0-a509d67 [skip ci]`). O ArgoCD sincronizou sozinho.
+- Prova extra de selfHeal: um `kubectl scale` manual no flag-service foi revertido pelo ArgoCD.
+
+Destruição (medida em 2026-09-15):
+- k8s: 13 recursos em 1m04s. Ao apagar o PVC, o driver EBS apagou o disco de 5 GB, como esperado.
+- cluster: 35 recursos (RDS cerca de 2 min, EKS cerca de 3 min, ElastiCache 4m17s).
+- base: 35 recursos em 1m40s.
+- Fora do Terraform: apagados os log groups de RDS da Fase 2 sem expiração, a VPC da Fase 1 e as roles IAM da Fase 2. **Pendentes, com exclusão bloqueada por permissão:** o bucket de estado e a VPC da Fase 2 (P-100 e P-101).
+
+Incidentes e armadilhas:
+- **`git add` de tudo:** o commit 06f97c6 levou 13 arquivos, entre eles alterações não revisadas de README, relatório, INSTRUCOES, LOG, PLANO_GRAVACAO, `terraform/README.md`, `build-report-fase3.py` e a trava `docs/apresentacao/~$ToggleMaster_Fase3.pptx`. Tudo chegou à `main` pelo PR #16. A trava foi removida na consolidação (entrada acima).
+- PowerShell 5.1 não aceita `&&` nem barra invertida de continuação; os blocos passaram a ser em Git Bash.
+- Colar bloco com `terraform apply` interativo faz a linha seguinte virar a resposta do "yes"; os planos passaram a ser salvos em arquivo (D-023).
+- Aplicar a camada k8s antes das imagens deixaria os pods em `ImagePullBackOff` (D-023).
+
+Decisões/Por que: D-023 (ordem e planos em arquivo). A gravação de 2026-09-11 tinha saído sem áudio, por isso a regravação.
+
+Estado p/ o próximo agente: estados vazios, ambiente destruído, vídeo regravado com link ainda não informado (P-102). Não recriar nada sem pedido do usuário.
+
+## 2026-09-14 22:36 (-03:00) - Claude - Provedor OIDC do GitHub criado por outro projeto
+
+TL;DR: a conta já tinha o provedor OIDC do GitHub, criado pelo rh-portfolio. A base passou a aceitar `create_github_oidc_provider=false`, que só lê o provedor. Commit b78f6bd, PR #15. Registro feito em 2026-09-15 19:03 -03:00.
+
+Feito: na preparação da recriação, a conta mostrou `token.actions.githubusercontent.com` já existente. O apply falharia com `EntityAlreadyExists`, e o `plan` não avisaria, porque só compara com o estado (vazio). Criada a variável `create_github_oidc_provider` (padrão `true`): com `false`, um data source lê o provedor, e a role do CI confia nele. Um bloco `moved` preserva estados já aplicados. Plan com `false`: 35 recursos; com `true`: 36.
+
+Arquivos: `terraform/main.tf`, `terraform/variables.tf`, `terraform/terraform.tfvars.example`, `terraform/modules/iam-ci/main.tf`, `outputs.tf` e `variables.tf` (commit b78f6bd; PR #15, merge a4184a2). O `terraform.tfvars` local, fora do Git, usa `false`.
+
+Decisões/Por que: D-022. Importar o provedor faria o destroy do ToggleMaster apagar o do rh-portfolio; apagar derrubaria o CI dele. Regra gravada na memória do usuário: nunca destruir esse provedor.
+
+Estado p/ o próximo agente: nesta conta, sempre `create_github_oidc_provider = false`, no apply e no destroy.
+
 ## 2026-09-14 09:46 (-03:00) - Codex - Inicio da revisao final da documentacao FIAP
 
 TL;DR: revisao em andamento na branch `dev`, sem publicar nem alterar a AWS. O relatorio existente atende a maior parte do pedido, mas o PDF ainda contem o link do video em branco, uma secao opcional vazia e fatos anteriores ao ensaio completo. Ultima atualizacao: 2026-09-14 09:46 -03:00, Codex.
@@ -12,7 +104,7 @@ Decisoes/Por que: preservar o relatorio detalhado produzido anteriormente e melh
 
 Arquivos: nenhuma alteracao de conteudo concluida ate esta entrada; apenas este registro incremental.
 
-Descobertas: o repositorio permanece privado; a execucao mais recente do `flag-service` na `main` falhou ao assumir a role OIDC depois da destruicao da base AWS, embora build, lint, SAST, SCA e scan da imagem tenham passado. Avaliar esse risco no fechamento.
+Descobertas: o repositorio permanece privado [superado em 2026-09-15: repositório público]; a execucao mais recente do `flag-service` na `main` falhou ao assumir a role OIDC depois da destruicao da base AWS, embora build, lint, SAST, SCA e scan da imagem tenham passado. Avaliar esse risco no fechamento.
 
 Estado p/ o proximo agente: revisao em curso. Nao enviar o PDF atual enquanto houver placeholder de video e conteudo opcional vazio.
 
@@ -200,7 +292,7 @@ Estado p/ o proximo agente: trabalhar na dev, HEAD 5b8cd86; main e origin iguais
 
 TL;DR: main/dev agora sincronizadas em 5b8cd86; parte dos achados corrigida, entrega ainda pendente. Ultima atualizacao desta entrada: 2026-09-09 17:57 -03:00, Codex.
 
-Feito: ao receber a reiteracao do pedido, detectado avanco externo de 0242d33 para 5b8cd86. Comparado o diff e consultados PRs/Actions; criado complemento [REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md](03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md). O parecer anterior ja foi incorporado pelo PR #4; suas conclusoes sobre dev atrasada/custo EKS 1.31 sao historicas.
+Feito: ao receber a reiteracao do pedido, detectado avanco externo de 0242d33 para 5b8cd86. Comparado o diff e consultados PRs/Actions; criado complemento [REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md](_ARQUIVO_MORTO/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md). O parecer anterior ja foi incorporado pelo PR #4; suas conclusoes sobre dev atrasada/custo EKS 1.31 sao historicas.
 
 Decisoes/Por que: mantida D-019. Nao atribuir ao Codex desta auditoria as alteracoes integradas por PRs #4/#5. Preservar parecer e registros anteriores, acrescentando estado confirmado.
 
@@ -298,7 +390,7 @@ Estado p/ o proximo agente: `gitops/` completo e com build valido, mas AINDA NAO
 
 ## 2026-08-27 15:55 (-03:00) - Claude - Terraform validado, tags corrigidas e padrao de comentarios
 
-Feito: localizado o Terraform 1.16.0 em `C:\Users\Gabriel\Downloads\terraform_1.16.0_windows_amd64\` (baixado, mas fora do PATH); rodados `init -backend=false`, `validate` e `fmt -recursive` com sucesso; corrigida a grafia das tags para minusculas; reescritos os 14 arquivos `.tf` e o `terraform.tfvars.example` com comentario linha a linha.
+Feito: localizado o Terraform 1.16.0 em `C:\Users\<usuario>\Downloads\terraform_1.16.0_windows_amd64\` (baixado, mas fora do PATH); rodados `init -backend=false`, `validate` e `fmt -recursive` com sucesso; corrigida a grafia das tags para minusculas; reescritos os 14 arquivos `.tf` e o `terraform.tfvars.example` com comentario linha a linha.
 
 Decisoes/Por que: o usuario confirmou 2 x `t3.medium` e informou que as tags sao `project=fiap` e `phase=3` em MINUSCULAS. A caixa importa: chave de tag na AWS e sensivel a maiuscula/minuscula, e eu havia assumido `Project`/`Phase` capitalizados no runbook. Se as duas grafias coexistissem, o Cost Explorer separaria em dois grupos e a soma de custo do projeto sairia errada. O usuario tambem estabeleceu que todo codigo criado deve vir comentado linha a linha; registrei como regra em `CLAUDE.md` e na memoria do projeto. Esse padrao nao e novidade: os manifestos de `infra/k8s/` da Fase 2 ja seguem exatamente isso.
 
@@ -478,7 +570,7 @@ Estado p/ o proximo agente: aguardar a revisao do usuario sobre o guia (P-007). 
 
 ## 2026-07-17 16:31 (-03:00) - Codex - Guias de estudo da Fase 2 no repo da Fase 3
 
-Feito: inventariados os materiais em `C:\Users\Gabriel Silva\Documents\GitHub\tech-challenge-02\docs\Material aulas`; analisados 6 modulos da Fase 2; criados guias de estudo em `docs/guias-de-estudo/fase-2/`; criada estrutura `00_COLAB_IA`; criado `CLAUDE.md`.
+Feito: inventariados os materiais em `C:\Users\<usuario>\Documents\GitHub\tech-challenge-02\docs\Material aulas`; analisados 6 modulos da Fase 2; criados guias de estudo em `docs/guias-de-estudo/fase-2/`; criada estrutura `00_COLAB_IA`; criado `CLAUDE.md`.
 
 Decisoes/Por que: D-001 define o repo da Fase 3 como destino; D-002 separa guias por modulo; D-004 evita copiar PDFs da Fase 2 para nao duplicar insumos.
 

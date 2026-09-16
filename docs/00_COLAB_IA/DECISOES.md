@@ -1,5 +1,63 @@
 # DECISOES
 
+## D-024 - Consolidação da documentação para o estado final
+
+TL;DR: três documentos públicos sem sobreposição (README, guia único e ARQUITETURA), documentos substituídos no arquivo morto e nenhuma mudança de código além de comentários. Última atualização: 2026-09-15 19:03 -03:00, Claude.
+
+Contexto: com o projeto entregue e o ambiente destruído em 2026-09-15, a documentação tinha o mesmo fato em até cinco lugares (custo, camadas, OIDC), o `docs/OPERACAO.md` com 1.636 linhas e tempos de 2026-09-11, o `terraform/BOOTSTRAP-BACKEND-S3.md` com voz de assistente e chave de estado errada, um link quebrado para `output/pdf` e o rastro "Codex" no relatório. Cinco levantamentos a partir do código e duas revisões do plano embasaram a decisão.
+
+Decisão:
+- **README** responde o quê e por quê; **`docs/GUIA_DE_REPRODUCAO.md`** responde como (substitui OPERACAO e BOOTSTRAP, os dois arquivados com data); **`docs/ARQUITETURA.md`** vira referência técnica enxuta. `terraform/README.md` e `gitops/README.md` explicam só a própria pasta. Cada fato tem detalhe em um lugar.
+- Material de aula agrupado em `docs/aulas-fiap/`; o enunciado continua em `docs/`. Os scripts `build-report-fase3.py` e `capturar-estimativa-aws.cjs` foram arquivados (nenhum workflow os usa).
+- **Não editar `services/**` nem `.github/workflows/**`**: o merge na `main` rodaria image e gitops, que falham no OIDC sem a role. Os ajustes ficaram em PENDENCIAS (P-110 a P-115).
+- Em `.tf`, `gitops/overlays/prod/**` e `.env.example`, **só linhas de comentário** mudam, e só as que tinham link quebrado, comando errado ou "permanente". Prova: `kubectl kustomize` do overlay e as assinaturas sem comentário comparadas com o estado anterior.
+- `SECURITY.md` ajustado por imprecisão (Levantamento 3 §4): "nenhuma credencial estática em lugar nenhum" era forte demais, porque MASTER_KEY e SERVICE_API_KEY são segredos estáticos de aplicação; e a confiança da role do CI aceita qualquer branch ou PR do repositório, quem restringe à `main` é o `if` do workflow.
+- O `[INCERTO]` dos integrantes no relatório foi **mantido**: comparar com o README não é confirmação independente (P-103).
+- Relatório só alinhado, sem reescrita; link do vídeo com o marcador `PREENCHER_URL_DO_VIDEO`; reprodução em outra conta por tabela de valores fixos, sem mudar código.
+- Dois commits no mesmo PR: primeiro só os `git mv` e o `git rm` da trava `~$` (3317204), depois as escritas. Assim o `git log --follow` dos arquivos que ganharam homônimo novo continua funcionando.
+
+Alternativas descartadas:
+- Editar os padrões de `variables.tf` ou o `terraform.tfvars.example`: viola "nenhuma mudança de código". Substituído por tfvars local no guia.
+- `terraform init -backend-config` como caminho principal: os `terraform_remote_state` de `data.tf` continuam literais; dois mecanismos confundem.
+- Apagar os PNGs da auditoria de 2026-09-09: o usuário pediu arquivar, não apagar.
+- Retirar o `[INCERTO]` dos integrantes por comparação com o README: não é confirmação.
+- Editar READMEs de `services/` ou comentários dos workflows: gatilho de CI com a role destruída.
+- Tirar o sufixo `-an` do bucket real nos arquivos: mudaria código; a tabela do guia só orienta quem reproduz.
+
+Status: decidida e executada em 2026-09-15. Commit das escritas, PR e merge ficam com o orquestrador.
+
+## D-023 - Ordem de subida e de destruição, com planos salvos em arquivo
+
+TL;DR: subir base → imagens no ECR → cluster → k8s; destruir k8s → cluster → base, sempre com `plan -out` e `apply` do arquivo. Última atualização: 2026-09-15 19:03 -03:00, Claude.
+
+Contexto: a recriação de 2026-09-15 mostrou que a ordem das três camadas de D-017 não basta. A base destruída em 2026-09-11 levou o ECR e as imagens (`force_delete`); as tags do overlay apontavam para imagens inexistentes, e aplicar a camada k8s nesse estado deixaria os pods em `ImagePullBackOff`. Na mesma sessão, colar um bloco com `terraform apply` interativo fez a linha seguinte virar a resposta do "yes".
+
+Decisão:
+- **Subida:** base; imagens publicadas no ECR (em 2026-09-15 por `gh run rerun` dos últimos runs de push na `main`, commit do robô 3a193c4; numa conta nova, por commit na `main`); cluster; `aws eks update-kubeconfig`; k8s em duas etapas (D-017 e F-043).
+- **Destruição:** k8s, cluster, base. O destroy da k8s **não é opcional**: ao apagar o PVC, o driver EBS apaga o disco de 5 GB, que não pertence a nenhum estado e ficaria cobrando se o cluster saísse antes.
+- **Planos salvos:** `plan -out=<camada>.tfplan` e `apply <camada>.tfplan`; no destroy, `plan -destroy -out`. Nunca apply interativo.
+- **tfvars local por camada** (ignorado por `*.tfvars`), para que apply e destroy leiam os mesmos `enable_nat_gateway`, `create_github_oidc_provider`, `github_repository` e `gitops_repo_url`.
+
+Alternativas: k8s antes das imagens (pods em `ImagePullBackOff`); destruir só o cluster e deixar a k8s (estado órfão e disco EBS sem dono); valores por `-var` em cada comando (fácil esquecer um no destroy, e com `create_github_oidc_provider` errado o destroy tentaria apagar o provedor alheio).
+
+Status: aplicada em 2026-09-15. Documentada em `docs/GUIA_DE_REPRODUCAO.md`. Complementa D-017 (ver nota de superação lá).
+
+## D-022 - Reaproveitar o provedor OIDC do GitHub que já existe na conta
+
+TL;DR: a variável `create_github_oidc_provider` decide se a base cria o provedor OIDC do GitHub ou só lê um existente. Nesta conta o valor é `false`. Última atualização: 2026-09-15 19:03 -03:00, Claude (registro da decisão de 2026-09-14).
+
+Contexto: ao preparar a recriação em 2026-09-14, a conta já tinha o provedor `token.actions.githubusercontent.com`, criado pelo projeto rh-portfolio. A conta só aceita um provedor por URL: o apply falharia com `EntityAlreadyExists`. O `plan` não avisa, porque compara só com o estado, que estava vazio.
+
+Decisão: variável `create_github_oidc_provider` (padrão `true`). Com `false`, um data source só lê o provedor existente e o Terraform nunca o destrói; a role `togglemaster-github-actions` confia nele do mesmo jeito. Um bloco `moved` preserva estados já aplicados com o recurso antigo. Plan com `false`: 35 recursos a criar; com `true`: 36. Commit b78f6bd, PR #15 (merge a4184a2).
+
+Por que: importar o provedor para o estado faria o `destroy` do ToggleMaster apagar o provedor do rh-portfolio; apagá-lo derrubaria o CI do outro projeto. Ler sem possuir resolve os dois.
+
+Alternativas: `terraform import` (destroy apagaria recurso alheio); apagar e recriar (quebra o outro projeto); criar outro provedor (a AWS recusa URL duplicada).
+
+Lição: `plan` limpo não garante `apply` limpo quando há recursos fora do estado.
+
+Status: aceita e aplicada em 2026-09-14; usada na recriação de 2026-09-15. Registrada também na memória do usuário ("OIDC de outro projeto").
+
 ## D-021 - O robo do CI continua comitando na main; a regra da dev vale para gente
 
 TL;DR: D-020 governa o trabalho HUMANO. O commit automatico de tag do pipeline continua indo direto para a `main`, de proposito. Ultima atualizacao: 2026-09-09, Claude.
@@ -40,7 +98,7 @@ Status: regra definida pelo usuario e adotada no checkout local. Publicacao e me
 
 TL;DR: alteracoes humanas devem partir de dev e ser promovidas por PR; sincronizar dev com main antes de retomar. Ultima atualizacao: 2026-09-09 13:31 -03:00, Codex.
 
-Contexto: nesta sessao o usuario informou o costume de trabalhar na dev, abrir PR quando validado e integrar na main. Auditoria confirmou PR #3, mas encontrou commits posteriores diretamente na main e dev 19 commits atras. Fonte: conversa de 2026-09-09 e [parecer](03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md).
+Contexto: nesta sessao o usuario informou o costume de trabalhar na dev, abrir PR quando validado e integrar na main. Auditoria confirmou PR #3, mas encontrou commits posteriores diretamente na main e dev 19 commits atras. Fonte: conversa de 2026-09-09 e [parecer](_ARQUIVO_MORTO/AUDITORIA_FIAP_2026-09-09_v01.md).
 
 Decisao: registrar essa preferencia como diretriz de trabalho. Branch dev nao implica criar outro ambiente AWS. Atualizacoes automaticas de tag pelo CI precisam de politica explicita, compativel com eventual protecao de main.
 
@@ -75,6 +133,8 @@ Consequencia operacional: o acoplamento entre Terraform e GitOps ficou invisivel
 
 Status: aceita em 2026-09-01, aprovada pelo usuario. Encerra P-037 e altera D-013.
 
+Nota de superação (2026-09-15): os Secrets não são criados pela camada cluster, e sim pela camada `terraform/k8s/` (`secrets.tf`). As senhas dos 2 RDS nascem na camada cluster e vão para o Secrets Manager; a senha do targeting, a MASTER_KEY e a SERVICE_API_KEY nascem na k8s e ficam só no Secret e no estado.
+
 ## D-017 - Dois estados Terraform: base permanente e cluster efemero
 
 Contexto: o plano previa uma unica raiz Terraform com tudo dentro. Ao explicar o ciclo de subir e derrubar, o usuario perguntou se nao seria melhor deixar tudo pronto antes de aplicar. A pergunta expos um furo: com um estado unico, o `terraform destroy` feito ao fim de cada sessao para parar de gastar credito levaria junto os repositorios ECR. Como eles usam `force_delete = true`, as imagens iriam junto, e o CI teria de reconstruir e reenviar as 5 antes de cada sessao.
@@ -90,6 +150,8 @@ Por que: preserva ECR, imagens, fila e tabela entre sessoes, e torna o `destroy`
 Alternativas: estado unico com `terraform destroy -target` (fragil e desaconselhado pela propria HashiCorp); estado unico aceitando recriar o ECR toda vez (perderia as imagens e gastaria tempo de CI antes de cada sessao); workspaces do Terraform (resolvem separacao de ambientes, nao de ciclo de vida).
 
 Status: aceita em 2026-08-27, aprovada pelo usuario. Implementada e validada no mesmo dia.
+
+Nota de superação (2026-09-15): a base não é permanente. Foi destruída em 2026-09-11 e em 2026-09-15 para zerar custos; o termo correto é "preservável entre sessões". Em 2026-09-09 entrou a terceira camada, `terraform/k8s/`. A ordem completa de subida e destruição está em D-023.
 
 ## D-016 - Node group com c7i-flex.large
 
@@ -178,6 +240,8 @@ Por que: EKS escrito do zero (OIDC provider, addons, access entries, node group)
 Alternativas: tudo com modulos da comunidade; tudo escrito a mao.
 
 Status: aceita em 2026-08-27, escolhida pelo usuario.
+
+Nota de superação (2026-09-15): só o módulo de VPC vem da comunidade (`terraform-aws-modules/vpc/aws ~> 5.0`). O EKS ficou em módulo próprio (`terraform/modules/eks`), junto com ecr, messaging, iam-ci, rds, elasticache e irsa.
 
 ## D-009 - Padrao de tags dos recursos AWS
 

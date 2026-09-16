@@ -8,10 +8,12 @@
 # existiam la continuam, e estas sao somadas.
 #
 # ------------------------------------------------------------
-# PREENCHER APOS O APPLY DAS ETAPAS 1 E 2
+# DE ONDE VEM CADA VALOR (conta nova: ver docs/GUIA_DE_REPRODUCAO.md, secoes 2 e 6)
 # ------------------------------------------------------------
-#   terraform -chdir=terraform output sqs_queue_url
-#   terraform -chdir=terraform output redis_endpoint     # Etapa 2
+# AWS_SQS_URL e previsivel pelo ID da conta; REDIS_URL so existe depois
+# do apply da camada terraform/cluster.
+#   terraform -chdir=terraform output -raw sqs_queue_url
+#   terraform -chdir=terraform/cluster output -raw redis_url
 # ============================================================
 
 # Documento 1: ConfigMap do evaluation-service.
@@ -21,14 +23,14 @@ metadata:
   # Casado com o recurso da base por kind + name.
   name: evaluation-service-config
 data:
-  # Endereco do ElastiCache. Sai do output do Terraform da Etapa 2.
+  # Endereco do ElastiCache. Sai do output redis_url da camada terraform/cluster.
   # O evaluation consulta este cache antes de chamar flag e targeting;
   # e o que mantem o hot path rapido.
-  # PLACEHOLDER ate a Etapa 2 existir.
+  # Valor da ultima recriacao; troque em conta nova.
   REDIS_URL: "redis://togglemaster-redis.ewbn3x.ng.0001.use2.cache.amazonaws.com:6379"
 
-  # URL da fila SQS. Sai de `terraform output sqs_queue_url` (Etapa 1,
-  # ja aplicavel). Contem o numero da conta, por isso nao fica na base.
+  # URL da fila SQS. Sai de `terraform output sqs_queue_url` (camada base,
+  # terraform/). Contem o numero da conta, por isso nao fica na base.
   #
   # Observe que isto esta num ConfigMap e nao num Secret: na Fase 2 a URL
   # vivia dentro do Secret junto com as chaves da AWS. URL de fila nao e

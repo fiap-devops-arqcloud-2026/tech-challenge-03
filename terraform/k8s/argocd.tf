@@ -252,7 +252,8 @@ resource "helm_release" "argocd" {
 # Da segunda sessao em diante, se o cluster nao tiver sido destruido, a
 # etapa A e desnecessaria. Como o cluster DESTE projeto e efemero e
 # nasce do zero a cada sessao (D-017), na pratica as duas etapas sao
-# sempre necessarias - por isso estao no runbook, passo 1.4.
+# sempre necessarias - por isso estao em docs/GUIA_DE_REPRODUCAO.md,
+# secao 7 (Camada k8s e ArgoCD).
 #
 # Alternativas avaliadas e descartadas:
 #   - provider kubectl da comunidade (gavinbunney), que aplica YAML sem

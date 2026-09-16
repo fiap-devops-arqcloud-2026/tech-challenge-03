@@ -1,72 +1,72 @@
 # ORGANIZACAO_DE_PASTAS
 
-TL;DR: o repo e um monorepo (D-007). Codigo em `services/`, infraestrutura em `terraform/`, manifestos Kustomize em `gitops/`, pipelines em `.github/workflows/`. Toda a documentacao, incluindo a memoria compartilhada `00_COLAB_IA/`, vive dentro de `docs/`.
+TL;DR: monorepo (D-007). Código em `services/`, infraestrutura em `terraform/`, manifestos em `gitops/`, pipelines em `.github/workflows/`, documentação em `docs/`. Esta pasta guarda a memória de trabalho; o que foi substituído vai para `_ARQUIVO_MORTO/` com data no nome.
 
-Ultima atualizacao: 2026-08-27 11:12 -03:00, Claude.
+Última atualização: 2026-09-15 19:03 -03:00, Claude. Substitui [_ARQUIVO_MORTO/ORGANIZACAO_DE_PASTAS_2026-08-27.md](_ARQUIVO_MORTO/ORGANIZACAO_DE_PASTAS_2026-08-27.md).
 
-## Estrutura atual
+## Estrutura em 2026-09-15
 
 ```text
 tech-challenge-03/
-|-- README.md
-|-- CLAUDE.md
-|-- .gitignore
-|-- services/                     # codigo dos 5 microsservicos (D-007)
-|   |-- auth-service/             # Go
-|   |-- evaluation-service/       # Go
-|   |-- flag-service/             # Python
-|   |-- targeting-service/        # Python
-|   `-- analytics-service/        # Python
-|-- terraform/                    # infraestrutura como codigo
-|   `-- BOOTSTRAP-BACKEND-S3.md   # criacao unica do bucket de estado
-|-- gitops/                       # manifestos Kustomize (D-008)
-|-- .github/workflows/            # pipelines de CI e DevSecOps
-`-- docs/
-    |-- POSTECH - Tech Challenge - Fase 3.pdf
-    |-- 01_Welcome to Automacao e Seguranca na Cloud/
-    |-- 02_CI-CD/
-    |-- 03_Infraestrutura como codigo/
-    |-- 04_Seguranca em DevOps (DevSecOps)/
-    |-- 05_Seguranca na Cloud/
-    `-- 00_COLAB_IA/              # memoria compartilhada entre agentes
-        |-- LEIA-PRIMEIRO.md
-        |-- PENDENCIAS_E_PROXIMOS_PASSOS.md
-        |-- LOG_DE_TRABALHO.md
-        |-- DECISOES.md
-        |-- DOSSIE_CONTEXTO.md
-        |-- CHECKLIST_REQUISITOS_FASE3.md
-        |-- ORGANIZACAO_DE_PASTAS.md
-        |-- 01_ENTRADAS/
-        |-- 02_TRABALHO/
-        |-- 03_ENTREGAVEIS/
-        |-- 04_REFERENCIAS/
-        `-- _ARQUIVO_MORTO/
+├── README.md, SECURITY.md, .gitignore, .env.example, .trivyignore, .pylintrc, pyproject.toml
+├── docker-compose.yaml, docker-compose.integration.yaml
+├── .github/workflows/      # 5 chamadores, 2 reutilizáveis, Terraform Check, Compose Integration
+├── services/               # 5 microsserviços (READMEs herdados da Fase 2)
+├── infra/                  # script de init do Postgres local do Compose
+├── scripts/                # test-compose.sh e integration/ (usados pelo CI), validate-all.sh, security-check.sh
+├── terraform/              # camada base; cluster/ e k8s/ são as outras duas; modules/
+├── gitops/                 # base/ e overlays/prod/, README.md, SECRETS-CONTRATO.md
+└── docs/
+    ├── GUIA_DE_REPRODUCAO.md, ARQUITETURA.md, RELATORIO_DE_ENTREGA.md
+    ├── POSTECH - Tech Challenge - Fase 3.pdf
+    ├── apresentacao/       # ToggleMaster_Fase3.pptx
+    ├── evidencias/         # estimativa-custos-aws-2026-09-11.png
+    ├── aulas-fiap/         # 01_ a 05_, PDFs e guias HTML de estudo
+    └── 00_COLAB_IA/
+        ├── LEIA-PRIMEIRO.md, INSTRUCOES_ASSISTENTES.md, ORGANIZACAO_DE_PASTAS.md
+        ├── PENDENCIAS_E_PROXIMOS_PASSOS.md, DECISOES.md, LOG_DE_TRABALHO.md
+        └── _ARQUIVO_MORTO/ # só leitura
 ```
 
-`terraform/`, `gitops/` e `.github/workflows/` ainda estao vazios ou inexistentes; serao preenchidos a partir de M2.
-
-## Convencao de nomes
-
-- Datas em ISO: `AAAA-MM-DD`.
-- Evitar nomes como `copia`, `final-final` ou duplicatas sem versao.
-- Usar `_v01`, `_v02` ou `_VIGENTE` quando houver versoes.
-- Guias da Fase 3: `GUIA-ESTUDO-<Modulo>.html` dentro da pasta do modulo.
-- Servicos: `<nome>-service`, igual ao nome usado no ECR e no Kustomize.
+As pastas `00_COLAB_IA/02_TRABALHO/` e `03_ENTREGAVEIS/` deixaram de existir em 2026-09-15.
 
 ## Regras de destino
 
-- Codigo de aplicacao: `services/<nome>-service/`.
-- Infraestrutura: `terraform/`.
-- Manifestos Kubernetes: `gitops/base/<servico>/` e `gitops/overlays/<ambiente>/`.
-- Pipelines: `.github/workflows/`.
-- Insumos originais: `docs/` quando ja fizerem parte do repo, ou `docs/00_COLAB_IA/01_ENTRADAS/`.
-- Trabalho em andamento: `docs/00_COLAB_IA/02_TRABALHO/`.
-- Entregaveis finais (relatorio, links, prints de custo): `docs/00_COLAB_IA/03_ENTREGAVEIS/`.
-- Referencias e materiais de apoio: `docs/00_COLAB_IA/04_REFERENCIAS/`.
-- Versoes antigas: `docs/00_COLAB_IA/_ARQUIVO_MORTO/`.
-- Contexto entre agentes: `docs/00_COLAB_IA/`.
-- Guias finais de estudo: pasta correspondente dentro de `docs/`.
+| O quê | Onde | Regra |
+|---|---|---|
+| Documento público | `docs/` | Nome em `MAIUSCULAS_COM_UNDERSCORE.md`; sem IA nem códigos internos |
+| Material de aula da FIAP | `docs/aulas-fiap/<nn>_<Módulo>/` | Continua versionado por decisão do usuário |
+| Enunciado | `docs/` | Mesmo nome do PDF original |
+| Evidência datada (captura, estimativa) | `docs/evidencias/` | Data ISO no nome |
+| Memória de trabalho | `docs/00_COLAB_IA/` | Pode citar IA e códigos internos |
+| Versão substituída | `docs/00_COLAB_IA/_ARQUIVO_MORTO/` | Sufixo `_AAAA-MM-DD`; conteúdo nunca editado |
+| Script | `scripts/` | Só se executável e em uso; obsoleto vai para o arquivo morto |
+| Saída de geradores e rascunho | `output/`, `tmp/` | Ignorados pelo `.gitignore` |
 
-## Nunca versionar
+Nunca versionar: `terraform.tfstate` e variantes, `*.tfvars`, `*.tfplan`, `.env`, chaves, kubeconfig, travas `~$*` do Office ou qualquer credencial.
 
-`terraform.tfstate` e variantes, `*.tfvars`, `.env`, chaves `.pem`/`.key`, kubeconfigs e qualquer credencial AWS. O `.gitignore` da raiz ja cobre esses padroes.
+## Registro de 2026-09-15: caminho antigo → novo
+
+Movimentos feitos com `git mv` no commit 3317204, separado das escritas para preservar o `git log --follow`. Na tabela, `_ARQUIVO_MORTO/` abrevia `docs/00_COLAB_IA/_ARQUIVO_MORTO/` e `00_COLAB_IA/` abrevia `docs/00_COLAB_IA/`. As entradas antigas de [LOG_DE_TRABALHO.md](LOG_DE_TRABALHO.md) e [DECISOES.md](DECISOES.md) continuam citando os caminhos da época, de propósito, porque histórico não se reescreve: esta tabela é o de-para para resolvê-los.
+
+| Caminho antigo | Caminho novo |
+|---|---|
+| `docs/01_Welcome to Automação e Segurança na Cloud/` | `docs/aulas-fiap/01_Welcome to Automação e Segurança na Cloud/` |
+| `docs/02_CI-CD/` | `docs/aulas-fiap/02_CI-CD/` |
+| `docs/03_Infraestrutura como código/` | `docs/aulas-fiap/03_Infraestrutura como código/` |
+| `docs/04_Segurança em DevOps (DevSecOps)/` | `docs/aulas-fiap/04_Segurança em DevOps (DevSecOps)/` |
+| `docs/05_Segurança na Cloud/` | `docs/aulas-fiap/05_Segurança na Cloud/` |
+| `docs/OPERACAO.md` | `_ARQUIVO_MORTO/OPERACAO_2026-09-15.md` (substituído por `docs/GUIA_DE_REPRODUCAO.md`) |
+| `terraform/BOOTSTRAP-BACKEND-S3.md` | `_ARQUIVO_MORTO/BOOTSTRAP-BACKEND-S3_2026-08-27.md` (absorvido pela seção 3 do guia) |
+| `scripts/build-report-fase3.py` | `_ARQUIVO_MORTO/build-report-fase3_2026-09-14.py` |
+| `scripts/capturar-estimativa-aws.cjs` | `_ARQUIVO_MORTO/capturar-estimativa-aws_2026-09-11.cjs` |
+| `00_COLAB_IA/PENDENCIAS_E_PROXIMOS_PASSOS.md` | `_ARQUIVO_MORTO/PENDENCIAS_E_PROXIMOS_PASSOS_2026-09-11.md` (novo arquivo curto no lugar) |
+| `00_COLAB_IA/DOSSIE_CONTEXTO.md` | `_ARQUIVO_MORTO/DOSSIE_CONTEXTO_2026-09-11.md` |
+| `00_COLAB_IA/CHECKLIST_REQUISITOS_FASE3.md` | `_ARQUIVO_MORTO/CHECKLIST_REQUISITOS_FASE3_2026-09-09.md` |
+| `00_COLAB_IA/PLANO_GRAVACAO_2026-09-15.md` | `_ARQUIVO_MORTO/PLANO_GRAVACAO_2026-09-15.md` |
+| `00_COLAB_IA/ORGANIZACAO_DE_PASTAS.md` | `_ARQUIVO_MORTO/ORGANIZACAO_DE_PASTAS_2026-08-27.md` (este arquivo no lugar) |
+| `00_COLAB_IA/INSTRUCOES_ASSISTENTES.md` | `_ARQUIVO_MORTO/INSTRUCOES_ASSISTENTES_2026-09-14.md` (novo arquivo no lugar) |
+| `00_COLAB_IA/02_TRABALHO/auditoria-2026-09-09/` | `_ARQUIVO_MORTO/auditoria-2026-09-09/` |
+| `00_COLAB_IA/03_ENTREGAVEIS/AUDITORIA_FIAP_2026-09-09_v01.md` | `_ARQUIVO_MORTO/AUDITORIA_FIAP_2026-09-09_v01.md` |
+| `00_COLAB_IA/03_ENTREGAVEIS/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md` | `_ARQUIVO_MORTO/REVALIDACAO_AUDITORIA_FIAP_2026-09-09_v01.md` |
+| `docs/apresentacao/~$ToggleMaster_Fase3.pptx` | removido do Git (trava do PowerPoint) |
